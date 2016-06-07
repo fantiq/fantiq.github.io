@@ -6,7 +6,7 @@
     <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="generator" content="代码狗的狗窝">
-    <title>标签: centos - 代码狗的狗窝</title>
+    <title>分类: 工具 - 代码狗的狗窝</title>
     <meta name="author" content="fantiq">
     
     
@@ -14,7 +14,7 @@
     <meta name="description" content="什么都别BB 写代码">
 <meta property="og:type" content="blog">
 <meta property="og:title" content="代码狗的狗窝">
-<meta property="og:url" content="http://yoursite.com/tags/centos/index.html">
+<meta property="og:url" content="http://yoursite.com/categories/工具/index.html">
 <meta property="og:site_name" content="代码狗的狗窝">
 <meta property="og:description" content="什么都别BB 写代码">
 <meta name="twitter:card" content="summary">
@@ -184,194 +184,26 @@
 <section class="postShorten-group main-content-wrap">
     
     
-    <article class="postShorten postShorten--thumbnailimg-right" itemscope itemType="http://schema.org/BlogPosting">
-        <div class="postShorten-wrap">
-            <div class="postShorten-header">
-                <h1 class="postShorten-title" itemprop="headline">
-                    
-                        <a class="link-unstyled" href="/2016/06/07/linux-centos-硬盘共享nfs使用总结/">
-                            linux centos 硬盘共享nfs使用总结
-                        </a>
-                    
-                </h1>
-                <div class="postShorten-meta">
-    <time itemprop="datePublished" content="Tue Jun 07 2016 22:35:57 GMT+0800">
-	
-		    6月 07, 2016
-    	
-    </time>
-    
-        <span>发布在 </span>
-        
-    <a class="category-link" href="/categories/运维/">运维</a>
-
-
-    
-</div>
-            </div>
-            
-            
-                <div class="postShorten-excerpt" itemprop="articleBody">
-                    <p>当我们多个服务器要共享同一块硬盘的时候 比如一些公共代码库 比如公共图片资源文件资源<br>这时候就需要通过磁盘共享的方式来实现。通过nfs可以满足我们的这个需求 下面深入讲解下<br>nfs的使用<br>
-                    
-                        <a href="/2016/06/07/linux-centos-硬盘共享nfs使用总结/" class="postShorten-excerpt_link link">
-                            阅读全文
-                        </a>
-                        
-                    
-                </div>
-            
-        </div>
-        
-    </article>
-    
-    
-    <article class="postShorten postShorten--thumbnailimg-right" itemscope itemType="http://schema.org/BlogPosting">
-        <div class="postShorten-wrap">
-            <div class="postShorten-header">
-                <h1 class="postShorten-title" itemprop="headline">
-                    
-                        <a class="link-unstyled" href="/2016/06/07/linux-centos-supervisor守护进程总结/">
-                            linux centos supervisor守护进程总结
-                        </a>
-                    
-                </h1>
-                <div class="postShorten-meta">
-    <time itemprop="datePublished" content="Tue Jun 07 2016 22:35:30 GMT+0800">
-	
-		    6月 07, 2016
-    	
-    </time>
-    
-        <span>发布在 </span>
-        
-    <a class="category-link" href="/categories/运维/">运维</a>
-
-
-    
-</div>
-            </div>
-            
-            
-                <div class="postShorten-excerpt" itemprop="articleBody">
-                    <p>有时候我们通过<code>screen</code> 可以让程序不会随着shell的关闭而关闭 ，虽然程序在执行 但是<br>在各种情况下 会有一些问题导致这个程序停止掉。在liunx上一些著名的开源程序提供一个<br>守护进程的方法 通过监听代码是否在执行 如果不再执行就自动重启他 从而保证服务的稳定<br>比如 <code>php-fpm</code> 这样的东西 ， 但是当我们开发一个需要一直执行的脚本 如何能有一个守护进程<br>来保证服务的稳定呢？自己开发守护进程的成本太高 linux有一个提供这个功能的开源程序<br><code>supervisor</code> 这里就总结下这个软件的使用</p>
-                    
-                        <a href="/2016/06/07/linux-centos-supervisor守护进程总结/" class="postShorten-excerpt_link link">
-                            阅读全文
-                        </a>
-                        
-                    
-                </div>
-            
-        </div>
-        
-    </article>
-    
-    
-    <article class="postShorten postShorten--thumbnailimg-right" itemscope itemType="http://schema.org/BlogPosting">
-        <div class="postShorten-wrap">
-            <div class="postShorten-header">
-                <h1 class="postShorten-title" itemprop="headline">
-                    
-                        <a class="link-unstyled" href="/2016/06/07/linux-centos-screen的使用总结/">
-                            linux centos screen的使用总结
-                        </a>
-                    
-                </h1>
-                <div class="postShorten-meta">
-    <time itemprop="datePublished" content="Tue Jun 07 2016 22:35:15 GMT+0800">
-	
-		    6月 07, 2016
-    	
-    </time>
-    
-        <span>发布在 </span>
-        
-    <a class="category-link" href="/categories/运维/">运维</a>
-
-
-    
-</div>
-            </div>
-            
-            
-                <div class="postShorten-excerpt" itemprop="articleBody">
-                    <p>我们知道一些需要一直执行的命令如 <code>node app.js</code> <code>php artisan queue:work --daemon</code><br>如果我们在shell中来执行 当shell关闭这些线程会因此中断。因为他们是通过shell这个进程<br>来执行的 属于 shell进程的一个线程 ，当我们关闭shell 这个shell的进程也会随之关闭<br>当然shell这个进程维护的线程也同样会停止，怎样才能让这些命令像service一样不会因为<br>shell的关闭而停止呢？方法有三<br>
-                    
-                        <a href="/2016/06/07/linux-centos-screen的使用总结/" class="postShorten-excerpt_link link">
-                            阅读全文
-                        </a>
-                        
-                    
-                </div>
-            
-        </div>
-        
-    </article>
-    
-    
-    <article class="postShorten postShorten--thumbnailimg-right" itemscope itemType="http://schema.org/BlogPosting">
-        <div class="postShorten-wrap">
-            <div class="postShorten-header">
-                <h1 class="postShorten-title" itemprop="headline">
-                    
-                        <a class="link-unstyled" href="/2016/06/07/linux-centos-samba-文件共享/">
-                            linux centos samba 文件共享
-                        </a>
-                    
-                </h1>
-                <div class="postShorten-meta">
-    <time itemprop="datePublished" content="Tue Jun 07 2016 14:01:52 GMT+0800">
-	
-		    6月 07, 2016
-    	
-    </time>
-    
-        <span>发布在 </span>
-        
-    <a class="category-link" href="/categories/运维/">运维</a>
-
-
-    
-</div>
-            </div>
-            
-            
-                <div class="postShorten-excerpt" itemprop="articleBody">
-                    <p>系统 linux centos<br>软件 samba</p>
-                    
-                        <a href="/2016/06/07/linux-centos-samba-文件共享/" class="postShorten-excerpt_link link">
-                            阅读全文
-                        </a>
-                        
-                    
-                </div>
-            
-        </div>
-        
-    </article>
-    
-    
     <article class="postShorten postShorten--thumbnailimg-bottom" itemscope itemType="http://schema.org/BlogPosting">
         <div class="postShorten-wrap">
             <div class="postShorten-header">
                 <h1 class="postShorten-title" itemprop="headline">
                     
-                        <a class="link-unstyled" href="/2016/05/31/linux-centos-常用基本命令/">
-                            linux centos 常用基本命令
+                        <a class="link-unstyled" href="/2016/06/07/git的使用总结/">
+                            git的使用总结
                         </a>
                     
                 </h1>
                 <div class="postShorten-meta">
-    <time itemprop="datePublished" content="Tue May 31 2016 19:53:02 GMT+0800">
+    <time itemprop="datePublished" content="Tue Jun 07 2016 22:36:39 GMT+0800">
 	
-		    5月 31, 2016
+		    6月 07, 2016
     	
     </time>
     
         <span>发布在 </span>
         
-    <a class="category-link" href="/categories/运维/">运维</a>
+    <a class="category-link" href="/categories/工具/">工具</a>, <a class="category-link" href="/categories/工具/代码管理/">代码管理</a>
 
 
     
@@ -380,26 +212,14 @@
             
             
                 <div class="postShorten-content" itemprop="articleBody">
-                    <ol>
-<li><p>cd ll rm mv cp</p>
-</li>
-<li><p>yum rpm -ql</p>
-</li>
-<li><p>ssh du -ha scp uname</p>
-</li>
-<li><p>ln -s setenv</p>
-</li>
-<li><p>setenv</p>
-</li>
-</ol>
-
+                    
                     
                         
 
                     
                     
                         <p>
-                            <a href="/2016/05/31/linux-centos-常用基本命令/#post-footer" class="postShorten-excerpt_link link">
+                            <a href="/2016/06/07/git的使用总结/#post-footer" class="postShorten-excerpt_link link">
                                 注释和共享
                             </a>
                         </p>
@@ -419,6 +239,7 @@
 </div>
 
 </section>
+
 
 
                 <footer id="footer" class="main-content-wrap">

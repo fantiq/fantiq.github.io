@@ -6,45 +6,21 @@
     <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="generator" content="代码狗的狗窝">
-    <title>linux centos 常用基本命令 - 代码狗的狗窝</title>
+    <title>linux centos screen的使用总结 - 代码狗的狗窝</title>
     <meta name="author" content="fantiq">
     
     
     
-    <meta name="description" content="cd ll rm mv cp
-
-yum rpm -ql
-
-ssh du -ha scp uname
-
-ln -s setenv
-
-setenv">
+    <meta name="description" content="我们知道一些需要一直执行的命令如 node app.js php artisan queue:work --daemon如果我们在shell中来执行 当shell关闭这些线程会因此中断。因为他们是通过shell这个进程来执行的 属于 shell进程的一个线程 ，当我们关闭shell 这个shell的进程也会随之关闭当然shell这个进程维护的线程也同样会停止，怎样才能让这些命令像service一样">
 <meta property="og:type" content="blog">
-<meta property="og:title" content="linux centos 常用基本命令">
-<meta property="og:url" content="http://yoursite.com/2016/05/31/linux-centos-常用基本命令/index.html">
+<meta property="og:title" content="linux centos screen的使用总结">
+<meta property="og:url" content="http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/index.html">
 <meta property="og:site_name" content="代码狗的狗窝">
-<meta property="og:description" content="cd ll rm mv cp
-
-yum rpm -ql
-
-ssh du -ha scp uname
-
-ln -s setenv
-
-setenv">
-<meta property="og:updated_time" content="2016-05-31T12:55:19.906Z">
+<meta property="og:description" content="我们知道一些需要一直执行的命令如 node app.js php artisan queue:work --daemon如果我们在shell中来执行 当shell关闭这些线程会因此中断。因为他们是通过shell这个进程来执行的 属于 shell进程的一个线程 ，当我们关闭shell 这个shell的进程也会随之关闭当然shell这个进程维护的线程也同样会停止，怎样才能让这些命令像service一样">
+<meta property="og:updated_time" content="2016-06-07T14:47:07.859Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="linux centos 常用基本命令">
-<meta name="twitter:description" content="cd ll rm mv cp
-
-yum rpm -ql
-
-ssh du -ha scp uname
-
-ln -s setenv
-
-setenv">
+<meta name="twitter:title" content="linux centos screen的使用总结">
+<meta name="twitter:description" content="我们知道一些需要一直执行的命令如 node app.js php artisan queue:work --daemon如果我们在shell中来执行 当shell关闭这些线程会因此中断。因为他们是通过shell这个进程来执行的 属于 shell进程的一个线程 ，当我们关闭shell 这个shell的进程也会随之关闭当然shell这个进程维护的线程也同样会停止，怎样才能让这些命令像service一样">
     
     
         
@@ -210,13 +186,13 @@ setenv">
         <div class="post-header main-content-wrap text-left">
     
         <h1 class="post-title" itemprop="headline">
-            linux centos 常用基本命令
+            linux centos screen的使用总结
         </h1>
     
     <div class="post-meta">
-    <time itemprop="datePublished" content="Tue May 31 2016 19:53:02 GMT+0800">
+    <time itemprop="datePublished" content="Tue Jun 07 2016 22:35:15 GMT+0800">
 	
-		    5月 31, 2016
+		    6月 07, 2016
     	
     </time>
     
@@ -231,19 +207,13 @@ setenv">
     
     <div class="post-content markdown" itemprop="articleBody">
         <div class="main-content-wrap">
-            <ol>
-<li><p>cd ll rm mv cp</p>
-</li>
-<li><p>yum rpm -ql</p>
-</li>
-<li><p>ssh du -ha scp uname</p>
-</li>
-<li><p>ln -s setenv</p>
-</li>
-<li><p>setenv</p>
-</li>
+            <p>我们知道一些需要一直执行的命令如 <code>node app.js</code> <code>php artisan queue:work --daemon</code><br>如果我们在shell中来执行 当shell关闭这些线程会因此中断。因为他们是通过shell这个进程<br>来执行的 属于 shell进程的一个线程 ，当我们关闭shell 这个shell的进程也会随之关闭<br>当然shell这个进程维护的线程也同样会停止，怎样才能让这些命令像service一样不会因为<br>shell的关闭而停止呢？方法有三<br><a id="more"></a></p>
+<ol>
+<li>做成service</li>
+<li>做一个不会停止的shell进程</li>
 </ol>
-
+<p>当然成本最低的是方法2 最容易想到的也是方法2 这里讲解下方法2 的实现 <code>screen</code></p>
+<h2 id="1-安装"><a href="#1-安装" class="headerlink" title="1 安装"></a>1 安装</h2><h2 id="2-配置文件"><a href="#2-配置文件" class="headerlink" title="2 配置文件"></a>2 配置文件</h2><h2 id="3-启动服务"><a href="#3-启动服务" class="headerlink" title="3 启动服务"></a>3 启动服务</h2><h2 id="4-使用命令总结"><a href="#4-使用命令总结" class="headerlink" title="4 使用命令总结"></a>4 使用命令总结</h2>
             
                 
 
@@ -255,7 +225,7 @@ setenv">
             <div class="post-footer-tags">
                 <span class="text-color-light text-small">标签</span><br/>
                 
-    <a class="tag tag--primary tag--small t-link" href="/tags/centos/">centos</a> <a class="tag tag--primary tag--small t-link" href="/tags/linux/">linux</a>
+    <a class="tag tag--primary tag--small t-link" href="/tags/centos/">centos</a> <a class="tag tag--primary tag--small t-link" href="/tags/linux/">linux</a> <a class="tag tag--primary tag--small t-link" href="/tags/screen/">screen</a>
 
             </div>
         
@@ -264,7 +234,7 @@ setenv">
         <ul class="post-actions post-action-nav">
             <li class="post-action">
                 
-                    <a class="post-action-btn btn btn--default tooltip--top" href="/2016/06/07/linux-centos-samba-文件共享/"  data-tooltip="linux centos samba 文件共享">
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2016/06/07/linux-centos-supervisor守护进程总结/"  data-tooltip="linux centos supervisor守护进程总结">
                 
                     <i class="fa fa-angle-left"></i>
                     <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
@@ -272,7 +242,7 @@ setenv">
             </li>
             <li class="post-action">
                 
-                    <a class="post-action-btn btn btn--default tooltip--top" href="/2016/05/31/博客搭建过程总结/" data-tooltip="博客搭建过程总结">
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2016/06/07/linux-centos-samba-文件共享/" data-tooltip="linux centos samba 文件共享">
                 
                     <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
                     <i class="fa fa-angle-right"></i>
@@ -287,17 +257,17 @@ setenv">
             </a>
         </li>
         <li class="post-action hide-xs">
-            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://yoursite.com/2016/05/31/linux-centos-常用基本命令/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-google-plus"></i>
             </a>
         </li>
         <li class="post-action hide-xs">
-            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://yoursite.com/2016/05/31/linux-centos-常用基本命令/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-facebook-official"></i>
             </a>
         </li>
         <li class="post-action hide-xs">
-            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://yoursite.com/2016/05/31/linux-centos-常用基本命令/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-twitter"></i>
             </a>
         </li>
@@ -321,8 +291,8 @@ setenv">
 
         
             
-                <div id="ds-thread" class="ds-thread" data-thread-key="2016/05/31/linux-centos-常用基本命令/"
-     data-title="linux centos 常用基本命令" data-url="http://yoursite.com/2016/05/31/linux-centos-常用基本命令/">
+                <div id="ds-thread" class="ds-thread" data-thread-key="2016/06/07/linux-centos-screen的使用总结/"
+     data-title="linux centos screen的使用总结" data-url="http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
 </div>
 
             
@@ -346,7 +316,7 @@ setenv">
         <ul class="post-actions post-action-nav">
             <li class="post-action">
                 
-                    <a class="post-action-btn btn btn--default tooltip--top" href="/2016/06/07/linux-centos-samba-文件共享/"  data-tooltip="linux centos samba 文件共享">
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2016/06/07/linux-centos-supervisor守护进程总结/"  data-tooltip="linux centos supervisor守护进程总结">
                 
                     <i class="fa fa-angle-left"></i>
                     <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
@@ -354,7 +324,7 @@ setenv">
             </li>
             <li class="post-action">
                 
-                    <a class="post-action-btn btn btn--default tooltip--top" href="/2016/05/31/博客搭建过程总结/" data-tooltip="博客搭建过程总结">
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2016/06/07/linux-centos-samba-文件共享/" data-tooltip="linux centos samba 文件共享">
                 
                     <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
                     <i class="fa fa-angle-right"></i>
@@ -369,17 +339,17 @@ setenv">
             </a>
         </li>
         <li class="post-action hide-xs">
-            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://yoursite.com/2016/05/31/linux-centos-常用基本命令/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-google-plus"></i>
             </a>
         </li>
         <li class="post-action hide-xs">
-            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://yoursite.com/2016/05/31/linux-centos-常用基本命令/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-facebook-official"></i>
             </a>
         </li>
         <li class="post-action hide-xs">
-            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://yoursite.com/2016/05/31/linux-centos-常用基本命令/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-twitter"></i>
             </a>
         </li>
@@ -405,17 +375,17 @@ setenv">
                 <div id="share-options-bar" class="share-options-bar" data-behavior="3">
     <ul class="share-options">
         <li class="share-option">
-            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=http://yoursite.com/2016/05/31/linux-centos-常用基本命令/">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
             </a>
         </li>
         <li class="share-option">
-            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://yoursite.com/2016/05/31/linux-centos-常用基本命令/">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
             </a>
         </li>
         <li class="share-option">
-            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=http://yoursite.com/2016/05/31/linux-centos-常用基本命令/">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
             </a>
         </li>
