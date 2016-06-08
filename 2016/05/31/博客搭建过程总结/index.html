@@ -18,7 +18,7 @@
 <meta property="og:site_name" content="代码狗的狗窝">
 <meta property="og:description" content="博客采用的是 node 的一个模块 hexo换用皮肤 tranquilpeak现在把搭建过程总结下">
 <meta property="og:image" content="http://yoursite.com/assets/images/avatar.jpg">
-<meta property="og:updated_time" content="2016-06-01T02:49:28.483Z">
+<meta property="og:updated_time" content="2016-06-08T12:25:23.893Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="博客搭建过程总结">
 <meta name="twitter:description" content="博客采用的是 node 的一个模块 hexo换用皮肤 tranquilpeak现在把搭建过程总结下">
@@ -253,26 +253,27 @@
 <p>已经初步搭建成功</p>
 <h3 id="5-更好的使用"><a href="#5-更好的使用" class="headerlink" title="5 更好的使用"></a>5 更好的使用</h3><p>皮肤里面的各个配置 github 上更清晰 (User Document)[<a href="https://github.com/LouisBarranqueiro/hexo-theme-tranquilpeak/blob/master/docs/user.md" target="_blank" rel="external">https://github.com/LouisBarranqueiro/hexo-theme-tranquilpeak/blob/master/docs/user.md</a>]</p>
 <p>开启  categories tags archives 等页面</p>
-<p>创建新的文章<br>hexo new “文章名称”</p>
+<p>创建新的文章<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hexo <span class="keyword">new</span> <span class="string">"文章名称"</span></span><br></pre></td></tr></table></figure></p>
 <p>文章开始部分<br><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">title:</span> 博客搭建过程总结</span><br><span class="line"><span class="attr">date:</span> <span class="number">2016</span><span class="bullet">-05</span><span class="bullet">-31</span> <span class="number">17</span>:<span class="number">59</span>:<span class="number">12</span></span><br><span class="line"><span class="attr">categories:</span> node</span><br><span class="line"><span class="attr">tags:</span> [hexo,node]</span><br><span class="line"><span class="meta">---</span></span><br></pre></td></tr></table></figure></p>
 <p>是文章信息的描述</p>
 <p>categories 是分类 tags 是标签</p>
 <p>想要创建多个分类或者标签可以这样</p>
 <figure class="highlight gcode"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tags: [ta<span class="name">g1</span>,ta<span class="name">g2</span>,ta<span class="name">g3.</span>....]</span><br></pre></td></tr></table></figure>
 <h3 id="6-最后一些markdown"><a href="#6-最后一些markdown" class="headerlink" title="6 最后一些markdown"></a>6 最后一些markdown</h3><h5 id="列表"><a href="#列表" class="headerlink" title="列表"></a>列表</h5><hr>
-<p>有序</p>
+<p>有序<br><figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="bullet">1. </span>item1</span><br><span class="line"><span class="bullet">2. </span>item2</span><br><span class="line"><span class="bullet">3. </span>item3</span><br></pre></td></tr></table></figure></p>
 <ol>
 <li>item1</li>
 <li>item2</li>
 <li>item3</li>
 </ol>
-<p>无序</p>
+<p>无序<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">* <span class="built_in">item</span></span><br><span class="line">* <span class="built_in">item</span></span><br><span class="line">* <span class="built_in">item</span></span><br></pre></td></tr></table></figure></p>
 <ul>
 <li>item</li>
 <li>item</li>
 <li>item</li>
 </ul>
 <h4 id="表格"><a href="#表格" class="headerlink" title="表格"></a>表格</h4><hr>
+<figure class="highlight gherkin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">|<span class="string">id</span>|<span class="string">name</span>|<span class="string">ext</span>|</span><br><span class="line">|<span class="string">---</span>|<span class="string">---</span>|<span class="string">---</span>|</span><br><span class="line">|<span class="string">1</span>|<span class="string">fanyilong</span>|<span class="string">test</span>|</span><br><span class="line">|<span class="string">2</span>|<span class="string">fantasy</span>|<span class="string">nothing</span>|</span><br><span class="line">|<span class="string">3</span>|<span class="string">fantiq</span>|<span class="string">github</span>|</span><br></pre></td></tr></table></figure>
 <table>
 <thead>
 <tr>
@@ -304,16 +305,20 @@
 <figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="php"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">test</span></span><br><span class="line"></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">()</span></span><br><span class="line">    </span>&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">"test"</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span></span><br></pre></td></tr></table></figure>
 <p>代码片段</p>
 <p><code>php artisan queue:work --daemon</code></p>
-<p>引用</p>
+<p>引用<br><figure class="highlight ada"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt; ABAB 上下上下 <span class="comment">-- 沃兹基舒德</span></span><br></pre></td></tr></table></figure></p>
 <blockquote>
 <p>ABAB 上下上下 – 沃兹基舒德</p>
 </blockquote>
 <h4 id="格式"><a href="#格式" class="headerlink" title="格式"></a>格式</h4><hr>
+<figure class="highlight asciidoc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="strong">*斜体*</span></span><br><span class="line">*<span class="strong">*加粗*</span>* </span><br><span class="line">~~删除~~</span><br></pre></td></tr></table></figure>
 <p><em>斜体</em><br><strong>加粗</strong><br><del>删除</del> </p>
 <p>下划线</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">---</span></span><br></pre></td></tr></table></figure>
 <hr>
-<p>链接 <a href="http://www.baidu.com" target="_blank" rel="external">百度</a></p>
-<p>图片 <img src="/assets/images/avatar.jpg" alt="头像"></p>
+<p>链接<br><figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[<span class="string">百度</span>](<span class="link">http://www.baidu.com</span>)</span><br></pre></td></tr></table></figure></p>
+<p><a href="http://www.baidu.com" target="_blank" rel="external">百度</a></p>
+<p>图片<br><figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">![<span class="string">头像</span>](<span class="link">/assets/images/avatar.jpg</span>)</span><br></pre></td></tr></table></figure></p>
+<p><img src="/assets/images/avatar.jpg" alt="头像"></p>
             
                 
 

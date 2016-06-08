@@ -17,7 +17,7 @@
 <meta property="og:url" content="http://yoursite.com/2016/06/07/linux-centos-supervisor守护进程总结/index.html">
 <meta property="og:site_name" content="代码狗的狗窝">
 <meta property="og:description" content="有时候我们通过screen 可以让程序不会随着shell的关闭而关闭 ，虽然程序在执行 但是在各种情况下 会有一些问题导致这个程序停止掉。在liunx上一些著名的开源程序提供一个守护进程的方法 通过监听代码是否在执行 如果不再执行就自动重启他 从而保证服务的稳定比如 php-fpm 这样的东西 ， 但是当我们开发一个需要一直执行的脚本 如何能有一个守护进程来保证服务的稳定呢？自己开发守护进程的成本">
-<meta property="og:updated_time" content="2016-06-07T14:51:21.452Z">
+<meta property="og:updated_time" content="2016-06-07T14:53:35.576Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="linux centos supervisor守护进程总结">
 <meta name="twitter:description" content="有时候我们通过screen 可以让程序不会随着shell的关闭而关闭 ，虽然程序在执行 但是在各种情况下 会有一些问题导致这个程序停止掉。在liunx上一些著名的开源程序提供一个守护进程的方法 通过监听代码是否在执行 如果不再执行就自动重启他 从而保证服务的稳定比如 php-fpm 这样的东西 ， 但是当我们开发一个需要一直执行的脚本 如何能有一个守护进程来保证服务的稳定呢？自己开发守护进程的成本">
@@ -209,6 +209,7 @@
         <div class="main-content-wrap">
             <p>有时候我们通过<code>screen</code> 可以让程序不会随着shell的关闭而关闭 ，虽然程序在执行 但是<br>在各种情况下 会有一些问题导致这个程序停止掉。在liunx上一些著名的开源程序提供一个<br>守护进程的方法 通过监听代码是否在执行 如果不再执行就自动重启他 从而保证服务的稳定<br>比如 <code>php-fpm</code> 这样的东西 ， 但是当我们开发一个需要一直执行的脚本 如何能有一个守护进程<br>来保证服务的稳定呢？自己开发守护进程的成本太高 linux有一个提供这个功能的开源程序<br><code>supervisor</code> 这里就总结下这个软件的使用</p>
 <a id="more"></a>
+<p><a href="http://www.plope.com/software/collector/215/" target="_blank" rel="external">http://www.plope.com/software/collector/215/</a></p>
 
             
                 

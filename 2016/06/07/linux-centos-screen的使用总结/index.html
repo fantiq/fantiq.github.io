@@ -17,10 +17,12 @@
 <meta property="og:url" content="http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/index.html">
 <meta property="og:site_name" content="代码狗的狗窝">
 <meta property="og:description" content="我们知道一些需要一直执行的命令如 node app.js php artisan queue:work --daemon如果我们在shell中来执行 当shell关闭这些线程会因此中断。因为他们是通过shell这个进程来执行的 属于 shell进程的一个线程 ，当我们关闭shell 这个shell的进程也会随之关闭当然shell这个进程维护的线程也同样会停止，怎样才能让这些命令像service一样">
-<meta property="og:updated_time" content="2016-06-07T14:47:07.859Z">
+<meta property="og:image" content="http://yoursite.com/2016-06-08_195315.png">
+<meta property="og:updated_time" content="2016-06-08T12:25:21.625Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="linux centos screen的使用总结">
 <meta name="twitter:description" content="我们知道一些需要一直执行的命令如 node app.js php artisan queue:work --daemon如果我们在shell中来执行 当shell关闭这些线程会因此中断。因为他们是通过shell这个进程来执行的 属于 shell进程的一个线程 ，当我们关闭shell 这个shell的进程也会随之关闭当然shell这个进程维护的线程也同样会停止，怎样才能让这些命令像service一样">
+<meta name="twitter:image" content="http://yoursite.com/2016-06-08_195315.png">
     
     
         
@@ -213,7 +215,19 @@
 <li>做一个不会停止的shell进程</li>
 </ol>
 <p>当然成本最低的是方法2 最容易想到的也是方法2 这里讲解下方法2 的实现 <code>screen</code></p>
-<h2 id="1-安装"><a href="#1-安装" class="headerlink" title="1 安装"></a>1 安装</h2><h2 id="2-配置文件"><a href="#2-配置文件" class="headerlink" title="2 配置文件"></a>2 配置文件</h2><h2 id="3-启动服务"><a href="#3-启动服务" class="headerlink" title="3 启动服务"></a>3 启动服务</h2><h2 id="4-使用命令总结"><a href="#4-使用命令总结" class="headerlink" title="4 使用命令总结"></a>4 使用命令总结</h2>
+<h2 id="1-安装"><a href="#1-安装" class="headerlink" title="1 安装"></a>1 安装</h2><p>安装软件<br><figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum <span class="keyword">install </span><span class="keyword">screen </span>-y</span><br></pre></td></tr></table></figure></p>
+<h2 id="2-配置文件"><a href="#2-配置文件" class="headerlink" title="2 配置文件"></a>2 配置文件</h2><p>无</p>
+<h2 id="3-启动服务"><a href="#3-启动服务" class="headerlink" title="3 启动服务"></a>3 启动服务</h2><p>无</p>
+<h2 id="4-使用命令总结"><a href="#4-使用命令总结" class="headerlink" title="4 使用命令总结"></a>4 使用命令总结</h2><p>创建一个tty<br>[pid.]tty.host 这个是一个完整的格式<br>tty 是可以同名的<br>screen会给你分配一个pid的<br>如果你有多个同名的tty<br>screen -r pid 也是可以进去的<br><figure class="highlight cos"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">screen -<span class="keyword">S</span> tty</span><br></pre></td></tr></table></figure></p>
+<p>查看有哪些session<br><figure class="highlight gauss"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">screen</span> -ls</span><br></pre></td></tr></table></figure></p>
+<p>进入到一个指定的tty<br><figure class="highlight cos"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">screen -<span class="keyword">r</span> tty</span><br><span class="line">screen -<span class="keyword">r</span> pid</span><br><span class="line">screen -<span class="keyword">r</span> pid.tty</span><br></pre></td></tr></table></figure></p>
+<p>多用户情况下 一个tty只能一个用户使用<br>detached 表示离线 可以<code>screen -r</code> 进去<br>attached 表示在线的 只允许单个用户进入<br>不过你可以强制挤掉别人的登录<br><figure class="highlight cos"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">screen -<span class="keyword">D</span> -<span class="keyword">r</span> tty</span><br></pre></td></tr></table></figure></p>
+<p>或者这样实现共享<br><figure class="highlight cos"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">screen -<span class="keyword">x</span> -<span class="keyword">r</span> tty</span><br></pre></td></tr></table></figure></p>
+<p>一个screen的tty里面是可以创建多个window的 通过命令<br>这里的命令都是以 ctrl+a(C-a) 开始的</p>
+<p>C-a c # create 新建一个window<br>C-a n # Next 切换到下一个window<br>C-a p # Previous 切换到上一个window<br>C-a 0..9 # 切换到第0…9个window<br>C-a x # 锁定当前window<br>C-a d # 离开当前window screen后台运行<br>通过<code>exit</code>退出一个window 当一个tty的window全部退出 这个tty也会相应被删除<br>C-a w # 列出所有的window</p>
+<p><a href="http://justdo2008.iteye.com/blog/1888772" target="_blank" rel="external">这里有更详细的解释</a></p>
+<p><strong>另外</strong> 如何查看 当前是否在一个screen中？ 看你的shell的title<br><img src="2016-06-08_195315.png" alt="图片"></p>
+
             
                 
 
