@@ -17,7 +17,7 @@
 <meta property="og:url" content="http://yoursite.com/2016/06/07/html5中引入的csp防跨域/index.html">
 <meta property="og:site_name" content="代码狗的狗窝">
 <meta property="og:description" content="CSP = content security policy 是浏览器的一个安全策略，如同跨域功能通过相应头可以控制 浏览器的行为 比如：内联样式 内联js 引用外部js 图片等文件这个是html5 的新特性 ，用来防止 跨站攻击 很有效 但是要高版本浏览器才会支持这里可以看到兼容性">
-<meta property="og:updated_time" content="2016-06-13T06:14:02.122Z">
+<meta property="og:updated_time" content="2016-06-13T06:20:19.794Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="html5中引入的csp防跨域">
 <meta name="twitter:description" content="CSP = content security policy 是浏览器的一个安全策略，如同跨域功能通过相应头可以控制 浏览器的行为 比如：内联样式 内联js 引用外部js 图片等文件这个是html5 的新特性 ，用来防止 跨站攻击 很有效 但是要高版本浏览器才会支持这里可以看到兼容性">
@@ -340,6 +340,8 @@
 </tr>
 </tbody>
 </table>
+<p>在实际项目用常用到的其实并没有这么多<br>前端用到的资源很多 这个维护量很大 全面使用 CSP策略 给开发也会带来很多不便<br>我目前在项目中的使用是这样的</p>
+<figure class="highlight vim"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">script-src <span class="string">'self'</span> <span class="string">'unsafe-inline'</span> <span class="string">'unsafe-eval'</span> </span><br><span class="line">http://*.kuaiqiangche.<span class="keyword">com</span> http://*.kuaiqiangche.<span class="keyword">cn</span> </span><br><span class="line">http<span class="variable">s:</span>//*.kuaiqiangche.<span class="keyword">com</span> http<span class="variable">s:</span>//*.kuaiqiangche.<span class="keyword">cn</span> </span><br><span class="line">....</span><br></pre></td></tr></table></figure>
 <p><a href="http://drops.wooyun.org/tips/1439" target="_blank" rel="external">参考链接</a></p>
 
             
