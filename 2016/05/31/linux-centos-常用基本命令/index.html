@@ -11,49 +11,16 @@
     
     
     
-    <meta name="description" content="cd ll rm mv cp
-
-yum rpm -ql rpm参考
-
-ssh du -ha scp uname
-
-ln -s
-
-setenv
-
-
-基本命令123456789101112131415lsll -acp source distrm -rf filepathmv source distln -s source distscp source dist如果source是远程文件 写成 us">
+    <meta name="description" content="linux centos 6.x 常用的一些命令总结这里不讲基本用法 多讲一些很有用的小技巧">
 <meta property="og:type" content="blog">
 <meta property="og:title" content="linux centos 常用基本命令">
 <meta property="og:url" content="http://yoursite.com/2016/05/31/linux-centos-常用基本命令/index.html">
 <meta property="og:site_name" content="代码狗的狗窝">
-<meta property="og:description" content="cd ll rm mv cp
-
-yum rpm -ql rpm参考
-
-ssh du -ha scp uname
-
-ln -s
-
-setenv
-
-
-基本命令123456789101112131415lsll -acp source distrm -rf filepathmv source distln -s source distscp source dist如果source是远程文件 写成 us">
-<meta property="og:updated_time" content="2016-06-08T12:34:23.305Z">
+<meta property="og:description" content="linux centos 6.x 常用的一些命令总结这里不讲基本用法 多讲一些很有用的小技巧">
+<meta property="og:updated_time" content="2016-06-12T07:51:30.307Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="linux centos 常用基本命令">
-<meta name="twitter:description" content="cd ll rm mv cp
-
-yum rpm -ql rpm参考
-
-ssh du -ha scp uname
-
-ln -s
-
-setenv
-
-
-基本命令123456789101112131415lsll -acp source distrm -rf filepathmv source distln -s source distscp source dist如果source是远程文件 写成 us">
+<meta name="twitter:description" content="linux centos 6.x 常用的一些命令总结这里不讲基本用法 多讲一些很有用的小技巧">
     
     
         
@@ -240,19 +207,13 @@ setenv
     
     <div class="post-content markdown" itemprop="articleBody">
         <div class="main-content-wrap">
-            <ol>
-<li><p>cd ll rm mv cp</p>
-</li>
-<li><p>yum rpm -ql <a href="http://blog.csdn.net/iquicksandi/article/details/7816750" target="_blank" rel="external">rpm参考</a></p>
-</li>
-<li><p>ssh du -ha scp uname</p>
-</li>
-<li><p>ln -s</p>
-</li>
-<li><p>setenv</p>
-</li>
-</ol>
-<h3 id="基本命令"><a href="#基本命令" class="headerlink" title="基本命令"></a>基本命令</h3><figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">ls</span><br><span class="line">ll -a</span><br><span class="line">cp source dist</span><br><span class="line">rm -rf filepath</span><br><span class="line">mv source dist</span><br><span class="line">ln -s source dist</span><br><span class="line">scp source dist</span><br><span class="line">如果source是远程文件 写成 username<span class="variable">@ip:</span>/foo/bar </span><br><span class="line">ssh username<span class="variable">@ip</span></span><br><span class="line">du -ha</span><br><span class="line">find path filename</span><br><span class="line">more less cat touch mkdir </span><br><span class="line">yum install pkgname -y</span><br><span class="line">rpm -ql</span><br><span class="line">service iptables status</span><br></pre></td></tr></table></figure>
+            <p>linux centos 6.x 常用的一些命令总结<br>这里不讲基本用法 多讲一些很有用的小技巧</p>
+<a id="more"></a>
+<h2 id="1-常用的文件操作"><a href="#1-常用的文件操作" class="headerlink" title="1 常用的文件操作"></a>1 常用的文件操作</h2><figure class="highlight vala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"># change directory 切换目录</span></span><br><span class="line">cd dir</span><br><span class="line"></span><br><span class="line"><span class="meta"># 列出当前文件加下的所有文件</span></span><br><span class="line">ls</span><br><span class="line"></span><br><span class="line"><span class="meta"># 更细的列出文件夹下的所有文件 -a 可以列出隐藏文件</span></span><br><span class="line">ll -a</span><br><span class="line"></span><br><span class="line"><span class="meta"># 拷贝文件 -r 拷贝一个目录</span></span><br><span class="line">cp -r source dist</span><br><span class="line"></span><br><span class="line"><span class="meta"># 拷贝远程文件 远程文件地址 username@ip:/foo/bar</span></span><br><span class="line">scp source dist</span><br><span class="line"></span><br><span class="line"><span class="meta"># 移动文件 或者修改文件名称</span></span><br><span class="line"><span class="meta"># -f 覆盖不询问 -n 覆盖询问 -b 文件在覆盖前做备份 (备份文件名末尾加 ~ )</span></span><br><span class="line">mv source dist</span><br><span class="line"></span><br><span class="line"><span class="meta"># remove 删除文件 -r 删除文件夹 -f 强制删除不提示</span></span><br><span class="line">rm -rf</span><br><span class="line"></span><br><span class="line"><span class="meta"># 创建一个快捷方式 软连接</span></span><br><span class="line">ln -s source dist</span><br></pre></td></tr></table></figure>
+<h2 id="2-文件包的安装"><a href="#2-文件包的安装" class="headerlink" title="2 文件包的安装"></a>2 文件包的安装</h2><figure class="highlight vala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"># 不用确认直接安装</span></span><br><span class="line">yum install pkgname -y</span><br><span class="line"><span class="meta"># 查询已经安装的包</span></span><br><span class="line">yum list pkgname</span><br><span class="line"><span class="meta"># yum搜索一个包</span></span><br><span class="line">yum search pkgname</span><br><span class="line"><span class="meta"># 删除安装的包</span></span><br><span class="line">yum remove pkgname</span><br><span class="line"></span><br><span class="line"><span class="meta"># 查询安装的包</span></span><br><span class="line">rpm -qa | grep pkgname</span><br><span class="line"><span class="meta"># 查询安装包的详细信息</span></span><br><span class="line">rpm -ql | grep pkgname</span><br></pre></td></tr></table></figure>
+<h2 id="3-用户相关"><a href="#3-用户相关" class="headerlink" title="3 用户相关"></a>3 用户相关</h2><figure class="highlight vala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"># 当前登录用户</span></span><br><span class="line">whoami</span><br><span class="line">id</span><br><span class="line"><span class="meta"># 切换登录用户</span></span><br><span class="line">su username</span><br><span class="line"><span class="meta"># 修改用户密码</span></span><br><span class="line">passwd username</span><br></pre></td></tr></table></figure>
+<h2 id="4-其他常用"><a href="#4-其他常用" class="headerlink" title="4 其他常用"></a>4 其他常用</h2><figure class="highlight vala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"># ssh登录</span></span><br><span class="line">ssh username@ip</span><br><span class="line"></span><br><span class="line"><span class="meta"># 查看当前文件夹下面文件大小</span></span><br><span class="line">du -ha</span><br><span class="line"></span><br><span class="line"><span class="meta"># 查看服务</span></span><br><span class="line">service servname [start|stop|restart]</span><br><span class="line"></span><br><span class="line"><span class="meta"># 查看当前系统运行的服务</span></span><br><span class="line">ps -ef | grep servname</span><br><span class="line"></span><br><span class="line"><span class="meta"># 查看文件内容</span></span><br><span class="line">more</span><br><span class="line">less</span><br><span class="line">cat</span><br><span class="line"></span><br><span class="line"><span class="meta"># 创建一个空文件</span></span><br><span class="line">touch filename</span><br><span class="line"><span class="meta"># 覆盖写入内容到一个文件 没有文件则创建</span></span><br><span class="line">echo <span class="string">""</span> &gt; filename</span><br><span class="line"><span class="meta"># 追加写入内容到文件</span></span><br><span class="line">echo <span class="string">""</span> &gt;&gt; filename</span><br><span class="line"></span><br><span class="line"><span class="meta"># 查找一个文件</span></span><br><span class="line"><span class="meta"># -name 查找文件名 -type 查找文件类型</span></span><br><span class="line">find path [option] name</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta"># 硬盘挂载</span></span><br><span class="line">mount -t nfs ip:/foo/bar dist</span><br><span class="line"><span class="meta"># 取消挂载</span></span><br><span class="line">umount dist </span><br><span class="line"></span><br><span class="line"><span class="meta"># 显示当前操作系统名称</span></span><br><span class="line">uname -a</span><br></pre></td></tr></table></figure>
+
             
                 
 

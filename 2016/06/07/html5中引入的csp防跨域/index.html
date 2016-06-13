@@ -11,16 +11,16 @@
     
     
     
-    <meta name="description" content="什么都别BB 写代码">
+    <meta name="description" content="CSP = content security policy 是浏览器的一个安全策略，如同跨域功能通过相应头可以控制 浏览器的行为 比如：内联样式 内联js 引用外部js 图片等文件这个是html5 的新特性 ，用来防止 跨站攻击 很有效 但是要高版本浏览器才会支持这里可以看到兼容性">
 <meta property="og:type" content="blog">
 <meta property="og:title" content="html5中引入的csp防跨域">
 <meta property="og:url" content="http://yoursite.com/2016/06/07/html5中引入的csp防跨域/index.html">
 <meta property="og:site_name" content="代码狗的狗窝">
-<meta property="og:description" content="什么都别BB 写代码">
-<meta property="og:updated_time" content="2016-06-07T14:38:08.638Z">
+<meta property="og:description" content="CSP = content security policy 是浏览器的一个安全策略，如同跨域功能通过相应头可以控制 浏览器的行为 比如：内联样式 内联js 引用外部js 图片等文件这个是html5 的新特性 ，用来防止 跨站攻击 很有效 但是要高版本浏览器才会支持这里可以看到兼容性">
+<meta property="og:updated_time" content="2016-06-13T06:14:02.122Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="html5中引入的csp防跨域">
-<meta name="twitter:description" content="什么都别BB 写代码">
+<meta name="twitter:description" content="CSP = content security policy 是浏览器的一个安全策略，如同跨域功能通过相应头可以控制 浏览器的行为 比如：内联样式 内联js 引用外部js 图片等文件这个是html5 的新特性 ，用来防止 跨站攻击 很有效 但是要高版本浏览器才会支持这里可以看到兼容性">
     
     
         
@@ -207,7 +207,141 @@
     
     <div class="post-content markdown" itemprop="articleBody">
         <div class="main-content-wrap">
-            
+            <p>CSP = content security policy 是浏览器的一个安全策略，如同跨域功能<br>通过相应头可以控制 浏览器的行为 比如：内联样式 内联js 引用外部js 图片等文件<br>这个是html5 的新特性 ，用来防止 跨站攻击 很有效 但是要高版本浏览器才会支持<br><a href="http://caniuse.com/#feat=contentsecuritypolicy" target="_blank" rel="external">这里可以看到兼容性</a></p>
+<a id="more"></a>
+<p>举个例子 在<code>nginx</code>上的一个请求头的配置<br><figure class="highlight csp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">add_header <span class="string">'Content-Security-Policy'</span> "</span><br><span class="line"><span class="keyword">default-src</span> <span class="string">'self'</span> http://cdn.bootcss.com;</span><br><span class="line"><span class="keyword">script-src</span> <span class="string">'self'</span> <span class="string">'unsafe-inline'</span> <span class="string">'unsafe-eval'</span> http://*.kuaiqiangche.com;</span><br><span class="line"><span class="keyword">style-src</span> <span class="string">'self'</span> <span class="string">'unsafe-eval'</span> http://*.bdimg.com;</span><br><span class="line"><span class="keyword">report-uri</span> http://csp.report.kuaiqiangche.com;</span><br><span class="line">";</span><br></pre></td></tr></table></figure></p>
+<h2 id="CSP响应头"><a href="#CSP响应头" class="headerlink" title="CSP响应头"></a>CSP响应头</h2><p>不同浏览器对http头的识别是不一样的<br>历史原因导致 开发 需要做不同浏览器的兼容<br>下面列出一些浏览器识别的头<br><figure class="highlight vala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"># 通用头</span></span><br><span class="line">Content-Security-Policy</span><br><span class="line"><span class="meta"># firefox 响应头</span></span><br><span class="line">X-Content-Security-Policy</span><br><span class="line"><span class="meta"># chrome safari</span></span><br><span class="line">X-WebKit-CSP</span><br></pre></td></tr></table></figure></p>
+<h2 id="key值的格式"><a href="#key值的格式" class="headerlink" title="key值的格式"></a>key值的格式</h2><p>不同的csp指令之间用 <code>;</code> 隔开 一条CSP规则是通过<br>csp指令 值1 值2 .. 的形式 通过空格隔开<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">指令<span class="number">1</span> 值<span class="number">1</span> 值<span class="number">2</span>;指令<span class="number">2</span> 值<span class="number">1</span> 值<span class="number">2</span>;....</span><br><span class="line"></span><br><span class="line"><span class="keyword">default</span>-src <span class="string">'self'</span> <span class="string">http:</span><span class="comment">//baidu.com;</span></span><br><span class="line">script-src <span class="string">'self'</span> <span class="string">http:</span><span class="comment">//baidu.com;</span></span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
+<h2 id="CSP-指令"><a href="#CSP-指令" class="headerlink" title="CSP 指令"></a>CSP 指令</h2><p>其实csp的指令主要是 在html中<code>src</code>属性<br>浏览器会根据这个<code>src</code> 的属性 发送请求指定地址<br>这也是浏览器安全问题出现的根源<br>所以在csp指令中都是对这个src可以让浏览器发送请求的<code>白名单</code></p>
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>例子</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>default-src</td>
+<td>‘self’ cdn.example.com</td>
+<td>定义所有类型(js img css font ajax iframe 多媒体)可发送请求的白名单</td>
+</tr>
+<tr>
+<td>script-src</td>
+<td>‘self’ js.example.com</td>
+<td>定义js可被浏览器加载的白名单域</td>
+</tr>
+<tr>
+<td>style-src</td>
+<td>‘self’ css.example.com</td>
+<td>定义css可被浏览器加载的白名单域</td>
+</tr>
+<tr>
+<td>img-src</td>
+<td>‘self’ img.example.com</td>
+<td>定义image可被浏览器加载的白名单域</td>
+</tr>
+<tr>
+<td>connect-src</td>
+<td>‘self’</td>
+<td>定义ajax websocket 可请求交互的白名单</td>
+</tr>
+<tr>
+<td>font-src</td>
+<td>font.example.com</td>
+<td>web font 可加载白名单</td>
+</tr>
+<tr>
+<td>object-src</td>
+<td>‘self’</td>
+<td>定义<object><embad><applet> 这些flash java小程序可被请求加载的白名单</applet></embad></object></td>
+</tr>
+<tr>
+<td>media-src</td>
+<td>media.example.com</td>
+<td>定义<audio><video>等多媒体资可加载白名单</video></audio></td>
+</tr>
+<tr>
+<td>frame-src</td>
+<td>‘self’</td>
+<td>定义 iframe 可加载白名单</td>
+</tr>
+<tr>
+<td>sandbox-src</td>
+<td>allow-forms</td>
+<td>对资源启用sandbox(类似iframe的sandbox属性?)</td>
+</tr>
+<tr>
+<td>report-uri</td>
+<td>log.kqc.com</td>
+<td>定义当请求不被策略允许的时候发送报告到的位置</td>
+</tr>
+</tbody>
+</table>
+<h2 id="CSP-指令值"><a href="#CSP-指令值" class="headerlink" title="CSP 指令值"></a>CSP 指令值</h2><table>
+<thead>
+<tr>
+<th>指令值</th>
+<th>指令试列</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>*</td>
+<td>img-src *</td>
+<td>允许任何内容</td>
+</tr>
+<tr>
+<td>‘none’</td>
+<td>style-src ‘none’</td>
+<td>不允许任何内容</td>
+</tr>
+<tr>
+<td>‘self’</td>
+<td>img-src ‘self’</td>
+<td>允许相同源(这里的定义如同跨域定义的相同源概念)</td>
+</tr>
+<tr>
+<td>‘unsafe-inline’</td>
+<td>script-src ‘unsafe-inline’</td>
+<td>允许行内资源(如 style属性 onclick时间 inline js css)</td>
+</tr>
+<tr>
+<td>‘unsafe-eval’</td>
+<td>script-src ‘unsafe-eval’</td>
+<td>允许加载动态代码 eval方法</td>
+</tr>
+<tr>
+<td>https:</td>
+<td>img-src https:</td>
+<td>允许加载https: 资源</td>
+</tr>
+<tr>
+<td>data</td>
+<td>img-src data</td>
+<td>允许加载 data: 协议的资源(如base64的图片)</td>
+</tr>
+<tr>
+<td>www.example.com</td>
+<td>img-src www.example.com</td>
+<td>允许加载指定域名的资源</td>
+</tr>
+<tr>
+<td>*.example.com</td>
+<td>img-src *.example.com</td>
+<td>允许加载指定域的子域名所有资源</td>
+</tr>
+<tr>
+<td><a href="https://img.com" target="_blank" rel="external">https://img.com</a></td>
+<td>img-src <a href="https://img.com" target="_blank" rel="external">https://img.com</a></td>
+<td>允许加载指定域的资源 http协议也要匹配</td>
+</tr>
+</tbody>
+</table>
+<p><a href="http://drops.wooyun.org/tips/1439" target="_blank" rel="external">参考链接</a></p>
+
             
                 
 

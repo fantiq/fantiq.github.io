@@ -11,16 +11,16 @@
     
     
     
-    <meta name="description" content="当我们多个服务器要共享同一块硬盘的时候 比如一些公共代码库 比如公共图片资源文件资源这时候就需要通过磁盘共享的方式来实现。通过nfs可以满足我们的这个需求 下面深入讲解下nfs的使用">
+    <meta name="description" content="当我们多个服务器要共享同一块硬盘的时候 比如一些公共代码库 比如公共图片资源文件资源这时候就需要通过磁盘共享的方式来实现。通过nfs可以满足我们的这个需求 下面深入讲解下nfs的使用nfs = network file systemNFS 在文件共享传输的过程 依赖RPC(Remote Procedure Call)协议">
 <meta property="og:type" content="blog">
 <meta property="og:title" content="linux centos 硬盘共享nfs使用总结">
 <meta property="og:url" content="http://yoursite.com/2016/06/07/linux-centos-硬盘共享nfs使用总结/index.html">
 <meta property="og:site_name" content="代码狗的狗窝">
-<meta property="og:description" content="当我们多个服务器要共享同一块硬盘的时候 比如一些公共代码库 比如公共图片资源文件资源这时候就需要通过磁盘共享的方式来实现。通过nfs可以满足我们的这个需求 下面深入讲解下nfs的使用">
-<meta property="og:updated_time" content="2016-06-07T14:41:40.243Z">
+<meta property="og:description" content="当我们多个服务器要共享同一块硬盘的时候 比如一些公共代码库 比如公共图片资源文件资源这时候就需要通过磁盘共享的方式来实现。通过nfs可以满足我们的这个需求 下面深入讲解下nfs的使用nfs = network file systemNFS 在文件共享传输的过程 依赖RPC(Remote Procedure Call)协议">
+<meta property="og:updated_time" content="2016-06-12T02:48:19.434Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="linux centos 硬盘共享nfs使用总结">
-<meta name="twitter:description" content="当我们多个服务器要共享同一块硬盘的时候 比如一些公共代码库 比如公共图片资源文件资源这时候就需要通过磁盘共享的方式来实现。通过nfs可以满足我们的这个需求 下面深入讲解下nfs的使用">
+<meta name="twitter:description" content="当我们多个服务器要共享同一块硬盘的时候 比如一些公共代码库 比如公共图片资源文件资源这时候就需要通过磁盘共享的方式来实现。通过nfs可以满足我们的这个需求 下面深入讲解下nfs的使用nfs = network file systemNFS 在文件共享传输的过程 依赖RPC(Remote Procedure Call)协议">
     
     
         
@@ -207,8 +207,19 @@
     
     <div class="post-content markdown" itemprop="articleBody">
         <div class="main-content-wrap">
-            <p>当我们多个服务器要共享同一块硬盘的时候 比如一些公共代码库 比如公共图片资源文件资源<br>这时候就需要通过磁盘共享的方式来实现。通过nfs可以满足我们的这个需求 下面深入讲解下<br>nfs的使用<br><a id="more"></a></p>
-<h2 id="1-安装nfs"><a href="#1-安装nfs" class="headerlink" title="1 安装nfs"></a>1 安装nfs</h2><h2 id="2-文件配置"><a href="#2-文件配置" class="headerlink" title="2 文件配置"></a>2 文件配置</h2><h2 id="3-开启服务"><a href="#3-开启服务" class="headerlink" title="3 开启服务"></a>3 开启服务</h2><h2 id="4-权限配置"><a href="#4-权限配置" class="headerlink" title="4 权限配置"></a>4 权限配置</h2><h2 id="5-挂载共享硬盘"><a href="#5-挂载共享硬盘" class="headerlink" title="5 挂载共享硬盘"></a>5 挂载共享硬盘</h2>
+            <p>当我们多个服务器要共享同一块硬盘的时候 比如一些公共代码库 比如公共图片资源文件资源<br>这时候就需要通过磁盘共享的方式来实现。通过nfs可以满足我们的这个需求 下面深入讲解下<br>nfs的使用<br>nfs = network file system<br>NFS 在文件共享传输的过程 依赖RPC(Remote Procedure Call)协议<br><a id="more"></a></p>
+<h2 id="1-安装nfs"><a href="#1-安装nfs" class="headerlink" title="1 安装nfs"></a>1 安装nfs</h2><figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum <span class="keyword">install</span> nfs-utils -y</span><br></pre></td></tr></table></figure>
+<p><a href="http://www.cnblogs.com/argb/p/3438568.html" target="_blank" rel="external">参考这里</a><br>查看是否安装成功<br><figure class="highlight crystal"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">rpm -qa | grep nfs</span><br><span class="line"><span class="comment">#------- 下面这里表示安装成功 ---------</span></span><br><span class="line">nfs-utils-<span class="number">1.2</span>.<span class="number">3</span>-<span class="number">70</span>.el6.x86_64</span><br><span class="line">nfs-utils-<span class="class"><span class="keyword">lib</span>-1.1.5-11.<span class="title">el6</span>.<span class="title">x86_64</span></span></span><br></pre></td></tr></table></figure></p>
+<h2 id="2-文件配置"><a href="#2-文件配置" class="headerlink" title="2 文件配置"></a>2 文件配置</h2><p>编辑配置文件<br><figure class="highlight dts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">vim <span class="meta-keyword">/etc/</span>exports</span><br><span class="line"></span><br><span class="line"><span class="meta">#/foo/bar:client_ip(读写权限,同步或异步,)</span></span><br><span class="line"><span class="meta-keyword">/root/</span>share <span class="number">192.168</span><span class="number">.30</span>.*(rw,root_squash,sync)</span><br></pre></td></tr></table></figure></p>
+<h2 id="3-开启服务"><a href="#3-开启服务" class="headerlink" title="3 开启服务"></a>3 开启服务</h2><figure class="highlight crmsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">service rpcbind <span class="literal">start</span></span><br><span class="line">service nfs <span class="literal">start</span></span><br></pre></td></tr></table></figure>
+<p>开启<code>rpc</code>服务可以<br><figure class="highlight crmsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">service rpcbind <span class="literal">start</span></span><br><span class="line"><span class="comment"># 或者</span></span><br><span class="line">/etc/init.d/rpcbind <span class="literal">start</span></span><br></pre></td></tr></table></figure></p>
+<p>contos 5.x 版本使用的是<code>portmap</code><br>centos 6.x 版本使用的是<code>rpcbind</code></p>
+<h2 id="4-权限配置"><a href="#4-权限配置" class="headerlink" title="4 权限配置"></a>4 权限配置</h2><p>编辑完配置文件需要重启nfs服务或者<br><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">exportfs</span> -rv</span><br></pre></td></tr></table></figure></p>
+<p>重新加载权限</p>
+<h2 id="5-挂载共享硬盘"><a href="#5-挂载共享硬盘" class="headerlink" title="5 挂载共享硬盘"></a>5 挂载共享硬盘</h2><figure class="highlight elixir"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mount -t nfs <span class="number">192.168</span>.<span class="number">30.52</span><span class="symbol">:/root/share</span> /root/test</span><br></pre></td></tr></table></figure>
+<p><strong>注意</strong><br>挂载成功后需要你查看挂载路径的权限</p>
+<p><a href="http://www.cnblogs.com/mchina/archive/2013/01/03/2840040.html" target="_blank" rel="external">参考资料1</a><br><a href="http://www.360doc.com/content/14/0526/19/1123425_381208263.shtml" target="_blank" rel="external">参考资料2</a></p>
+
             
                 
 
