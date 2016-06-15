@@ -1,0 +1,489 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>vim的使用以及配置 - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta name="description" content="如何将一个vim打造成一个现代的IDE vim的使用有很多的基本操作以及一些功能需要通过插件来实现，界面方面也要通过配置文件来实现想要的结果这里主要的目的是记录使用配置vim的一些内容">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="vim的使用以及配置">
+<meta property="og:url" content="http://yoursite.com/2016/06/15/vim的使用以及配置/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:description" content="如何将一个vim打造成一个现代的IDE vim的使用有很多的基本操作以及一些功能需要通过插件来实现，界面方面也要通过配置文件来实现想要的结果这里主要的目的是记录使用配置vim的一些内容">
+<meta property="og:updated_time" content="2016-06-15T11:43:24.168Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="vim的使用以及配置">
+<meta name="twitter:description" content="如何将一个vim打造成一个现代的IDE vim的使用有很多的基本操作以及一些功能需要通过插件来实现，界面方面也要通过配置文件来实现想要的结果这里主要的目的是记录使用配置vim的一些内容">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="http://yoursite.com/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="3">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="3">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link " href="https://github.com/fantiq" target="_blank">
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+            <div id="main" data-behavior="3"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title" itemprop="headline">
+            vim的使用以及配置
+        </h1>
+    
+    <div class="post-meta">
+    <time itemprop="datePublished" content="Wed Jun 15 2016 15:37:54 GMT+0800">
+	
+		    6月 15, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/vim/">vim</a>
+
+
+    
+</div>
+</div>
+    
+    <div class="post-content markdown" itemprop="articleBody">
+        <div class="main-content-wrap">
+            <p>如何将一个vim打造成一个现代的IDE vim的使用有很多的基本操作<br>以及一些功能需要通过插件来实现，界面方面也要通过配置文件来实现想要的结果<br>这里主要的目的是记录使用配置<code>vim</code>的一些内容</p>
+<a id="more"></a>
+<h2 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h2><p>几种基本模式<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">普通模式 ESC</span><br><span class="line">编辑模式 <span class="selector-tag">i</span> o <span class="selector-tag">a</span></span><br><span class="line">视图模式 v</span><br></pre></td></tr></table></figure></p>
+<p>命令都是在普通模式下执行的<br>jkhl 上下左右<br>alt+jkhl 编辑模式移动光标</p>
+<p>y v模式下copy选中的内容<br>yy 复制当前行<br>n yy 复制n行<br>x 剪切当前字符<br>d v模式下剪切选中的内容<br>dd 剪切<br>n dd 剪切n行<br>p 粘贴</p>
+<p>gg 文档开头<br>G  文档末尾<br>n gg | :n 跳转到n行<br>u  undo 撤销修改<br>Ctrl+r redo</p>
+<p>ctrl + f(front) 向下一页<br>ctrl + b(back)  向上一页</p>
+<p>ctrl + d(down)  向下半页<br>ctrl + u(up)    向上半页</p>
+<p>a 光标后追加<br>i 光标前插入<br>o 新建下一行<br>O 新建上一行<br>r 替换当前字符<br>^|0  行首<br>$    行尾</p>
+<p>zz 将光标所在出移动到页面中间<br>H 定位到文件开头<br>L 定位到文件结尾<br>M 定位到文件中间</p>
+<p>:w 保存<br>:q 退出<br>:q! 强制退出<br>:qa 关闭所有window<br>:e 重新载入文件内容 刷新文件内容</p>
+<p><a href="http://www.cnblogs.com/sunyubo/archive/2010/01/06/2282198.html" target="_blank" rel="external">参考链接</a></p>
+<h2 id="基本配置"><a href="#基本配置" class="headerlink" title="基本配置"></a>基本配置</h2><p>windows上面配置文件在vim运行目录下 <code>_vimrc</code></p>
+<p>基本设置<br><figure class="highlight vim"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">" 关闭与vi的兼容模式</span></span><br><span class="line"><span class="keyword">set</span> nocompatible</span><br><span class="line"><span class="comment">" 不生成~开头的备份文件</span></span><br><span class="line"><span class="keyword">set</span> nobackup </span><br><span class="line"><span class="comment">" 不生成交换文件</span></span><br><span class="line"><span class="keyword">set</span> noswapfile</span><br><span class="line"><span class="comment">" 历史记录数 什么?</span></span><br><span class="line"><span class="keyword">set</span> <span class="keyword">history</span>=<span class="number">1024</span></span><br><span class="line"><span class="comment">" 自动切换当前目录</span></span><br><span class="line"><span class="keyword">set</span> autochdir</span><br><span class="line"><span class="comment">" 去掉 utf-8 BOM</span></span><br><span class="line"><span class="keyword">set</span> nobomb</span><br><span class="line"><span class="comment">" Vim 的默认寄存器和系统剪贴板共享</span></span><br><span class="line"><span class="keyword">set</span> clipboard+=unnamed</span><br><span class="line"><span class="comment">" 设置 alt 键不映射到菜单栏</span></span><br><span class="line"><span class="keyword">set</span> winaltkeys=<span class="keyword">no</span></span><br><span class="line"></span><br><span class="line">编码</span><br></pre></td></tr></table></figure></p>
+<p>“ vim可识别的编码方式<br>set fileencodings=utf-8,gbk2312,gbk,gb18030,cp936<br>“ 文件默认编码方式<br>set encoding=utf-8<br>“ vim菜单栏语言<br>set langmenu=zh_CN<br>“ vim默认语言<br>let $LANG = ‘en_US.UTF-8’<br><figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">界面</span><br><span class="line"></span><br><span class="line">配色方案 [<span class="string">Tomorrow-Night</span>](<span class="link">https://link.zhihu.com/?target=https%3A//github.com/chriskempson/tomorrow-theme/tree/master/vim/colors</span>)</span><br><span class="line">vim文件放在 <span class="code">`vim/vimfiles/colors`</span> 这个文件夹</span><br><span class="line"></span><br><span class="line">等宽字体下载 [<span class="string">Inconsolata</span>](<span class="link">https://link.zhihu.com/?target=http%3A//www.fontex.org/download/inconsolata.otf</span>)</span><br><span class="line">字体安装不必详述</span><br></pre></td></tr></table></figure></p>
+<p>“ 配色方案<br>colorscheme Tomorrow-Night</p>
+<p>source $VIMRUNTIME/delmenu.vim<br>source $VIMRUNTIME/menu.vim<br>“ 高亮光标所在行<br>set cursorline<br>set hlsearch<br>“ 显示行号<br>set number<br>“ 窗口大小<br>set lines=35 columns=140<br>“ 分割出来的窗口位于当前窗口下边/右边<br>set splitbelow<br>set splitright<br>“不显示工具/菜单栏<br>set guioptions-=T<br>set guioptions-=m<br>set guioptions-=L<br>set guioptions-=r<br>set guioptions-=b<br>“ 使用内置 tab 样式而不是 gui<br>set guioptions-=e<br>set nolist<br>“ 指定字体 以及字体 大小<br>set guifont=Inconsolata:h14:cANSI<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">格式设置</span><br></pre></td></tr></table></figure></p>
+<p>“ 自动缩进<br>set autoindent<br>“ 新行使用只能缩进<br>set smartindent<br>“ 设定tab长度为4<br>set tabstop=4<br>“ 空格代替缩进制表符<br>set expandtab<br>“<br>set softtabstop=4<br>“<br>set foldmethod=indent<br>“ 语法高亮<br>syntax on<br><figure class="highlight autohotkey"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">## 插件</span><br><span class="line">插件通过 `vundle` 来管理</span><br><span class="line">在 `vim/vimfiles` 创建文件夹 `bundle`</span><br><span class="line"><span class="symbol">通过git 下载插件 `git clone https:</span>//github.com/VundleVim/Vundle.vim.git`</span><br><span class="line"></span><br><span class="line">需要的插件在 `vimrc` 进行配置</span><br></pre></td></tr></table></figure></p>
+<p>filetype off<br>set rtp+=$VIM/vinfiles/bundle/Vundle.vim/<br>call vundle#begin(‘$VIM/vimfiles/bundle/‘)</p>
+<p>“ 插件内容<br>Plugin ‘VundleVim/Vundle.vim’</p>
+<p>filetype on<br>call vundle#end()<br><figure class="highlight elixir"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">然后在vim命令行模式安装 `<span class="symbol">:PluginInstall`</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">常用插件</span><br><span class="line">NerdTree 文件目录结构树</span><br></pre></td></tr></table></figure></p>
+<p>Plugin ‘scrooloose/nerdtree’<br>let NERDTreeIgnore=[‘.idea’,’.vscode’,’node_modules’]<br>let NERDTreeBookmarksFile=$VIM . ‘/NerdTreeBookmarks’<br>let NERDTreeMinimalUI=1<br>let NERDTreeBookmarksSort=1<br>let NERDTreeShowLineNumbers=0<br>let NERDTreeShowBookmarks=1<br>let g:NERDTreeWinPos = ‘right’<br>let g:NERDTreeDirArrowExpandable=’→’<br>let g:NERDTreeDirArrowCollapsible=’↓’<br>“ 快捷键<br>nmap <leader>n :NERDTreeToggle<cr></cr></leader></p>
+<p>if exists(‘g:NERDTreeWinPos’)<br>    autocmd vimenter * NERDTree D:\www<br>endif<br><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="attribute">Ctrlp</span> 粘贴板共享</span><br></pre></td></tr></table></figure></p>
+<p>Plugin ‘kien/ctrlp.vim’<br>let g:ctrlp_match_window=’bottom,order,:btt,min:1,max:10,results:10’<br>set wildignore+=<em>\.git\</em>,<em>\tmp\</em>,<em>.swp,</em>.zip,*.exe<br><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="attribute">AirLine</span> 下面的状态栏</span><br></pre></td></tr></table></figure></p>
+<p>Plugin ‘vim-airline/vim-airline’<br>Plugin ‘vim-airline/vim-airline-themes’<br>set laststatus=2</p>
+<p>if !exists(‘g:airline_symbols’)<br>    let g:airline_symbols = {}<br>endif<br>let g:airline_theme=’tomorrow’<br>let g:airline_powerline_fonts = 1</p>
+<p>let g:airline_symbols.branch = ‘’<br>let g:airline_left_sep = ‘»’<br>let g:airline_right_sep = ‘«’<br>let g:airline#extensions#branch#enabled = 1<br>let g:airline#extensions#branch#vcs_priority = [“git”, “mercurial”]<br>let g:airline_mode_map = {<br> \ ‘n’  : ‘N’,<br> \ ‘i’  : ‘I’,<br> \ ‘v’  : ‘V’,<br> \ }<br>let g:airline#extensions#tabline#enabled = 1<br><figure class="highlight vim"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">Neocomplete 代码提示 但是这个需<span class="keyword">vim</span>有<span class="keyword">lua</span>支持 具体如何支持看下面</span><br></pre></td></tr></table></figure></p>
+<p>Plugin ‘Shougo/neocomplete.vim’<br>let g:acp_enableAtStartup=0<br>“ Use neocomplete<br>let g:neocomplete#enable_at_startup=1<br>“ Use smartcase<br>let g:neocomplete#enable_smart_case=1<br>let g:neocomplete#enable_auto_select=1<br>“ Enable snipMate compatibility feature<br>let g:neosnippet#enable_snipmate_compatibility=1<br>“ Tell Neosnippet about the other snippets<br>let g:neosnippet#snippets_directory=$VIM . ‘/vimfiles/bundle/vim-snippets/snippets’</p>
+<p>“ Enable omni completion.<br>autocmd FileType css setlocal omnifunc=csscomplete#CompleteCSS<br>autocmd FileType html,markdown setlocal omnifunc=htmlcomplete#CompleteTags<br>autocmd FileType javascript setlocal omnifunc=javascriptcomplete#CompleteJS<br>“ php代码提示<br>autocmd FileType php setlocal omnifunc=phpcomplete#CompletePHP<br>autocmd Filetype xml setlocal omnifunc=xmlcomplete#CompleteTags<br>if !exists(‘g:neocomplete#sources#omni#input_patterns’)<br>    let g:neocomplete#sources#omni#input_patterns = {}<br>endif<br><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="markdown">[<span class="string">参考地址</span>](<span class="link">https://zhuanlan.zhihu.com/p/21328642</span>)</span><br><span class="line">配置文件参考 [<span class="string">配置文件地址</span>](<span class="link">https://gist.github.com/keelii/1aab5f9aa5b47afa651c7fc84b8e9875</span>)</span><br><span class="line"></span><br><span class="line"><span class="section">## 编译vim使其支持lua</span></span><br><span class="line">neocomplete是需要vim 有lua支持的</span><br><span class="line">在windows上面想要vim支持lua需要你在windows 上重新编译vim</span><br><span class="line">需要：</span><br><span class="line">vim源代码 [<span class="string">下载</span>](<span class="link">https://link.zhihu.com/?target=https%3A//github.com/vim/vim</span>)</span><br><span class="line"></span><br><span class="line">lua解释器 (下载)[<span class="string">https://link.zhihu.com/?target=http%3A//tenet.dl.sourceforge.net/project/luabinaries/5.2.4/Tools%2520Executables/lua-5.2.4_Win64_bin.zip</span>]以及 lua编译需要的文件 [<span class="string">下载</span>](<span class="link">https://link.zhihu.com/?target=http%3A//tenet.dl.sourceforge.net/project/luabinaries/5.2.4/Windows%2520Libraries/Dynamic/lua-5.2.4_Win64_dllw4_lib.zip</span>)</span><br><span class="line"></span><br><span class="line">编译环境 MinGW [<span class="string">下载地址</span>](<span class="link">https://link.zhihu.com/?target=https%3A//nuwen.net/files/mingw/mingw-14.0.exe</span>)</span><br><span class="line"></span><br><span class="line">将lua<span class="emphasis">_bin 以及lua_</span>lib 里面的文件放在一起</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">打开MinGW <span class="code">`open_distro_window.bat`</span> cd 进入vin源码的src目录</span><br><span class="line">执行make编译命令</span></span><br></pre></td></tr></table></figure></p>
+<p>make -f Make_ming.mak GUI=yes FEATURES=HUGE MBYTE=yes IME=yes GIME=yes DYNAMIC_IME=yes OLE=yes CSCOPE=yes DEBUG=no LUA=”D:\Program Files (x86)\Vim\vim-lua\lua-vim” DYNAMIC_LUA=yes LUA_VER=52 USERNAME=fantasy USERDOMAIN=fantiq@163.com ARCH=x86-64 gvim.exe<br>```<br>注意里面的lua源码路径写你本地的lua路径</p>
+<p>编译成功后会在当前文件夹生成 <code>Gvim.exe</code> 文件<br>将这个文件以及 <code>lua52.dll</code> 复制到 vim 的runtime目录<code>vim/vim74</code> Gvim.exe 进行覆盖</p>
+<p><a href="https://zhuanlan.zhihu.com/p/21328642" target="_blank" rel="external">参考链接</a></p>
+
+            
+                
+
+            
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/vim/">vim</a>
+
+            </div>
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--disabled">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2016/06/13/浏览器复杂请求以及手动写一个ajax/" data-tooltip="浏览器复杂请求以及手动写一个ajax">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://yoursite.com/2016/06/15/vim的使用以及配置/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://yoursite.com/2016/06/15/vim的使用以及配置/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://yoursite.com/2016/06/15/vim的使用以及配置/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+            
+                <div id="ds-thread" class="ds-thread" data-thread-key="2016/06/15/vim的使用以及配置/"
+     data-title="vim的使用以及配置" data-url="http://yoursite.com/2016/06/15/vim的使用以及配置/">
+</div>
+
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2016 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="3">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--disabled">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2016/06/13/浏览器复杂请求以及手动写一个ajax/" data-tooltip="浏览器复杂请求以及手动写一个ajax">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://yoursite.com/2016/06/15/vim的使用以及配置/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://yoursite.com/2016/06/15/vim的使用以及配置/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://yoursite.com/2016/06/15/vim的使用以及配置/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="3">
+    <ul class="share-options">
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=http://yoursite.com/2016/06/15/vim的使用以及配置/">
+                <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://yoursite.com/2016/06/15/vim的使用以及配置/">
+                <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=http://yoursite.com/2016/06/15/vim的使用以及配置/">
+                <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><ol>
+<li>php 5 年 , 源码没深入研究过 仅此</li>
+<li>c java 有写了解</li>
+<li>开发框架比较精通吧</li>
+<li>我是菜鸡 别问了</li>
+</ol>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer&amp;PM</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+        <script type="text/javascript">
+            var duoshuoQuery = {short_name:'fantiq'};
+            (function() {
+                var ds = document.createElement('script');
+                ds.type = 'text/javascript';ds.async = true;
+                ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+                ds.charset = 'UTF-8';
+                (document.getElementsByTagName('head')[0]
+                || document.getElementsByTagName('body')[0]).appendChild(ds);
+            })();
+        </script>
+    
+
+
+
+</html>
