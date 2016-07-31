@@ -14,21 +14,21 @@
     <meta name="description" content="我们知道一些需要一直执行的命令如 node app.js php artisan queue:work --daemon如果我们在shell中来执行 当shell关闭这些线程会因此中断。因为他们是通过shell这个进程来执行的 属于 shell进程的一个线程 ，当我们关闭shell 这个shell的进程也会随之关闭当然shell这个进程维护的线程也同样会停止，怎样才能让这些命令像service一样">
 <meta property="og:type" content="blog">
 <meta property="og:title" content="linux centos screen的使用总结">
-<meta property="og:url" content="http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/index.html">
+<meta property="og:url" content="/2016/06/07/linux-centos-screen的使用总结/index.html">
 <meta property="og:site_name" content="代码狗的狗窝">
 <meta property="og:description" content="我们知道一些需要一直执行的命令如 node app.js php artisan queue:work --daemon如果我们在shell中来执行 当shell关闭这些线程会因此中断。因为他们是通过shell这个进程来执行的 属于 shell进程的一个线程 ，当我们关闭shell 这个shell的进程也会随之关闭当然shell这个进程维护的线程也同样会停止，怎样才能让这些命令像service一样">
-<meta property="og:image" content="http://yoursite.com/2016-06-08_195315.png">
-<meta property="og:updated_time" content="2016-06-08T12:25:21.625Z">
+<meta property="og:image" content="/2016-06-08_195315.png">
+<meta property="og:updated_time" content="2016-07-13T06:20:42.373Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="linux centos screen的使用总结">
 <meta name="twitter:description" content="我们知道一些需要一直执行的命令如 node app.js php artisan queue:work --daemon如果我们在shell中来执行 当shell关闭这些线程会因此中断。因为他们是通过shell这个进程来执行的 属于 shell进程的一个线程 ，当我们关闭shell 这个shell的进程也会随之关闭当然shell这个进程维护的线程也同样会停止，怎样才能让这些命令像service一样">
-<meta name="twitter:image" content="http://yoursite.com/2016-06-08_195315.png">
+<meta name="twitter:image" content="/2016-06-08_195315.png">
     
     
         
     
     
-        <meta property="og:image" content="http://yoursite.com/assets/images/avatar.jpg"/>
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
     
     
     
@@ -165,7 +165,9 @@
         
             <li class="sidebar-button">
                 
-                    <a  class="sidebar-button-link " href="https://github.com/fantiq" target="_blank">
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
                 
                     <i class="sidebar-button-icon fa fa-lg fa-github"></i>
                     <span class="sidebar-button-desc">GitHub</span>
@@ -223,6 +225,7 @@
 <p>进入到一个指定的tty<br><figure class="highlight cos"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">screen -<span class="keyword">r</span> tty</span><br><span class="line">screen -<span class="keyword">r</span> pid</span><br><span class="line">screen -<span class="keyword">r</span> pid.tty</span><br></pre></td></tr></table></figure></p>
 <p>多用户情况下 一个tty只能一个用户使用<br>detached 表示离线 可以<code>screen -r</code> 进去<br>attached 表示在线的 只允许单个用户进入<br>不过你可以强制挤掉别人的登录<br><figure class="highlight cos"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">screen -<span class="keyword">D</span> -<span class="keyword">r</span> tty</span><br></pre></td></tr></table></figure></p>
 <p>或者这样实现共享<br><figure class="highlight cos"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">screen -<span class="keyword">x</span> -<span class="keyword">r</span> tty</span><br></pre></td></tr></table></figure></p>
+<p>当想要删除一个screen的时候该怎么操作呢？<br>首先要 <code>screen -r session_id</code> 进入<br>其次 通过 <code>exit</code> 退出就删除了这个 session</p>
 <p>一个screen的tty里面是可以创建多个window的 通过命令<br>这里的命令都是以 ctrl+a(C-a) 开始的</p>
 <p>C-a c # create 新建一个window<br>C-a n # Next 切换到下一个window<br>C-a p # Previous 切换到上一个window<br>C-a 0..9 # 切换到第0…9个window<br>C-a x # 锁定当前window<br>C-a d # 离开当前window screen后台运行<br>通过<code>exit</code>退出一个window 当一个tty的window全部退出 这个tty也会相应被删除<br>C-a w # 列出所有的window</p>
 <p><a href="http://justdo2008.iteye.com/blog/1888772" target="_blank" rel="external">这里有更详细的解释</a></p>
@@ -271,17 +274,17 @@
             </a>
         </li>
         <li class="post-action hide-xs">
-            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-google-plus"></i>
             </a>
         </li>
         <li class="post-action hide-xs">
-            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-facebook-official"></i>
             </a>
         </li>
         <li class="post-action hide-xs">
-            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-twitter"></i>
             </a>
         </li>
@@ -306,7 +309,7 @@
         
             
                 <div id="ds-thread" class="ds-thread" data-thread-key="2016/06/07/linux-centos-screen的使用总结/"
-     data-title="linux centos screen的使用总结" data-url="http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
+     data-title="linux centos screen的使用总结" data-url="/2016/06/07/linux-centos-screen的使用总结/">
 </div>
 
             
@@ -353,17 +356,17 @@
             </a>
         </li>
         <li class="post-action hide-xs">
-            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-google-plus"></i>
             </a>
         </li>
         <li class="post-action hide-xs">
-            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-facebook-official"></i>
             </a>
         </li>
         <li class="post-action hide-xs">
-            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-twitter"></i>
             </a>
         </li>
@@ -389,17 +392,17 @@
                 <div id="share-options-bar" class="share-options-bar" data-behavior="3">
     <ul class="share-options">
         <li class="share-option">
-            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
             </a>
         </li>
         <li class="share-option">
-            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
             </a>
         </li>
         <li class="share-option">
-            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=http://yoursite.com/2016/06/07/linux-centos-screen的使用总结/">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=/2016/06/07/linux-centos-screen的使用总结/">
                 <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
             </a>
         </li>

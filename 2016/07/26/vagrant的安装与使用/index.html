@@ -1,0 +1,497 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>vagrant的安装与使用 - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta name="description" content="作为统一开发环境的工具 vagrant 是一个类似 docker 的工具但是两者的又有不同的使用场景">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="vagrant的安装与使用">
+<meta property="og:url" content="/2016/07/26/vagrant的安装与使用/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:description" content="作为统一开发环境的工具 vagrant 是一个类似 docker 的工具但是两者的又有不同的使用场景">
+<meta property="og:updated_time" content="2016-07-30T09:07:53.337Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="vagrant的安装与使用">
+<meta name="twitter:description" content="作为统一开发环境的工具 vagrant 是一个类似 docker 的工具但是两者的又有不同的使用场景">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
+    
+    
+        <meta property="og:image" content="/2016/07/26/vagrant的安装与使用/logo.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="/2016/07/26/vagrant的安装与使用/logo.jpg" />
+    
+    
+        <meta property="og:image" content="/2016/07/26/vagrant的安装与使用/cover.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="/2016/07/26/vagrant的安装与使用/cover.jpg" />
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="3">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="3">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+        <div class="post-header-cover
+                    text-center
+                    "
+             style="background-image:url('/2016/07/26/vagrant的安装与使用/cover.jpg');"
+             data-behavior="3">
+            
+        </div>
+
+            <div id="main" data-behavior="3"
+                 class="hasCover
+                        hasCoverMetaOut
+                        hasCoverCaption">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+        <span class="post-header-cover-caption caption">vagrant</span>
+    
+    
+        <div class="post-header main-content-wrap text-center">
+    
+        <h1 class="post-title" itemprop="headline">
+            vagrant的安装与使用
+        </h1>
+    
+    <div class="post-meta">
+    <time itemprop="datePublished" content="Tue Jul 26 2016 11:52:04 GMT+0800">
+	
+		    7月 26, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/运维/">运维</a>
+
+
+    
+</div>
+</div>
+    
+    <div class="post-content markdown" itemprop="articleBody">
+        <div class="main-content-wrap">
+            <p>作为统一开发环境的工具 vagrant 是一个类似 docker 的工具但是两者的又有不同的使用场景<br><a id="more"></a><br>本文所在的环境<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">windows</span> 64位 旗舰版</span><br><span class="line"><span class="selector-tag">vagrant</span> 1<span class="selector-class">.8</span><span class="selector-class">.5</span></span><br><span class="line"><span class="selector-tag">virtualbox</span> 5<span class="selector-class">.0</span><span class="selector-class">.2</span></span><br></pre></td></tr></table></figure></p>
+<h2 id="1-vagrant是什么"><a href="#1-vagrant是什么" class="headerlink" title="1. vagrant是什么?"></a>1. vagrant是什么?</h2><p>vagrant 是一个方便操作 virtualbox 的工具<br>实现原理 virtualbox 是开源的 操作对外提供有api vagrant 通过这些api实现对virtual的操作<br>vagrant 一个方便操作虚拟机的工具 </p>
+<h2 id="2-安装虚拟机-vagrant"><a href="#2-安装虚拟机-vagrant" class="headerlink" title="2. 安装虚拟机 vagrant"></a>2. 安装虚拟机 vagrant</h2><p><a href="https://www.virtualbox.org/wiki/Downloads" target="_blank" rel="external">下载virtualbox</a><br><a href="https://www.vagrantup.com/downloads.html" target="_blank" rel="external">下载vagrant</a><br>vagrant 支持 VMware 虚拟机 但是 VMware 收费 并且 VMware的box文件可下载的也很少 下文只针对 VMware进行讲解</p>
+<h2 id="3-下载box镜像"><a href="#3-下载box镜像" class="headerlink" title="3. 下载box镜像"></a>3. 下载box镜像</h2><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># 通过官网别名安装</span><br><span class="line"><span class="symbol">vagrant</span> <span class="keyword">box </span><span class="keyword">add </span><span class="meta">alias</span></span><br><span class="line"># 通过下载地址 或者 本地<span class="keyword">box文件路径安装</span><br><span class="line"></span><span class="symbol">vagrant</span> <span class="keyword">box </span><span class="keyword">add </span>[<span class="meta">alias</span>] &lt;url <span class="title">| path&gt;</span></span><br></pre></td></tr></table></figure>
+<p>镜像地址可以是官方的名称 但是官方的名称就是别名 你不能再通过 –name 指定别名<br>也可以使 url 系在地址 或者 下载box文件到本地 通过指定box文件路径进行安装 (这两个都是可以定义别名的)</p>
+<p>这个命令执行后会在你的用户目录创建一个 <code>.vagrant.d</code> 文件夹 里面的<code>boxes</code>文件夹存储你安装的box相关文件<br>包括网络下载的以及本地导入的 都会存储</p>
+<h2 id="4-初始化工作目录"><a href="#4-初始化工作目录" class="headerlink" title="4. 初始化工作目录"></a>4. 初始化工作目录</h2><figure class="highlight accesslog"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vagrant init <span class="string">[alias]</span></span><br></pre></td></tr></table></figure>
+<p>这时候会在当前目录生成配置文件 <code>Vagrantfile</code><br>主要配置文件选项</p>
+<h2 id="5-启动虚拟机"><a href="#5-启动虚拟机" class="headerlink" title="5. 启动虚拟机"></a>5. 启动虚拟机</h2><p>对应启动虚拟机时候会遇到如下三个问题</p>
+<h4 id="1-“rsync”-could-not-be-found-on-your-PATH"><a href="#1-“rsync”-could-not-be-found-on-your-PATH" class="headerlink" title="1 “rsync” could not be found on your PATH"></a>1 “rsync” could not be found on your PATH</h4><h6 id="错误提示"><a href="#错误提示" class="headerlink" title="错误提示"></a>错误提示</h6><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"rsync"</span> could <span class="keyword">not</span> be found <span class="keyword">on</span> your PATH. Make sure <span class="keyword">that</span> rsync</span><br><span class="line"><span class="keyword">is</span> properly installed <span class="keyword">on</span> your system <span class="keyword">and</span> available <span class="keyword">on</span> <span class="keyword">the</span> PATH.</span><br></pre></td></tr></table></figure>
+<h6 id="解决方法-github-issue-参考链接"><a href="#解决方法-github-issue-参考链接" class="headerlink" title="解决方法 (github issue 参考链接)"></a>解决方法 (<a href="https://github.com/mitchellh/vagrant/issues/6696" target="_blank" rel="external">github issue 参考链接</a>)</h6><p>找到 你下载的 <code>box</code> 镜像文件所在路径 一般是 <code>用户目录\vagrant.d\boxes\镜像名称下的目录\virtualbox\Vagrantfile</code> 将这段<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">config<span class="selector-class">.vm</span><span class="selector-class">.synced_folder</span> <span class="string">"."</span>, <span class="string">"/home/vagrant/sync"</span>, type: <span class="string">"rsync"</span></span><br></pre></td></tr></table></figure></p>
+<p>修改成<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">config<span class="selector-class">.vm</span><span class="selector-class">.synced_folder</span> <span class="string">"你要共享的目录"</span>, <span class="string">"/home/vagrant/sync"</span>, type: <span class="string">"virtualbox"</span></span><br></pre></td></tr></table></figure></p>
+<p>或者将这段注释掉</p>
+<h4 id="2-Warning-Authentication-failure"><a href="#2-Warning-Authentication-failure" class="headerlink" title="2 Warning: Authentication failure"></a>2 Warning: Authentication failure</h4><h6 id="错误提示-1"><a href="#错误提示-1" class="headerlink" title="错误提示"></a>错误提示</h6><figure class="highlight vhdl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">    .......</span><br><span class="line">    <span class="keyword">default</span>: Warning: Authentication failure. Retrying...</span><br><span class="line">    <span class="keyword">default</span>: Warning: Authentication failure. Retrying...</span><br><span class="line">    <span class="keyword">default</span>: Warning: Authentication failure. Retrying...</span><br><span class="line">    <span class="keyword">default</span>: Warning: Authentication failure. Retrying...</span><br><span class="line">    <span class="keyword">default</span>: Warning: Authentication failure. Retrying...</span><br><span class="line">    <span class="keyword">default</span>: Warning: Authentication failure. Retrying...</span><br><span class="line">    <span class="keyword">default</span>: Warning: Authentication failure. Retrying...</span><br><span class="line">Timed <span class="keyword">out</span> <span class="keyword">while</span> waiting <span class="keyword">for</span> the machine <span class="keyword">to</span> boot. This means that</span><br><span class="line">Vagrant was unable <span class="keyword">to</span> communicate <span class="keyword">with</span> the guest machine within</span><br><span class="line">the configured (<span class="string">"config.vm.boot_timeout"</span> value) <span class="built_in">time</span> period.</span><br><span class="line"></span><br><span class="line"><span class="keyword">If</span> you look above, you should be able <span class="keyword">to</span> see the error(s) that</span><br><span class="line">Vagrant had <span class="keyword">when</span> attempting <span class="keyword">to</span> connect <span class="keyword">to</span> the machine. These errors</span><br><span class="line">are usually good hints as <span class="keyword">to</span> what may be wrong.</span><br><span class="line"></span><br><span class="line"><span class="keyword">If</span> you<span class="symbol">'re</span> using a custom box, make sure that networking <span class="keyword">is</span> properly</span><br><span class="line">working <span class="keyword">and</span> you<span class="symbol">'re</span> able <span class="keyword">to</span> connect <span class="keyword">to</span> the machine. It <span class="keyword">is</span> a common</span><br><span class="line">problem that networking isn<span class="symbol">'t</span> setup properly <span class="keyword">in</span> these boxes.</span><br><span class="line">Verify that authentication configurations are also setup properly,</span><br><span class="line">as well.</span><br><span class="line"></span><br><span class="line"><span class="keyword">If</span> the box appears <span class="keyword">to</span> be booting properly, you may want <span class="keyword">to</span> increase</span><br><span class="line">the timeout (<span class="string">"config.vm.boot_timeout"</span>) value.</span><br></pre></td></tr></table></figure>
+<h6 id="解决办法-github-issue-参考链接"><a href="#解决办法-github-issue-参考链接" class="headerlink" title="解决办法 (github issue 参考链接)"></a>解决办法 (<a href="https://github.com/mitchellh/vagrant/issues/5186" target="_blank" rel="external">github issue 参考链接</a>)</h6><p>a. 配置文件增加<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">config<span class="selector-class">.ssh</span><span class="selector-class">.insert_key</span> = false</span><br></pre></td></tr></table></figure></p>
+<p>b. 通过安装插件(经测试无效)<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vagrant plugin <span class="keyword">install</span> vagrant-<span class="keyword">rekey</span>-ssh</span><br></pre></td></tr></table></figure></p>
+<h4 id="3-Vagrant-was-unable-to-mount-VirtualBox-shared-folders"><a href="#3-Vagrant-was-unable-to-mount-VirtualBox-shared-folders" class="headerlink" title="3 Vagrant was unable to mount VirtualBox shared folders"></a>3 Vagrant was unable to mount VirtualBox shared folders</h4><h6 id="错误提示-2"><a href="#错误提示-2" class="headerlink" title="错误提示"></a>错误提示</h6><figure class="highlight livecodeserver"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">    default: /vagrant =&gt; D:/wamp/Vagrant/kqc</span><br><span class="line">Vagrant was unable <span class="built_in">to</span> mount VirtualBox shared <span class="built_in">folders</span>. This is usually</span><br><span class="line">because <span class="keyword">the</span> filesystem <span class="string">"vboxsf"</span> is <span class="keyword">not</span> available. This filesystem is</span><br><span class="line">made available via <span class="keyword">the</span> VirtualBox Guest Additions <span class="keyword">and</span> kernel module.</span><br><span class="line">Please verify that these guest additions are properly installed <span class="keyword">in</span> <span class="keyword">the</span></span><br><span class="line">guest. This is <span class="keyword">not</span> <span class="keyword">a</span> bug <span class="keyword">in</span> Vagrant <span class="keyword">and</span> is usually caused <span class="keyword">by</span> <span class="keyword">a</span> faulty</span><br><span class="line">Vagrant box. For context, <span class="keyword">the</span> <span class="keyword">command</span> <span class="title">attemped</span> <span class="title">was</span>:</span><br><span class="line"></span><br><span class="line"><span class="built_in">set</span> -e</span><br><span class="line">mount -t vboxsf -o uid=`id -u vagrant`,gid=`getent group vagrant | cut -d: -f3`</span><br><span class="line">vagrant /vagrant</span><br><span class="line">mount -t vboxsf -o uid=`id -u vagrant`,gid=`id -g vagrant` vagrant /vagrant</span><br><span class="line"></span><br><span class="line">The error output <span class="built_in">from</span> <span class="keyword">the</span> <span class="keyword">command</span> <span class="title">was</span>:</span><br><span class="line"></span><br><span class="line">mount: unknown filesystem type <span class="string">'vboxsf'</span></span><br></pre></td></tr></table></figure>
+<h6 id="解决办法-github-issue-参考链接-1"><a href="#解决办法-github-issue-参考链接-1" class="headerlink" title="解决办法 (github issue 参考链接)"></a>解决办法 (<a href="https://github.com/mitchellh/vagrant/issues/3341" target="_blank" rel="external">github issue 参考链接</a>)</h6><p>通过安装插件 <code>vagrant-vbguest</code><br><figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vagrant plugin <span class="keyword">install</span> vagrant-vbguest</span><br></pre></td></tr></table></figure></p>
+<h2 id="6-常用vagrant命令"><a href="#6-常用vagrant命令" class="headerlink" title="6. 常用vagrant命令"></a>6. 常用vagrant命令</h2><p>box 镜像管理<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="symbol">vagrant</span> <span class="keyword">box </span><span class="keyword">add </span></span><br><span class="line"><span class="symbol">vagrant</span> <span class="keyword">box </span>list</span><br><span class="line"><span class="symbol">vagrant</span> <span class="keyword">box </span>remove</span><br><span class="line"><span class="symbol">vagrant</span> <span class="keyword">box </span>update</span><br></pre></td></tr></table></figure></p>
+<p>plugin 插件操作<br><figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">vagrant <span class="keyword">plugin</span> <span class="keyword">list</span></span><br><span class="line">vagrant <span class="keyword">plugin</span> install</span><br><span class="line">vagrant <span class="keyword">plugin</span> uninstall</span><br><span class="line">vagrant <span class="keyword">plugin</span> <span class="keyword">update</span></span><br></pre></td></tr></table></figure></p>
+<p>package<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>机器操作相关<br><figure class="highlight vala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"># 初始化一个目录</span></span><br><span class="line">vagrant init</span><br><span class="line"><span class="meta"># 启动服务器</span></span><br><span class="line">vagrant up</span><br><span class="line"><span class="meta"># 关闭服务器</span></span><br><span class="line">vagrant halt</span><br><span class="line"><span class="meta"># 重启服务器</span></span><br><span class="line">vagrant reload</span><br><span class="line"><span class="meta"># 查看服务器状态</span></span><br><span class="line">vagrant status</span><br><span class="line"><span class="meta"># 删除服务器</span></span><br><span class="line">vagrant destroy</span><br><span class="line"><span class="meta"># 通过ssh登录服务器 (windows 不可用 请使用xshell 或者 putty类似软件)</span></span><br><span class="line">vagrant ssh</span><br><span class="line"><span class="meta"># 查看服务器登录信息</span></span><br><span class="line">vagrant ssh-config</span><br><span class="line"><span class="meta"># 查看版本</span></span><br><span class="line">vagrant version</span><br></pre></td></tr></table></figure></p>
+
+            
+                
+
+            
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/docker/">docker</a> <a class="tag tag--primary tag--small t-link" href="/tags/vagrant/">vagrant</a>
+
+            </div>
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--disabled">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2016/07/08/跨域请求触发浏览器复杂请求/" data-tooltip="跨域请求触发浏览器复杂请求">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2016/07/26/vagrant的安装与使用/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2016/07/26/vagrant的安装与使用/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2016/07/26/vagrant的安装与使用/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+            
+                <div id="ds-thread" class="ds-thread" data-thread-key="2016/07/26/vagrant的安装与使用/"
+     data-title="vagrant的安装与使用" data-url="/2016/07/26/vagrant的安装与使用/">
+</div>
+
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2016 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="3">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--disabled">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2016/07/08/跨域请求触发浏览器复杂请求/" data-tooltip="跨域请求触发浏览器复杂请求">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2016/07/26/vagrant的安装与使用/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2016/07/26/vagrant的安装与使用/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2016/07/26/vagrant的安装与使用/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="3">
+    <ul class="share-options">
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=/2016/07/26/vagrant的安装与使用/">
+                <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2016/07/26/vagrant的安装与使用/">
+                <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=/2016/07/26/vagrant的安装与使用/">
+                <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><ol>
+<li>php 5 年 , 源码没深入研究过 仅此</li>
+<li>c java 有写了解</li>
+<li>开发框架比较精通吧</li>
+<li>我是菜鸡 别问了</li>
+</ol>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer&amp;PM</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+        <script type="text/javascript">
+            var duoshuoQuery = {short_name:'fantiq'};
+            (function() {
+                var ds = document.createElement('script');
+                ds.type = 'text/javascript';ds.async = true;
+                ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+                ds.charset = 'UTF-8';
+                (document.getElementsByTagName('head')[0]
+                || document.getElementsByTagName('body')[0]).appendChild(ds);
+            })();
+        </script>
+    
+
+
+
+</html>
