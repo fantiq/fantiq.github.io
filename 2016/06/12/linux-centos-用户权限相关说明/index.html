@@ -17,7 +17,7 @@
 <meta property="og:url" content="/2016/06/12/linux-centos-用户权限相关说明/index.html">
 <meta property="og:site_name" content="代码狗的狗窝">
 <meta property="og:description" content="linux上用户管理 以及 相应权限查看 增加 删除用户 修改密码用户 用户组 用户默认目录 用户shell路径 等">
-<meta property="og:updated_time" content="2016-06-13T13:01:57.056Z">
+<meta property="og:updated_time" content="2016-08-04T02:29:19.309Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="linux centos 用户权限相关说明">
 <meta name="twitter:description" content="linux上用户管理 以及 相应权限查看 增加 删除用户 修改密码用户 用户组 用户默认目录 用户shell路径 等">
@@ -290,11 +290,39 @@
 </table>
 <h4 id="3-查看用户所属组"><a href="#3-查看用户所属组" class="headerlink" title="3. 查看用户所属组"></a>3. 查看用户所属组</h4><figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cat</span> /etc/<span class="built_in">group</span></span><br></pre></td></tr></table></figure>
 <p>用户所属组的信息在 <code>/etc/group</code> 这个文件中<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">root</span><span class="selector-pseudo">:x</span><span class="selector-pseudo">:0</span>:</span><br><span class="line"><span class="selector-tag">group_name</span><span class="selector-pseudo">:passwd</span><span class="selector-pseudo">:GID</span><span class="selector-pseudo">:user1</span>,<span class="selector-tag">user2</span>..</span><br></pre></td></tr></table></figure></p>
-<p>每行表示一个用户组 不同字段通过 <code>:</code> 分开 共4个字段<br>|字段id|说明|<br>|—|—|<br>|1|用户组名称|<br>|2|用户组密码|<br>|3|用户组id|<br>|4|用户列表 用户名之间用<code>,</code>隔开|</p>
+<p>每行表示一个用户组 不同字段通过 <code>:</code> 分开 共4个字段</p>
+<table>
+<thead>
+<tr>
+<th>字段id</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>用户组名称</td>
+</tr>
+<tr>
+<td>2</td>
+<td>用户组密码</td>
+</tr>
+<tr>
+<td>3</td>
+<td>用户组id</td>
+</tr>
+<tr>
+<td>4</td>
+<td>用户列表 用户名之间用<code>,</code>隔开</td>
+</tr>
+</tbody>
+</table>
 <p><a href="http://blog.chinaunix.net/uid-26100163-id-3011493.html" target="_blank" rel="external">参考链接</a></p>
 <h2 id="用户管理-相关命令"><a href="#用户管理-相关命令" class="headerlink" title="用户管理 相关命令"></a>用户管理 相关命令</h2><h4 id="0-查看用户信息"><a href="#0-查看用户信息" class="headerlink" title="0. 查看用户信息"></a>0. 查看用户信息</h4><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">id</span> username</span><br></pre></td></tr></table></figure>
 <h4 id="1-添加用户"><a href="#1-添加用户" class="headerlink" title="1. 添加用户"></a>1. 添加用户</h4><p> 相关指标: 用户名 所属组 用户主目录 shell目录 注释<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">adduser </span>-c 测试用户 -d /home/fantasy -g root -s /usr/<span class="keyword">bin </span>fantasy</span><br></pre></td></tr></table></figure></p>
 <p>adduser 可选参数<br><figure class="highlight haml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">-<span class="ruby">c 用户描述</span><br><span class="line"></span>-<span class="ruby">g 所属主用户组 默认新建一个用户名同名的用户组</span><br><span class="line"></span>-<span class="ruby">G </span><br><span class="line"></span>-<span class="ruby">d 用户主目录 默认 /home/用户名</span><br><span class="line"></span>-<span class="ruby">s 用户shell目录 默认 /bin/bash</span></span><br></pre></td></tr></table></figure></p>
+<p>默认情况下<br><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">useradd</span> username</span><br></pre></td></tr></table></figure></p>
+<p>会创建 用户 <code>username</code> 同时创建 <code>username</code> 用户组 和 <code>/home/username</code> 用户目录<br>可用 <code>-g</code> 指定用户组 可用 <code>-d</code> 指定用户目录</p>
 <h4 id="2-修改用户"><a href="#2-修改用户" class="headerlink" title="2. 修改用户"></a>2. 修改用户</h4><p>修改用户资源路径<br><figure class="highlight cos"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">usermod -<span class="keyword">d</span> /home/<span class="keyword">new</span> -<span class="keyword">s</span> /bin/bash -g develop -G root</span><br></pre></td></tr></table></figure></p>
 <p>这里的参数更<code>useradd</code>含义相同</p>
 <p>修改用户名<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">usermod <span class="_">-l</span> old_name new_name</span><br></pre></td></tr></table></figure></p>
