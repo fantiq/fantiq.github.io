@@ -1,0 +1,475 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>php并发控制 - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta name="description" content="这两天遇到一个常见的并发控制的问题，类似抢票问题，当剩下一张票的时候 两个人同时抢这张票 可能会出现多卖的情况">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="php并发控制">
+<meta property="og:url" content="/2017/04/06/php并发控制/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:description" content="这两天遇到一个常见的并发控制的问题，类似抢票问题，当剩下一张票的时候 两个人同时抢这张票 可能会出现多卖的情况">
+<meta property="og:updated_time" content="2017-05-05T06:06:42.187Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="php并发控制">
+<meta name="twitter:description" content="这两天遇到一个常见的并发控制的问题，类似抢票问题，当剩下一张票的时候 两个人同时抢这张票 可能会出现多卖的情况">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="3">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="3">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+            <div id="main" data-behavior="3"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title" itemprop="headline">
+            php并发控制
+        </h1>
+    
+    <div class="post-meta">
+    <time itemprop="datePublished" content="Thu Apr 06 2017 18:12:59 GMT+0800">
+	
+		    4月 06, 2017
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/技术笔记/">技术笔记</a>
+
+
+    
+</div>
+</div>
+    
+    <div class="post-content markdown" itemprop="articleBody">
+        <div class="main-content-wrap">
+            <p>这两天遇到一个常见的并发控制的问题，类似抢票问题，当剩下一张票的时候 两个人同时抢这张票 可能会出现多卖的情况<br><a id="more"></a><br>在发短信的时候 一般会限制一个手机号发送一次的时间间隔在60s<br>我们的代码大概会这么写<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 获取上次发送的时间</span></span><br><span class="line">$<span class="built_in">time</span> = getLastSendTime();</span><br><span class="line"><span class="keyword">if</span> (<span class="built_in">time</span>() - $<span class="built_in">time</span> &gt; <span class="number">60</span>) &#123;</span><br><span class="line">    sendSms();</span><br><span class="line">    <span class="comment"># 更新最后发送时间</span></span><br><span class="line">    updateLastSendTime(<span class="built_in">time</span>());</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span> &#123;</span><br><span class="line">    不能发送</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>看似严谨的逻辑 但是在并发的情况下 同一时间 两个请求发送过来的话 情况就不一样了<br>可能第一个请求还没有执行到 <code>updateLastSendTime</code> 第二个请求就已经执行到判断语句了<br>这个时候 程序判断会允许这个请求发送短信的，当请求是成千上万的并发 短信就会灾难性的被刷掉了</p>
+<p>同样在上面买票的场景，并发过来的时候，会出现超卖的情况</p>
+<p>看下面代码，重现下这个问题 (这里为了简化问题 使用文件代替redis 等持久化存储)<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="php"><span class="meta">&lt;?php</span></span><br><span class="line">$interval = <span class="number">60</span>;</span><br><span class="line"><span class="keyword">if</span> (time() - getLastSendTime() &gt; $interval) &#123;</span><br><span class="line">    $msg = <span class="string">"send sms"</span>;</span><br><span class="line">    <span class="keyword">echo</span> $msg;</span><br><span class="line">    _log($msg);</span><br><span class="line">    updateLastSendTime();</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span> &#123;</span><br><span class="line">    $msg = <span class="string">"please request after $interval s"</span>;</span><br><span class="line">    <span class="keyword">echo</span> $msg;</span><br><span class="line">    _log($msg);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 更新最后发送时间 */</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">updateLastSendTime</span><span class="params">()</span></span><br><span class="line"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> file_put_contents(<span class="string">'time'</span>, time());</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/* 获取最后发送时间 */</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">getLastSendTime</span><span class="params">()</span></span><br><span class="line"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!file_exists(<span class="string">'time'</span>)) &#123;</span><br><span class="line">        updateLastSendTime();</span><br><span class="line">        <span class="keyword">return</span> time();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> file_get_contents(<span class="string">'time'</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/* 日志记录 */</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">_log</span><span class="params">($content)</span></span><br><span class="line"></span>&#123;</span><br><span class="line">    file_put_contents(<span class="string">'sendsms.log'</span>, date(<span class="string">'Y-m-d H:i:s'</span>) . <span class="string">" : "</span> . $content . <span class="string">"\n"</span>, FILE_APPEND);</span><br><span class="line">&#125;</span></span><br></pre></td></tr></table></figure></p>
+<p>当一个请求触发脚本 我们收到日志<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">2017<span class="selector-tag">-04-06</span> 10<span class="selector-pseudo">:57</span><span class="selector-pseudo">:16</span> : <span class="selector-tag">send</span> <span class="selector-tag">sms</span></span><br></pre></td></tr></table></figure></p>
+<p>当我们果断时间再次请求 我们收到日志<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">2017<span class="selector-tag">-04-06</span> 10<span class="selector-pseudo">:57</span><span class="selector-pseudo">:36</span> : <span class="selector-tag">please</span> <span class="selector-tag">request</span> <span class="selector-tag">after</span> 60 <span class="selector-tag">s</span></span><br></pre></td></tr></table></figure></p>
+<p>这个是我们一般情况下的状态，下面我们使用 <code>ab(apache beanch)</code> 工具来测试下并发的情况</p>
+<p>我们发送5个用户 的并发<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ab -c <span class="number">5</span> -n <span class="number">5</span> <span class="string">http:</span><span class="comment">//localhost/lock.php</span></span><br></pre></td></tr></table></figure></p>
+<p>这个时候我们得到的日志是这样的<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">2017<span class="selector-tag">-04-06</span> 11<span class="selector-pseudo">:04</span><span class="selector-pseudo">:22</span> : <span class="selector-tag">send</span> <span class="selector-tag">sms</span></span><br><span class="line">2017<span class="selector-tag">-04-06</span> 11<span class="selector-pseudo">:04</span><span class="selector-pseudo">:22</span> : <span class="selector-tag">send</span> <span class="selector-tag">sms</span></span><br><span class="line">2017<span class="selector-tag">-04-06</span> 11<span class="selector-pseudo">:04</span><span class="selector-pseudo">:22</span> : <span class="selector-tag">send</span> <span class="selector-tag">sms</span></span><br><span class="line">2017<span class="selector-tag">-04-06</span> 11<span class="selector-pseudo">:04</span><span class="selector-pseudo">:22</span> : <span class="selector-tag">please</span> <span class="selector-tag">request</span> <span class="selector-tag">after</span> 60 <span class="selector-tag">s</span></span><br><span class="line">2017<span class="selector-tag">-04-06</span> 11<span class="selector-pseudo">:04</span><span class="selector-pseudo">:22</span> : <span class="selector-tag">please</span> <span class="selector-tag">request</span> <span class="selector-tag">after</span> 60 <span class="selector-tag">s</span></span><br></pre></td></tr></table></figure></p>
+<p>同一时刻发送的五个请求 前三个都成功了 你的逻辑被羞辱了 ==!</p>
+<p><strong>注意</strong> 这里产生的原因是进程问题导致<br>如果你使用php自带的serv<code>php -S 127.0.0.1:8081/lock.php</code> 就不会出现这个问题<br>那是因为他是单进程/单线程运行的 所有的请求是进行排队的</p>
+<p>但是如果你使用的<code>nginx</code> 那个这个问题会很明显，因为nginx有强大的吞吐量(基于epoll模型)<br>你开的进程越多 问题越明显，我这里开发环境开的是三个nginx进程 正对应了上面的日志</p>
+<p>当然线上服务为了更好服务更好的请求 会开更多的进程。</p>
+<p>那个如何解决这样的问题呢？<br>这两天实验了两种方法</p>
+<ol>
+<li>队列</li>
+<li>文件锁</li>
+</ol>
+<p>队列一个目的是为了 代码解耦，这里要把整个逻辑代码搬到队列 不太合适<br>文件锁可以在控制器层来做，且按需求来做，但是高并发用户量的时候这么做可能会让其他请求用户一直等待<br>可能等到http请求60秒超时…</p>
+<p>这里使用<code>文件锁</code>的方法先解决这个问题</p>
+<figure class="highlight vala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#给文件上锁</span></span><br><span class="line"><span class="meta"># source 是文件资源句柄 fopen() 的返回</span></span><br><span class="line"><span class="meta"># LOCK有以下几个取值</span></span><br><span class="line"><span class="meta"># LOCK_EX 排他锁 被锁定的文件 在被其他进程上锁的时候 需要阻塞等待 文件被解锁</span></span><br><span class="line"><span class="meta"># LOCK_SH 共享锁</span></span><br><span class="line"><span class="meta"># LOCK_UN 释放锁</span></span><br><span class="line"><span class="meta"># LOCK_NB 非阻塞 仅适用于 linux</span></span><br><span class="line"><span class="keyword">bool</span> flock(source, LOCK)</span><br></pre></td></tr></table></figure>
+<p>下面加入锁的功能</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">lock(<span class="function"><span class="keyword">function</span> <span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (time() - getLastSendTime() &gt; <span class="number">10</span>) &#123;</span><br><span class="line">        $msg = <span class="string">"send sms"</span>;</span><br><span class="line">        <span class="keyword">echo</span> $msg;</span><br><span class="line">        _log($msg);</span><br><span class="line">        updateLastSendTime();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> &#123;</span><br><span class="line">        $msg = <span class="string">"please request after 60 s"</span>;</span><br><span class="line">        <span class="keyword">echo</span> $msg;</span><br><span class="line">        _log($msg);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">lock</span><span class="params">($callback)</span></span><br><span class="line"></span>&#123;</span><br><span class="line">    $fp = fopen(<span class="string">'.lock'</span>, <span class="string">'w+'</span>);</span><br><span class="line">    <span class="keyword">if</span> (flock($fp, LOCK_EX)) &#123;</span><br><span class="line">        call_user_func($callback);</span><br><span class="line">    &#125;</span><br><span class="line">    fclose($fp);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">......</span><br></pre></td></tr></table></figure>
+<p>这个时候再次<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ab -c <span class="number">5</span> -n <span class="number">5</span> <span class="string">http:</span><span class="comment">//localhost/lock.php</span></span><br></pre></td></tr></table></figure></p>
+<p>得到日志：<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">2017<span class="selector-tag">-04-06</span> 11<span class="selector-pseudo">:21</span><span class="selector-pseudo">:32</span> : <span class="selector-tag">send</span> <span class="selector-tag">sms</span></span><br><span class="line">2017<span class="selector-tag">-04-06</span> 11<span class="selector-pseudo">:21</span><span class="selector-pseudo">:32</span> : <span class="selector-tag">please</span> <span class="selector-tag">request</span> <span class="selector-tag">after</span> 60 <span class="selector-tag">s</span></span><br><span class="line">2017<span class="selector-tag">-04-06</span> 11<span class="selector-pseudo">:21</span><span class="selector-pseudo">:32</span> : <span class="selector-tag">please</span> <span class="selector-tag">request</span> <span class="selector-tag">after</span> 60 <span class="selector-tag">s</span></span><br><span class="line">2017<span class="selector-tag">-04-06</span> 11<span class="selector-pseudo">:21</span><span class="selector-pseudo">:32</span> : <span class="selector-tag">please</span> <span class="selector-tag">request</span> <span class="selector-tag">after</span> 60 <span class="selector-tag">s</span></span><br><span class="line">2017<span class="selector-tag">-04-06</span> 11<span class="selector-pseudo">:21</span><span class="selector-pseudo">:32</span> : <span class="selector-tag">please</span> <span class="selector-tag">request</span> <span class="selector-tag">after</span> 60 <span class="selector-tag">s</span></span><br></pre></td></tr></table></figure></p>
+<p>只有第一次执行成功，后面的都失败 判断成功了。<br>加锁的目的就是让第一个请求先执行完(记录最后一次发送的时间)，在执行第二个请求<br>这样判断才能在并发的场景生效</p>
+<h2 id="并发请求-数据库重复插入数据-解决办法"><a href="#并发请求-数据库重复插入数据-解决办法" class="headerlink" title="并发请求 数据库重复插入数据 解决办法"></a>并发请求 数据库重复插入数据 解决办法</h2><h3 id="1-mysql-唯一索引"><a href="#1-mysql-唯一索引" class="headerlink" title="1. mysql 唯一索引"></a>1. mysql 唯一索引</h3><h3 id="2-mysql-加锁"><a href="#2-mysql-加锁" class="headerlink" title="2. mysql 加锁"></a>2. mysql 加锁</h3><p>MyISAM 表级锁<br>InnoDB 行级锁</p>
+<p>Write<br>Read</p>
+<h3 id="3-redis-加锁-或者文件加锁"><a href="#3-redis-加锁-或者文件加锁" class="headerlink" title="3. redis 加锁 或者文件加锁"></a>3. redis 加锁 或者文件加锁</h3><h3 id="4-队列"><a href="#4-队列" class="headerlink" title="4. 队列"></a>4. 队列</h3>
+            
+                
+
+            
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/06/21/使用phpstorm进行断点调试/"  data-tooltip="使用phpstorm进行断点调试">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/03/27/laravel-中间件的实现/" data-tooltip="laravel 中间件的实现">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2017/04/06/php并发控制/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2017/04/06/php并发控制/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2017/04/06/php并发控制/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+            
+                <div id="ds-thread" class="ds-thread" data-thread-key="2017/04/06/php并发控制/"
+     data-title="php并发控制" data-url="/2017/04/06/php并发控制/">
+</div>
+
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2017 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="3">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/06/21/使用phpstorm进行断点调试/"  data-tooltip="使用phpstorm进行断点调试">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/03/27/laravel-中间件的实现/" data-tooltip="laravel 中间件的实现">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2017/04/06/php并发控制/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2017/04/06/php并发控制/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2017/04/06/php并发控制/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="3">
+    <ul class="share-options">
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=/2017/04/06/php并发控制/">
+                <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2017/04/06/php并发控制/">
+                <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=/2017/04/06/php并发控制/">
+                <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><p> good at develop framework </p>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+        <script type="text/javascript">
+            var duoshuoQuery = {short_name:'fantiq'};
+            (function() {
+                var ds = document.createElement('script');
+                ds.type = 'text/javascript';ds.async = true;
+                ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+                ds.charset = 'UTF-8';
+                (document.getElementsByTagName('head')[0]
+                || document.getElementsByTagName('body')[0]).appendChild(ds);
+            })();
+        </script>
+    
+
+
+
+</html>

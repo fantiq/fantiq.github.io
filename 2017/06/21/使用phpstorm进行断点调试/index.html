@@ -1,0 +1,542 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>使用phpstorm进行断点调试 - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta name="description" content="xdebug的断点原理就是，通过php的xdebug对php运行的变量文件等信息进行监听，并通过9000端口以及DBGp协议，将这些信息发送给客户端PHPStrom。PHPStrom 作为IDE对自己内部设置的断点以及接收到的数据进行安排显示，并再次通过9000端口，做出响应到服务端的xdebug。">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="使用phpstorm进行断点调试">
+<meta property="og:url" content="/2017/06/21/使用phpstorm进行断点调试/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:description" content="xdebug的断点原理就是，通过php的xdebug对php运行的变量文件等信息进行监听，并通过9000端口以及DBGp协议，将这些信息发送给客户端PHPStrom。PHPStrom 作为IDE对自己内部设置的断点以及接收到的数据进行安排显示，并再次通过9000端口，做出响应到服务端的xdebug。">
+<meta property="og:updated_time" content="2017-06-29T06:48:08.234Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="使用phpstorm进行断点调试">
+<meta name="twitter:description" content="xdebug的断点原理就是，通过php的xdebug对php运行的变量文件等信息进行监听，并通过9000端口以及DBGp协议，将这些信息发送给客户端PHPStrom。PHPStrom 作为IDE对自己内部设置的断点以及接收到的数据进行安排显示，并再次通过9000端口，做出响应到服务端的xdebug。">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="3">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="3">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+            <div id="main" data-behavior="3"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title" itemprop="headline">
+            使用phpstorm进行断点调试
+        </h1>
+    
+    <div class="post-meta">
+    <time itemprop="datePublished" content="Wed Jun 21 2017 14:06:40 GMT+0800">
+	
+		    6月 21, 2017
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/工具/">工具</a>
+
+
+    
+</div>
+</div>
+    
+    <div class="post-content markdown" itemprop="articleBody">
+        <div class="main-content-wrap">
+            <p>xdebug的断点原理就是，通过php的xdebug对php运行的变量文件等信息进行监听，并通过9000端口以及DBGp协议，将这些信息发送给客户端PHPStrom。<br>PHPStrom 作为IDE对自己内部设置的断点以及接收到的数据进行安排显示，并再次通过9000端口，做出响应到服务端的xdebug。<br><a id="more"></a></p>
+<h2 id="1-php中xdebug配置"><a href="#1-php中xdebug配置" class="headerlink" title="1. php中xdebug配置"></a>1. php中xdebug配置</h2><p>安装xdebug扩展并重启服务，这里省略说明，具体罗列解释下xdebug断点相关的配置项</p>
+<p>php开启扩展的配置<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-id">#php</span><span class="selector-class">.ini</span> </span><br><span class="line">xdebug.remote_enable=on</span><br><span class="line">xdebug.idekey=PHPSTROM</span><br></pre></td></tr></table></figure></p>
+<p>xdebug相关参数使用</p>
+<table>
+<thead>
+<tr>
+<th>key</th>
+<th>val</th>
+<th>default</th>
+<th>explain</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>xdebug.remote_enable</td>
+<td>on</td>
+<td>off</td>
+<td>是否开启远程调试</td>
+</tr>
+<tr>
+<td>xdebug.idekey</td>
+<td>PHPSTROM</td>
+<td>[HOST_NAME]</td>
+<td>这个值会放在cookie里 XDEBUG_SESSION=PHPSTORM 区分不同的客户端</td>
+</tr>
+<tr>
+<td>xdebug.remote_host</td>
+<td>localhost</td>
+<td>localhost</td>
+<td>与客户端(IDE)交互的地址</td>
+</tr>
+<tr>
+<td>xdebug.remote_port</td>
+<td>9000</td>
+<td>9000</td>
+<td>与客户端(IDE)交互的端口</td>
+</tr>
+<tr>
+<td>xdebug.remote_handler</td>
+<td>dbgp</td>
+<td>dbgp</td>
+<td>与客户端(IDE)交互的协议</td>
+</tr>
+<tr>
+<td>xdebug.remote_mode</td>
+<td>req</td>
+<td>req</td>
+<td>调试模式模式</td>
+</tr>
+</tbody>
+</table>
+<h2 id="2-PHPSTORM-的配置"><a href="#2-PHPSTORM-的配置" class="headerlink" title="2. PHPSTORM 的配置"></a>2. PHPSTORM 的配置</h2><p>在设置中找到如下路径<br><figure class="highlight mathematica"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">Setting</span> &gt; Languages &amp; Frameworks &gt; PHP &gt; <span class="keyword">Debug</span> &gt; DBGp Proxy</span><br></pre></td></tr></table></figure></p>
+<p>按照如下的值进行填写</p>
+<table>
+<thead>
+<tr>
+<th>key</th>
+<th>val</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IDE Key</td>
+<td>PHPSTORM</td>
+</tr>
+<tr>
+<td>Host</td>
+<td>localhost</td>
+</tr>
+<tr>
+<td>Port</td>
+<td>9000</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-触发xdebug以及使用"><a href="#3-触发xdebug以及使用" class="headerlink" title="3. 触发xdebug以及使用"></a>3. 触发xdebug以及使用</h2><p>当PHPSTROM需要监听的时候需要先开启开关 <code>Run &gt; Start Listening for PHP Debug Connections</code></p>
+<p>触发xdebug的方法目前有两种，在请求的时候</p>
+<ol>
+<li>cookie 中增加值 <code>XDEBUG_SESSION=PHPSTORM</code> </li>
+<li>queryString 上带上一些参数，比如 <code>http://localhost/index.php?XDEBUG_SESSION_START=13679</code></li>
+</ol>
+<h3 id="3-1-cookie中增加值"><a href="#3-1-cookie中增加值" class="headerlink" title="3.1 cookie中增加值"></a>3.1 cookie中增加值</h3><p>可以通过chrome扩展方面实现 cookie值的添加与去除</p>
+<p>扩展的<a href="https://chrome.google.com/webstore/detail/eadndfjplgieldjbigjakmdgkmoaaaoc" target="_blank" rel="external">下载地址</a></p>
+<h3 id="3-2-在PHPStrom-中Debug"><a href="#3-2-在PHPStrom-中Debug" class="headerlink" title="3.2 在PHPStrom 中Debug"></a>3.2 在PHPStrom 中Debug</h3><p>PHPStrom中点击 <code>Run &gt; Debug</code> ，因为这个debug实例是通过浏览器的，所以要给这个debug添加server并关联</p>
+<h5 id="3-2-1-创建server"><a href="#3-2-1-创建server" class="headerlink" title="3.2.1 创建server"></a>3.2.1 创建server</h5><p>在设置中找到如下路径<br><figure class="highlight mathematica"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">Setting</span> &gt; Languages &amp; Frameworks &gt; PHP &gt; Servers</span><br></pre></td></tr></table></figure></p>
+<p>新增一个server配置，名字自定义，其他的值是，host port ，重要的是 Debugger，这个选项指定调试的时候使用哪个debug引擎</p>
+<h5 id="3-2-2-配置debug"><a href="#3-2-2-配置debug" class="headerlink" title="3.2.2 配置debug"></a>3.2.2 配置debug</h5><p>在 <code>Run &gt; Edit Configurations</code> 中新增，类型选择 <code>PHP Web Application</code>，其中Server中选择上一步配置的，URL为要请求的Url，PHPStrom在请求的时候会自动帮你加上 <code>XDEBUG_SESSION_START=111222</code>，因为在创建server的时候我们在debugger选项中选择了 <code>xdebug</code></p>
+
+            
+                
+
+            
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/debug/">debug</a> <a class="tag tag--primary tag--small t-link" href="/tags/phpstrom/">phpstrom</a> <a class="tag tag--primary tag--small t-link" href="/tags/xdebug/">xdebug</a>
+
+            </div>
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/06/29/symfony源码分析之框架主流程/"  data-tooltip="symfony源码分析之框架主流程">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/04/06/php并发控制/" data-tooltip="php并发控制">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2017/06/21/使用phpstorm进行断点调试/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2017/06/21/使用phpstorm进行断点调试/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2017/06/21/使用phpstorm进行断点调试/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+            
+                <div id="ds-thread" class="ds-thread" data-thread-key="2017/06/21/使用phpstorm进行断点调试/"
+     data-title="使用phpstorm进行断点调试" data-url="/2017/06/21/使用phpstorm进行断点调试/">
+</div>
+
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2017 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="3">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/06/29/symfony源码分析之框架主流程/"  data-tooltip="symfony源码分析之框架主流程">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/04/06/php并发控制/" data-tooltip="php并发控制">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2017/06/21/使用phpstorm进行断点调试/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2017/06/21/使用phpstorm进行断点调试/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2017/06/21/使用phpstorm进行断点调试/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="3">
+    <ul class="share-options">
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=/2017/06/21/使用phpstorm进行断点调试/">
+                <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2017/06/21/使用phpstorm进行断点调试/">
+                <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=/2017/06/21/使用phpstorm进行断点调试/">
+                <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><p> good at develop framework </p>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+        <script type="text/javascript">
+            var duoshuoQuery = {short_name:'fantiq'};
+            (function() {
+                var ds = document.createElement('script');
+                ds.type = 'text/javascript';ds.async = true;
+                ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+                ds.charset = 'UTF-8';
+                (document.getElementsByTagName('head')[0]
+                || document.getElementsByTagName('body')[0]).appendChild(ds);
+            })();
+        </script>
+    
+
+
+
+</html>
