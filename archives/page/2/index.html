@@ -191,6 +191,53 @@
             <div class="postShorten-header">
                 <h1 class="postShorten-title" itemprop="headline">
                     
+                        <a class="link-unstyled" href="/2016/09/10/利用apidoc设计文档自动生成方案/">
+                            利用apidoc设计文档自动生成方案
+                        </a>
+                    
+                </h1>
+                <div class="postShorten-meta">
+    <time itemprop="datePublished" content="Sat Sep 10 2016 19:11:40 GMT+0800">
+	
+		    9月 10, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/架构/">架构</a>, <a class="category-link" href="/categories/架构/api/">api</a>
+
+
+    
+</div>
+            </div>
+            
+            
+                <div class="postShorten-excerpt" itemprop="articleBody">
+                    <p>使用<code>apidoc</code> 可以通过分析代码中的注释生成文档，由于<code>apidoc</code>生成的文档是一个单文件<br>多人开发过程中会导致文件的覆盖，可以通过<code>git</code> 代码分支合并的时候通过钩子(web hook)生成文档到文档服务器<br>文档服务器通过<code>samba</code> 服务 实现代码服务器将生成的文档写入文档服务器。由于是静态文件可以使用<code>node</code> 来跑<br>这样避免多项目的时候 需要在文档服务器绑定不同的域名来实现单台文档服务器跑多个项目的接口文档的麻烦<br>
+                    
+                        <a href="/2016/09/10/利用apidoc设计文档自动生成方案/" class="postShorten-excerpt_link link">
+                            阅读全文
+                        </a>
+                        
+                    
+                </div>
+            
+        </div>
+        
+            <div class="postShorten-thumbnailimg">
+                <img alt="" itemprop="image" src="/2016/09/10/利用apidoc设计文档自动生成方案/logo.png"/>
+            </div>
+            
+        
+    </article>
+    
+    
+    <article class="postShorten postShorten--thumbnailimg-right" itemscope itemType="http://schema.org/BlogPosting">
+        <div class="postShorten-wrap">
+            <div class="postShorten-header">
+                <h1 class="postShorten-title" itemprop="headline">
+                    
                         <a class="link-unstyled" href="/2016/08/10/composer使用指南/">
                             composer使用指南
                         </a>
@@ -572,48 +619,6 @@
                     <p>CSP = content security policy 是浏览器的一个安全策略，如同跨域功能<br>通过相应头可以控制 浏览器的行为 比如：内联样式 内联js 引用外部js 图片等文件<br>这个是html5 的新特性 ，用来防止 跨站攻击 很有效 但是要高版本浏览器才会支持<br><a href="http://caniuse.com/#feat=contentsecuritypolicy">这里可以看到兼容性</a></p>
                     
                         <a href="/2016/06/07/html5中引入的csp防跨域/" class="postShorten-excerpt_link link">
-                            阅读全文
-                        </a>
-                        
-                    
-                </div>
-            
-        </div>
-        
-    </article>
-    
-    
-    <article class="postShorten postShorten--thumbnailimg-right" itemscope itemType="http://schema.org/BlogPosting">
-        <div class="postShorten-wrap">
-            <div class="postShorten-header">
-                <h1 class="postShorten-title" itemprop="headline">
-                    
-                        <a class="link-unstyled" href="/2016/06/07/linux-centos-硬盘共享nfs使用总结/">
-                            linux centos 硬盘共享nfs使用总结
-                        </a>
-                    
-                </h1>
-                <div class="postShorten-meta">
-    <time itemprop="datePublished" content="Tue Jun 07 2016 22:35:57 GMT+0800">
-	
-		    6月 07, 2016
-    	
-    </time>
-    
-        <span>发布在 </span>
-        
-    <a class="category-link" href="/categories/运维/">运维</a>
-
-
-    
-</div>
-            </div>
-            
-            
-                <div class="postShorten-excerpt" itemprop="articleBody">
-                    <p>当我们多个服务器要共享同一块硬盘的时候 比如一些公共代码库 比如公共图片资源文件资源<br>这时候就需要通过磁盘共享的方式来实现。通过nfs可以满足我们的这个需求 下面深入讲解下<br>nfs的使用<br>nfs = network file system<br>NFS 在文件共享传输的过程 依赖RPC(Remote Procedure Call)协议<br>
-                    
-                        <a href="/2016/06/07/linux-centos-硬盘共享nfs使用总结/" class="postShorten-excerpt_link link">
                             阅读全文
                         </a>
                         
