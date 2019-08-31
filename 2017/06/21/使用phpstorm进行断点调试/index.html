@@ -12,11 +12,13 @@
     
     
     <meta name="description" content="xdebug的断点原理就是，通过php的xdebug对php运行的变量文件等信息进行监听，并通过9000端口以及DBGp协议，将这些信息发送给客户端PHPStrom。PHPStrom 作为IDE对自己内部设置的断点以及接收到的数据进行安排显示，并再次通过9000端口，做出响应到服务端的xdebug。">
+<meta name="keywords" content="phpstrom,debug,xdebug">
 <meta property="og:type" content="blog">
 <meta property="og:title" content="使用phpstorm进行断点调试">
 <meta property="og:url" content="/2017/06/21/使用phpstorm进行断点调试/index.html">
 <meta property="og:site_name" content="代码狗的狗窝">
 <meta property="og:description" content="xdebug的断点原理就是，通过php的xdebug对php运行的变量文件等信息进行监听，并通过9000端口以及DBGp协议，将这些信息发送给客户端PHPStrom。PHPStrom 作为IDE对自己内部设置的断点以及接收到的数据进行安排显示，并再次通过9000端口，做出响应到服务端的xdebug。">
+<meta property="og:locale" content="zh-cn">
 <meta property="og:updated_time" content="2017-06-29T06:48:10.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="使用phpstorm进行断点调试">
@@ -211,7 +213,7 @@
         <div class="main-content-wrap">
             <p>xdebug的断点原理就是，通过php的xdebug对php运行的变量文件等信息进行监听，并通过9000端口以及DBGp协议，将这些信息发送给客户端PHPStrom。<br>PHPStrom 作为IDE对自己内部设置的断点以及接收到的数据进行安排显示，并再次通过9000端口，做出响应到服务端的xdebug。<br><a id="more"></a></p>
 <h2 id="1-php中xdebug配置"><a href="#1-php中xdebug配置" class="headerlink" title="1. php中xdebug配置"></a>1. php中xdebug配置</h2><p>安装xdebug扩展并重启服务，这里省略说明，具体罗列解释下xdebug断点相关的配置项</p>
-<p>php开启扩展的配置<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-id">#php</span><span class="selector-class">.ini</span> </span><br><span class="line">xdebug.remote_enable=on</span><br><span class="line">xdebug.idekey=PHPSTROM</span><br></pre></td></tr></table></figure></p>
+<p>php开启扩展的配置<br><figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#php.ini </span></span><br><span class="line"><span class="attr">xdebug.remote_enable</span>=<span class="literal">on</span></span><br><span class="line"><span class="attr">xdebug.idekey</span>=PHPSTROM</span><br></pre></td></tr></table></figure></p>
 <p>xdebug相关参数使用</p>
 <table>
 <thead>
@@ -292,9 +294,9 @@
 <li>queryString 上带上一些参数，比如 <code>http://localhost/index.php?XDEBUG_SESSION_START=13679</code></li>
 </ol>
 <h3 id="3-1-cookie中增加值"><a href="#3-1-cookie中增加值" class="headerlink" title="3.1 cookie中增加值"></a>3.1 cookie中增加值</h3><p>可以通过chrome扩展方面实现 cookie值的添加与去除</p>
-<p>扩展的<a href="https://chrome.google.com/webstore/detail/eadndfjplgieldjbigjakmdgkmoaaaoc" target="_blank" rel="external">下载地址</a></p>
+<p>扩展的<a href="https://chrome.google.com/webstore/detail/eadndfjplgieldjbigjakmdgkmoaaaoc" target="_blank" rel="noopener">下载地址</a></p>
 <h3 id="3-2-在PHPStrom-中Debug"><a href="#3-2-在PHPStrom-中Debug" class="headerlink" title="3.2 在PHPStrom 中Debug"></a>3.2 在PHPStrom 中Debug</h3><p>PHPStrom中点击 <code>Run &gt; Debug</code> ，因为这个debug实例是通过浏览器的，所以要给这个debug添加server并关联</p>
-<h5 id="3-2-1-创建server"><a href="#3-2-1-创建server" class="headerlink" title="3.2.1 创建server"></a>3.2.1 创建server</h5><p>在设置中找到如下路径<br><figure class="highlight mathematica"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">Setting</span> &gt; Languages &amp; Frameworks &gt; PHP &gt; Servers</span><br></pre></td></tr></table></figure></p>
+<h5 id="3-2-1-创建server"><a href="#3-2-1-创建server" class="headerlink" title="3.2.1 创建server"></a>3.2.1 创建server</h5><p>在设置中找到如下路径<br><figure class="highlight 1c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Setting &gt; Languages <span class="meta">&amp; Frameworks &gt; PHP &gt; Servers</span></span><br></pre></td></tr></table></figure></p>
 <p>新增一个server配置，名字自定义，其他的值是，host port ，重要的是 Debugger，这个选项指定调试的时候使用哪个debug引擎</p>
 <h5 id="3-2-2-配置debug"><a href="#3-2-2-配置debug" class="headerlink" title="3.2.2 配置debug"></a>3.2.2 配置debug</h5><p>在 <code>Run &gt; Edit Configurations</code> 中新增，类型选择 <code>PHP Web Application</code>，其中Server中选择上一步配置的，URL为要请求的Url，PHPStrom在请求的时候会自动帮你加上 <code>XDEBUG_SESSION_START=111222</code>，因为在创建server的时候我们在debugger选项中选择了 <code>xdebug</code></p>
 

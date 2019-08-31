@@ -11,15 +11,13 @@
     
     
     
-    <meta name="description">
-<meta property="og:type" content="blog">
+    <meta property="og:type" content="blog">
 <meta property="og:title" content="代码狗的狗窝">
 <meta property="og:url" content="/tags/java/index.html">
 <meta property="og:site_name" content="代码狗的狗窝">
-<meta property="og:description">
+<meta property="og:locale" content="zh-cn">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="代码狗的狗窝">
-<meta name="twitter:description">
     
     
         
@@ -191,6 +189,48 @@
             <div class="postShorten-header">
                 <h1 class="postShorten-title" itemprop="headline">
                     
+                        <a class="link-unstyled" href="/2019/08/13/java基础-编译运行原理/">
+                            java基础-编译运行原理
+                        </a>
+                    
+                </h1>
+                <div class="postShorten-meta">
+    <time itemprop="datePublished" content="Tue Aug 13 2019 14:55:46 GMT+0800">
+	
+		    8月 13, 2019
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/java/">java</a>
+
+
+    
+</div>
+            </div>
+            
+            
+                <div class="postShorten-excerpt" itemprop="articleBody">
+                    <p>java的运行过程与c程序的运行过程非常相似，c程序由编译器将c源代码直接编译成了机器码（当然中间还有预处理 汇编的步骤），可以在操作系统中直接运行，java多了个中间字节码。java编译器将java源代码编译成字节码(xxx.class) 字节码是二进制文件，其格式类似于 c中的elf格式，elf格式是由操作系统识别的，java字节码是给 java的运行环境 jvm 识别的。 jvm 实现了字节码的运行环境，这样不依赖系统运行环境来实现跨平台，其实现形式类似操作系统的实现形式，都有程序运行需要的 指令存储、栈、堆 等内存段，jvm以多线程的模式运行程序（字节码），线程的调度依赖操作系统的调度算法，对硬件的操作还是要依赖操作系统提供的接口实现。<br>
+                    
+                        <a href="/2019/08/13/java基础-编译运行原理/" class="postShorten-excerpt_link link">
+                            阅读全文
+                        </a>
+                        
+                    
+                </div>
+            
+        </div>
+        
+    </article>
+    
+    
+    <article class="postShorten postShorten--thumbnailimg-right" itemscope itemType="http://schema.org/BlogPosting">
+        <div class="postShorten-wrap">
+            <div class="postShorten-header">
+                <h1 class="postShorten-title" itemprop="headline">
+                    
                         <a class="link-unstyled" href="/2019/08/06/spring-beans使用/">
                             spring-beans使用
                         </a>
@@ -214,7 +254,7 @@
             
             
                 <div class="postShorten-excerpt" itemprop="articleBody">
-                    <p>spring框架主要的实现功能是 IoC, 实现IoC主要是依赖 <code>pring-beans</code> 组件分布实现的，想要方便的阅读 <code>spring-beans</code> 的代码需要先熟悉使用方式。beans的整个配置是用来描述实例化类的过程以及对象之间的依赖。<br>
+                    <p>在spring框架中其核心功能是IoC的实现，Spring实现IoC靠的是组件 <code>spring-beans</code> ，搞清楚 beans 的原理有利于理解 spring 框架的设计思路。<br>Beans是对类如何实例化的定义，这些定义是通过配置的形式提现的，spring目前支持的定义格式有 <code>Properties</code> <code>Groovy</code> <code>XML</code> 以及后来在组件 <code>spring-context</code> 中通过 <code>注解</code> 的实现形式。容器的本质是一个HashMap 用于存储对象实例化后的地址 或者 存储如何实例化对象的数据(配置)。</p>
                     
                         <a href="/2019/08/06/spring-beans使用/" class="postShorten-excerpt_link link">
                             阅读全文

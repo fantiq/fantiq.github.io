@@ -11,15 +11,13 @@
     
     
     
-    <meta name="description">
-<meta property="og:type" content="blog">
+    <meta property="og:type" content="blog">
 <meta property="og:title" content="代码狗的狗窝">
 <meta property="og:url" content="/categories/spring/index.html">
 <meta property="og:site_name" content="代码狗的狗窝">
-<meta property="og:description">
+<meta property="og:locale" content="zh-cn">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="代码狗的狗窝">
-<meta name="twitter:description">
     
     
         
@@ -214,7 +212,7 @@
             
             
                 <div class="postShorten-excerpt" itemprop="articleBody">
-                    <p>spring框架主要的实现功能是 IoC, 实现IoC主要是依赖 <code>pring-beans</code> 组件分布实现的，想要方便的阅读 <code>spring-beans</code> 的代码需要先熟悉使用方式。beans的整个配置是用来描述实例化类的过程以及对象之间的依赖。<br>
+                    <p>在spring框架中其核心功能是IoC的实现，Spring实现IoC靠的是组件 <code>spring-beans</code> ，搞清楚 beans 的原理有利于理解 spring 框架的设计思路。<br>Beans是对类如何实例化的定义，这些定义是通过配置的形式提现的，spring目前支持的定义格式有 <code>Properties</code> <code>Groovy</code> <code>XML</code> 以及后来在组件 <code>spring-context</code> 中通过 <code>注解</code> 的实现形式。容器的本质是一个HashMap 用于存储对象实例化后的地址 或者 存储如何实例化对象的数据(配置)。</p>
                     
                         <a href="/2019/08/06/spring-beans使用/" class="postShorten-excerpt_link link">
                             阅读全文

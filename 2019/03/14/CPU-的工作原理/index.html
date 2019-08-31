@@ -12,22 +12,24 @@
     
     
     <meta name="description" content="CPU的最重要的功能是计算，但是计算是CPU整个功能的其中之一，叫做逻辑计算模块(ALU)。基于整个CPU的功能，他还有寄存器 缓存 内存寻址 等功能模块。整体来讲分为两部分 1. 计算 2. 寄存器存储">
+<meta name="keywords" content="计算机原理,CPU">
 <meta property="og:type" content="blog">
 <meta property="og:title" content="CPU 的工作原理">
 <meta property="og:url" content="/2019/03/14/CPU-的工作原理/index.html">
 <meta property="og:site_name" content="代码狗的狗窝">
 <meta property="og:description" content="CPU的最重要的功能是计算，但是计算是CPU整个功能的其中之一，叫做逻辑计算模块(ALU)。基于整个CPU的功能，他还有寄存器 缓存 内存寻址 等功能模块。整体来讲分为两部分 1. 计算 2. 寄存器存储">
-<meta property="og:image" content="/WX20190318-161404@2x.png">
-<meta property="og:image" content="/WX20190318-170141@2x.png">
-<meta property="og:image" content="/WX20190318-171328@2x.png">
-<meta property="og:image" content="/WX20190318-211547@2x.png">
-<meta property="og:image" content="/WX20190319-022750@2x.png">
-<meta property="og:image" content="/WX20190319-013441@2x.png">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="/2019/03/14/CPU-的工作原理/WX20190318-161404@2x.png">
+<meta property="og:image" content="/2019/03/14/CPU-的工作原理/WX20190318-170141@2x.png">
+<meta property="og:image" content="/2019/03/14/CPU-的工作原理/WX20190318-171328@2x.png">
+<meta property="og:image" content="/2019/03/14/CPU-的工作原理/WX20190318-211547@2x.png">
+<meta property="og:image" content="/2019/03/14/CPU-的工作原理/WX20190319-022750@2x.png">
+<meta property="og:image" content="/2019/03/14/CPU-的工作原理/WX20190319-013441@2x.png">
 <meta property="og:updated_time" content="2019-03-20T13:35:46.255Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="CPU 的工作原理">
 <meta name="twitter:description" content="CPU的最重要的功能是计算，但是计算是CPU整个功能的其中之一，叫做逻辑计算模块(ALU)。基于整个CPU的功能，他还有寄存器 缓存 内存寻址 等功能模块。整体来讲分为两部分 1. 计算 2. 寄存器存储">
-<meta name="twitter:image" content="/WX20190318-161404@2x.png">
+<meta name="twitter:image" content="/2019/03/14/CPU-的工作原理/WX20190318-161404@2x.png">
     
     
         
@@ -347,7 +349,7 @@
 </tbody>
 </table>
 <p>最总可以得到一个映射方式 <code>R = (A &amp; !B) | (B &amp; !A)</code> 基于这个规则 可以基于 基础的逻辑门来组成一个 <code>异</code> 门，其电路图如下</p>
-<p><img src="WX20190318-171328@2x.png" alt=""></p>
+<p><img src="WX20190318-171328@2x.png" alt></p>
 <p>其次是进位 Carry的计算，Carry的计算相对简单，两个数进行 <code>且</code> 运算就可以了，最终我们的输出是 <code>Sum</code> 和 <code>Carry</code> 两个值，到这里实现的只是一个<code>半加器</code> 若要实现多位数字相加 的 <code>全加器</code> 则我们的模型是，输入 A B Carry 输出 Sum Carry 。<br>所以需要在半加器的电路中进行改造 将 进位的情况考虑进来。<br>先观察数据</p>
 <table>
 <thead>
@@ -464,10 +466,10 @@
 <p>汇编代码 可以直观的查看CPU的数据变化过程<br><figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">MOV</span> <span class="built_in">AX</span>,<span class="number">12</span> # 将数字 <span class="number">12</span> 写入寄存器 <span class="built_in">AX</span></span><br><span class="line"><span class="keyword">ADD</span> <span class="built_in">BX</span>,<span class="built_in">AX</span> # 将寄存器<span class="built_in">AX</span> 中的数据与 寄存器<span class="built_in">BX</span>中的数据相加 并存储在 <span class="built_in">BX</span>寄存器中</span><br><span class="line"><span class="keyword">INC</span> <span class="built_in">AX</span> # 使<span class="built_in">AX</span>寄存器中的数据累加</span><br><span class="line"><span class="keyword">MOV</span> [<span class="number">0x0a2e23</span>], <span class="built_in">BX</span> # 将寄存器<span class="built_in">BX</span>中的数据写入内存地址 <span class="number">0x0a2e23</span></span><br></pre></td></tr></table></figure></p>
 <p>参考链接中有一个在线的简单汇编代码执行器，可以直观的感受到汇编对寄存器的操作过程。</p>
 <p>接下来要研究下内存的结构，以及CPU是如何进行寻址的，进一步理解C语言。</p>
-<p><strong><em>关于CPU对内存的寻址过程</em></strong><br>CPU对内存数据的读写主要通过 <code>地址总线</code> <code>指令总线</code> <code>数据总线</code> 来完成的。通过<code>地址总线</code>与内存通信 先确定内存数据的存储地址 <code>指令总线</code> 用来确定操作是读数据 还是写数据，内存根据接收的指令信息确定操作，如果是读数据，根据地址读取数据并通过<code>地址总线</code>返回数据，如果是些数据 通过<code>地址总线</code>接收数据 并通过地址将数据写入，具体的电路实现可以参考 <a href="">内存 的工作原理</a></p>
+<p><strong><em>关于CPU对内存的寻址过程</em></strong><br>CPU对内存数据的读写主要通过 <code>地址总线</code> <code>指令总线</code> <code>数据总线</code> 来完成的。通过<code>地址总线</code>与内存通信 先确定内存数据的存储地址 <code>指令总线</code> 用来确定操作是读数据 还是写数据，内存根据接收的指令信息确定操作，如果是读数据，根据地址读取数据并通过<code>地址总线</code>返回数据，如果是些数据 通过<code>地址总线</code>接收数据 并通过地址将数据写入，具体的电路实现可以参考 <a href>内存 的工作原理</a></p>
 <h4 id="TODO-CPU时钟"><a href="#TODO-CPU时钟" class="headerlink" title="TODO CPU时钟"></a>TODO CPU时钟</h4><p>其实CPU在进行一次计算做了很多事情，这些事情还要在规定的时间内完成，这就需要CPU时钟 进行控制 也就是我们常看到的CPU的频率 ，比如目前的电脑CPU频率是 <code>2.2GHz</code> </p>
 <blockquote>
-<p>参考链接<br><a href="http://www.ruanyifeng.com/blog/2011/03/4-bit_computer.html" target="_blank" rel="external">四位计算机的原理及其实现</a><br><a href="http://www.eecso.com/test/asm/" target="_blank" rel="external">一个简单的在线汇编执行器</a><br><a href="https://zh.wikipedia.org/wiki/%E5%AF%84%E5%AD%98%E5%99%A8" target="_blank" rel="external">寄存器</a></p>
+<p>参考链接<br><a href="http://www.ruanyifeng.com/blog/2011/03/4-bit_computer.html" target="_blank" rel="noopener">四位计算机的原理及其实现</a><br><a href="http://www.eecso.com/test/asm/" target="_blank" rel="noopener">一个简单的在线汇编执行器</a><br><a href="https://zh.wikipedia.org/wiki/%E5%AF%84%E5%AD%98%E5%99%A8" target="_blank" rel="noopener">寄存器</a></p>
 </blockquote>
 
             

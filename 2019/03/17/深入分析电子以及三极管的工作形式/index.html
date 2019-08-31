@@ -12,20 +12,22 @@
     
     
     <meta name="description" content="经过对更多的资料的查阅，我发现搞清楚整个电子的发现过程对理解三极管的工作原理有更大帮助。并且我将思路从分析电子的运动规律切换到分析电子形成的电场，对晶体管的工作原理分析 就更顺畅了。目前还无法观察到电子的运动轨迹，所以想详细的分析电子的分布和运动轨迹也是一个目前来说 走不通的思路。想要理解这篇文章需要具有一定的物理知识。">
+<meta name="keywords" content="计算机原理,计算机电路">
 <meta property="og:type" content="blog">
 <meta property="og:title" content="深入分析电子以及三极管的工作形式">
 <meta property="og:url" content="/2019/03/17/深入分析电子以及三极管的工作形式/index.html">
 <meta property="og:site_name" content="代码狗的狗窝">
 <meta property="og:description" content="经过对更多的资料的查阅，我发现搞清楚整个电子的发现过程对理解三极管的工作原理有更大帮助。并且我将思路从分析电子的运动规律切换到分析电子形成的电场，对晶体管的工作原理分析 就更顺畅了。目前还无法观察到电子的运动轨迹，所以想详细的分析电子的分布和运动轨迹也是一个目前来说 走不通的思路。想要理解这篇文章需要具有一定的物理知识。">
-<meta property="og:image" content="/WX20190317-181552@2x.png">
-<meta property="og:image" content="/WX20190317-184735@2x.png">
-<meta property="og:image" content="/WX20190318-114020@2x.png">
-<meta property="og:image" content="/WX20190318-142421@2x.png">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="/2019/03/17/深入分析电子以及三极管的工作形式/WX20190317-181552@2x.png">
+<meta property="og:image" content="/2019/03/17/深入分析电子以及三极管的工作形式/WX20190317-184735@2x.png">
+<meta property="og:image" content="/2019/03/17/深入分析电子以及三极管的工作形式/WX20190318-114020@2x.png">
+<meta property="og:image" content="/2019/03/17/深入分析电子以及三极管的工作形式/WX20190318-142421@2x.png">
 <meta property="og:updated_time" content="2019-03-18T06:25:07.810Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="深入分析电子以及三极管的工作形式">
 <meta name="twitter:description" content="经过对更多的资料的查阅，我发现搞清楚整个电子的发现过程对理解三极管的工作原理有更大帮助。并且我将思路从分析电子的运动规律切换到分析电子形成的电场，对晶体管的工作原理分析 就更顺畅了。目前还无法观察到电子的运动轨迹，所以想详细的分析电子的分布和运动轨迹也是一个目前来说 走不通的思路。想要理解这篇文章需要具有一定的物理知识。">
-<meta name="twitter:image" content="/WX20190317-181552@2x.png">
+<meta name="twitter:image" content="/2019/03/17/深入分析电子以及三极管的工作形式/WX20190317-181552@2x.png">
     
     
         
@@ -235,7 +237,7 @@
 <p>从上到下的 <code>NPN</code> 结构上， 上面的N称做 <code>集电极</code> (Collector 简称C)  下面的N 称做<code>发射极</code> (Emitter 简称 E) 中间的P称作 <code>基极</code> (Base 简称 B) 。若假设电流电压达到 1V 以上才能识别到电流，在左图中基极没有加电压的情况下，整个三极管得到的电压是 0.7V，达不到1V电压，当给基极加入电压 0.4V 如右图所示，则整个三极管得到的电压为1.1V，这就达到了电流所需电压。</p>
 <p>根据欧姆定律可知 电压与电流是正比的，基极电压越大 整个三极管的电流越大。还有一个问题是，电子为什么会大部分到达了集电极，而不是到达基极。这个要考虑三极管三个极的不同构造了，其中发射极的体积小 参杂度高 内部电子浓度高，集电区 提价大 参杂低 电子浓度低，基极体积小 参杂低 内部空穴浓度低。当在合适的电压下，发射极大量的电子会运动起来，一方面集电极电子浓度小 对发射极发射出来的电子阻力小，基极与发射极形成的回路 在达到电流平衡时并不需要很多的电子，因为基极的空穴浓度很低，且基极体积单位小厚度薄，最终电子更多的是流向集电极。</p>
 <p>这样就可以通过改变基极电压，来控制发射极到集电极的电流大小与通断，实现了对电流的放大效果，也实现了开关的功能。</p>
-<p><img src="WX20190318-142421@2x.png" alt=""></p>
+<p><img src="WX20190318-142421@2x.png" alt></p>
 
             
                 
