@@ -1,0 +1,527 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>内存 的工作原理 - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta name="description" content="内存一般是指 随机存取存储器 (英语 random access memory 缩写 RAM) ，用于存储CPU需要的数据，根据构造不同 有 静态 DRAM 动态 SRAM 之分，静态内存 只要通电就能保持数据 但是需要更多的晶体管，容量难以做大，动态内存可以通过一个晶体管和一个电容来实现一个bit的表示，在电路上简化了很多 可以将容量做大，缺点是 由于电容上的电荷容易丢失 需要不停的充电。">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="内存 的工作原理">
+<meta property="og:url" content="/2019/03/14/内存-的工作原理/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:description" content="内存一般是指 随机存取存储器 (英语 random access memory 缩写 RAM) ，用于存储CPU需要的数据，根据构造不同 有 静态 DRAM 动态 SRAM 之分，静态内存 只要通电就能保持数据 但是需要更多的晶体管，容量难以做大，动态内存可以通过一个晶体管和一个电容来实现一个bit的表示，在电路上简化了很多 可以将容量做大，缺点是 由于电容上的电荷容易丢失 需要不停的充电。">
+<meta property="og:image" content="/WX20190319-215627@2x.png">
+<meta property="og:image" content="/WX20190319-220520@2x.png">
+<meta property="og:image" content="/WX20190320-204831@2x.png">
+<meta property="og:image" content="/WX20190320-223944@2x.png">
+<meta property="og:updated_time" content="2019-03-22T06:06:48.002Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="内存 的工作原理">
+<meta name="twitter:description" content="内存一般是指 随机存取存储器 (英语 random access memory 缩写 RAM) ，用于存储CPU需要的数据，根据构造不同 有 静态 DRAM 动态 SRAM 之分，静态内存 只要通电就能保持数据 但是需要更多的晶体管，容量难以做大，动态内存可以通过一个晶体管和一个电容来实现一个bit的表示，在电路上简化了很多 可以将容量做大，缺点是 由于电容上的电荷容易丢失 需要不停的充电。">
+<meta name="twitter:image" content="/WX20190319-215627@2x.png">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="3">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="3">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+            <div id="main" data-behavior="3"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title" itemprop="headline">
+            内存 的工作原理
+        </h1>
+    
+    <div class="post-meta">
+    <time itemprop="datePublished" content="Thu Mar 14 2019 17:14:22 GMT+0800">
+	
+		    3月 14, 2019
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/计算机原理/">计算机原理</a>, <a class="category-link" href="/categories/计算机原理/内存/">内存</a>
+
+
+    
+</div>
+</div>
+    
+    <div class="post-content markdown" itemprop="articleBody">
+        <div class="main-content-wrap">
+            <p>内存一般是指 随机存取存储器 (英语 random access memory 缩写 RAM) ，用于存储CPU需要的数据，根据构造不同 有 静态 DRAM 动态 SRAM 之分，静态内存 只要通电就能保持数据 但是需要更多的晶体管，容量难以做大，动态内存可以通过一个晶体管和一个电容来实现一个bit的表示，在电路上简化了很多 可以将容量做大，缺点是 由于电容上的电荷容易丢失 需要不停的充电。<br><a id="more"></a></p>
+<h3 id="1-内部构造"><a href="#1-内部构造" class="headerlink" title="1 内部构造"></a>1 内部构造</h3><p>内存的分层如下 <code>Channel &gt; DIMM &gt; Rank -&gt; Chip -&gt; Bank -&gt; Row/Col</code> 可以参考下图<br><img src="WX20190319-215627@2x.png" alt="内存分布"></p>
+<p>其中一个CPU支持两个通道 Channel 这个通道就是北桥芯片上的电路了，每个Channel 上支持两个 MIDD(内存条) 插槽，也就是说计算机总共支持插 2 X 2 = 4 个内存条。一个内存条上是分两个面的，这个面就是 Rank，每个面上会部署八个的黑色芯片颗粒 这个就是 Chip，如下图所示。<br><img src="WX20190319-220520@2x.png" alt="chip 内存颗粒"></p>
+<p>上面就是从内存条外观可以看到的结构，将Chip 展开 每个Chip的内部又是分层的 总共是分 8 个层，每个层都是一个阵列 每个点上就是一个电容与晶体管的组合体，这一个组合体构成了内存中的一个 bit 的表示 若电容不带电则表示 0 带电则表示 1。</p>
+<h3 id="2-电路实现"><a href="#2-电路实现" class="headerlink" title="2 电路实现"></a>2 电路实现</h3><p>内存的电路实现有多种，这里只分析最简单的情况 旨在说明其原理。内存主要做数据的存储，且以二进制的形式表示 也就是可以使用一个表示高低电压的输出就可以了，在内存分层中 这样的一个存储位(bit)体现在的是 一个<code>Bank</code>层的存储矩阵中的一个点。内存实现的存储是通过晶体管实现的一个电路 <code>门控D锁存器</code>，其更简化的形式是 <code>SR锁存器</code>，电路结构如下图:<br><img src="WX20190320-204831@2x.png" alt="SR锁存器"></p>
+<p>两个输入端 <code>S</code>(set) <code>R</code>(reset) 和两个输出端 <code>Q</code> 和 <code>Q&#39;</code>，其工作原理是通过两个输入端的高低电平情况的组合，在输出端 产生不一样的结果。输入端分别接入到一个 <code>或非</code> 逻辑电路上，我们分析一下这个<code>或非</code> 真值表的规律</p>
+<table>
+<thead>
+<tr>
+<th>S</th>
+<th>R</th>
+<th>(S OR R)</th>
+<th>^(S OR R)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p>又上面的结果可看出规律，如果 <code>S</code> 或 <code>R</code> 中存在一个值是 1 的情况，逻辑门的输出相当于 0 ，然后结合电路图以及不同的输入组合对应产生的输出：</p>
+<p>首先，电路中的 Q 与 Q’ 都是接地的 对应的都是低电平</p>
+<h6 id="1-S-0-R-1"><a href="#1-S-0-R-1" class="headerlink" title="1. S=0, R=1"></a>1. S=0, R=1</h6><p>R=1 R对应高电平 则 R 对应晶体管的输出是低电平，S=0 S对应低电平 则 S 对应晶体管的输出是高电平，这样电流 到达 Q‘ 的是高电平 Q’=1 到达 Q 的是低电平 Q=0<br>最终结果: S=0,R=1,Q=0,Q’=1</p>
+<h6 id="2-S-1-R-0"><a href="#2-S-1-R-0" class="headerlink" title="2. S=1, R=0"></a>2. S=1, R=0</h6><p>R=0 R对应的是低电平 则 R 对应晶体管的输出为高电平，S=1 S对应高电平 则 S 对应晶体管最终输出低电平，这样电流到达 Q 的是高电平 Q = 1 到达 Q‘ 的是低电平 Q’=0<br>最终结果: S=1,R=0,Q=1,Q’=0</p>
+<h6 id="3-S-1-R-1"><a href="#3-S-1-R-1" class="headerlink" title="3. S=1, R=1"></a>3. S=1, R=1</h6><p>S=1,R=1 这样对应的两个晶体管的输出都是低电平 对于 接地的 <code>Q Q&#39;</code> 是没有任何影响<br>最终结果: S=1,R=1,Q,Q’不变</p>
+<h6 id="4-S-0-R-0"><a href="#4-S-0-R-0" class="headerlink" title="4. S=0, R=0"></a>4. S=0, R=0</h6><p>S=0,R=0 这样两个对应的晶体管都输出高电平 也就是 <code>Q Q&#39;</code> 都是高电平，当输入电流增加的时候 <code>Q Q&#39;</code> 的高电平就会失去平衡，达到一个高一个低的电平情况，这个又取决于先增加哪个输入的电流，对于这样的情况 在电路的设计中是避免掉的。</p>
+<p>由上面的结果可知，当R S 都是 0 (低电平) Q保持其值不变，当S=1 R=0 此时Q=1 ，当S=0 R=1 此时Q=0，内存存储阵列中的一个位 <code>bit</code> 也是用 这里的 Q 来表示 <code>0</code> <code>1</code> 的。这里的两个输入 S = set 是对这个bit设置值 R = Reset 是将这个位的值还原为0。</p>
+<p>上面的情况 当 S = R = 0 的情况是要在电路中避免的，这可以增加一个输入信号来控制是否可读的信号，这个输入分别与 S R 输入连接到两个 <code>且</code> 逻辑门上，这样就形成了一个 <code>门控D锁存器</code>。</p>
+<h3 id="3-寻址过程"><a href="#3-寻址过程" class="headerlink" title="3 寻址过程"></a>3 寻址过程</h3><ol>
+<li>通过寻址信号 S01# S02# 确定 <code>Rank</code> 内存的哪个面</li>
+<li>通过Bank地址 BA0-BA3(2^3 = 8) 确定Bank的哪个层 也就是哪个 存储矩阵</li>
+<li>列选 CAS# 表示要接收的地址编号是列地址 与 地址线配合使用</li>
+<li>行选 RAS# 表示要接收的地址编号是行地址 与 地址线配合使用</li>
+<li>地址线 A0 - A13 用于行列的地址选择</li>
+<li>数据总线 DQ0 - DQ63 传输数据 总共可以传输 64bit数据</li>
+<li>命令 COMMAND 传输对内存的操作方式 读或写</li>
+</ol>
+<p>这并没有对 内存颗粒（Chip） 的选址过程，内存在选片之后是对 8 个 Chip 一起选中使用的，确定Bank层 、行地址 、列地址 这些选址信息后 这些信息会同时应用到 8 内存颗粒上的。</p>
+<p>行列的选址过程：<br>行选择 行选高电平 列选低电平 地址线发送地址信息 这时接收到的地址是 行地址<br>列选择 列选高电平 行选低电平 地址线发送地址信息 这时接收到的地址是 列地址<br>然后就是根据COMMAND 确定读写操作 然后数据通过数据总线写入或读出</p>
+<p>在行列地址选择的时候还有一个行列地址的译码过程，我们的地址线是 A0 - A13 是14根电路，这个时候能表示的地址情况有  <code>2^14</code> 这是在行/列的译码器中实现的，解码器的电路如下:<br><img src="WX20190320-223944@2x.png" alt="内存译码器电路原理"></p>
+<p>关于 <code>寻址能力</code> 与 <code>寻址空间</code>。</p>
+<p><code>寻址能力</code> 是指内存的存储单元 目前常用的内存寻址能力都是 8bit 这也就是说 在内存的存储矩阵中，8个 <code>门控D锁存器</code> 组成内存的基本（最小）存储单元，他们共用一个行/列 地址线。在一次寻址中每个内存颗粒返回 8 bit的数据 8个内存可以同时寻址 最终得到的是 8 * 8 = 64 bit 的数据 也就是说 内存一次寻址可以读取 8 Byte 的数据，这里也能说明在C语言中的内存不齐的原因(减少寻址次数)。</p>
+<p><code>寻址空间</code> 是指内存总共可以存储多少个地址，比如一个2G 内存 ，每个Rank是2/1=1G ，每个内存颗粒是1/8=128M 每个Bank是 128/8=16M 16M = 2^4 * 2^10 = 2^14 也就是地址线需要14根 正对应地址线的 A0-A13</p>
+<blockquote>
+<p>参考链接<br><a href="https://zhuanlan.zhihu.com/p/26327347" target="_blank" rel="external">内存结构</a><br><a href="https://lrita.github.io/2018/06/30/programmer-should-know-about-memory-1/" target="_blank" rel="external">每个程序员都应该了解的内存知识</a><br><a href="http://www.wuyazi.com/jcdl/szdl/29711.html" target="_blank" rel="external">随机存取存储器(RAM)一般结构和读写过程</a><br><a href="https://blog.csdn.net/aic1999/article/details/80200534" target="_blank" rel="external">我对于RS触发器的理解（数电）</a></p>
+</blockquote>
+
+            
+                
+
+            
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/CPU/">CPU</a> <a class="tag tag--primary tag--small t-link" href="/tags/计算机原理/">计算机原理</a>
+
+            </div>
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/03/17/深入分析电子以及三极管的工作形式/"  data-tooltip="深入分析电子以及三极管的工作形式">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/03/14/CPU-的工作原理/" data-tooltip="CPU 的工作原理">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2019/03/14/内存-的工作原理/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2019/03/14/内存-的工作原理/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2019/03/14/内存-的工作原理/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+            
+                <div id="ds-thread" class="ds-thread" data-thread-key="2019/03/14/内存-的工作原理/"
+     data-title="内存 的工作原理" data-url="/2019/03/14/内存-的工作原理/">
+</div>
+
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2019 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="3">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/03/17/深入分析电子以及三极管的工作形式/"  data-tooltip="深入分析电子以及三极管的工作形式">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/03/14/CPU-的工作原理/" data-tooltip="CPU 的工作原理">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2019/03/14/内存-的工作原理/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2019/03/14/内存-的工作原理/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2019/03/14/内存-的工作原理/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="3">
+    <ul class="share-options">
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=/2019/03/14/内存-的工作原理/">
+                <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2019/03/14/内存-的工作原理/">
+                <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=/2019/03/14/内存-的工作原理/">
+                <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><p> good at develop framework </p>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+        <script type="text/javascript">
+            var duoshuoQuery = {short_name:'fantiq'};
+            (function() {
+                var ds = document.createElement('script');
+                ds.type = 'text/javascript';ds.async = true;
+                ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+                ds.charset = 'UTF-8';
+                (document.getElementsByTagName('head')[0]
+                || document.getElementsByTagName('body')[0]).appendChild(ds);
+            })();
+        </script>
+    
+
+
+
+</html>

@@ -1,0 +1,469 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>spring-beans使用 - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta name="description" content="spring框架主要的实现功能是 IoC, 实现IoC主要是依赖 pring-beans 组件分布实现的，想要方便的阅读 spring-beans 的代码需要先熟悉使用方式。beans的整个配置是用来描述实例化类的过程以及对象之间的依赖。">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="spring-beans使用">
+<meta property="og:url" content="/2019/08/06/spring-beans使用/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:description" content="spring框架主要的实现功能是 IoC, 实现IoC主要是依赖 pring-beans 组件分布实现的，想要方便的阅读 spring-beans 的代码需要先熟悉使用方式。beans的整个配置是用来描述实例化类的过程以及对象之间的依赖。">
+<meta property="og:updated_time" content="2019-08-06T09:56:34.648Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="spring-beans使用">
+<meta name="twitter:description" content="spring框架主要的实现功能是 IoC, 实现IoC主要是依赖 pring-beans 组件分布实现的，想要方便的阅读 spring-beans 的代码需要先熟悉使用方式。beans的整个配置是用来描述实例化类的过程以及对象之间的依赖。">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="3">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="3">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+            <div id="main" data-behavior="3"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title" itemprop="headline">
+            spring-beans使用
+        </h1>
+    
+    <div class="post-meta">
+    <time itemprop="datePublished" content="Tue Aug 06 2019 16:32:22 GMT+0800">
+	
+		    8月 06, 2019
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/spring/">spring</a>
+
+
+    
+</div>
+</div>
+    
+    <div class="post-content markdown" itemprop="articleBody">
+        <div class="main-content-wrap">
+            <p>spring框架主要的实现功能是 IoC, 实现IoC主要是依赖 <code>pring-beans</code> 组件分布实现的，想要方便的阅读 <code>spring-beans</code> 的代码需要先熟悉使用方式。beans的整个配置是用来描述实例化类的过程以及对象之间的依赖。<br><a id="more"></a></p>
+<h2 id="0"><a href="#0" class="headerlink" title="0."></a>0.</h2><h2 id="1-bean的基本定义"><a href="#1-bean的基本定义" class="headerlink" title="1. bean的基本定义"></a>1. bean的基本定义</h2><h3 id="1-1-bean基本定义"><a href="#1-1-bean基本定义" class="headerlink" title="1.1 bean基本定义"></a>1.1 bean基本定义</h3><p>需要被实例化的对象<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> foo.bar;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">BeanStub</span> &#123;</span>&#125;</span><br></pre></td></tr></table></figure></p>
+<p>配置文件 配置实例化时需要的数据<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># beans.xml</span></span><br><span class="line">&lt;bean <span class="built_in">id</span>=<span class="string">"myBeanStub"</span> <span class="built_in">class</span>=<span class="string">"foo.bar.BeanStub"</span>/&gt;</span><br></pre></td></tr></table></figure></p>
+<p>通过方法 <code>getBean</code> 方法获取实例化后的对象<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">BeanStub </span><span class="keyword">beanStub </span>= (<span class="keyword">BeanStub)factory.getBean("myBeanStub");</span></span><br></pre></td></tr></table></figure></p>
+<h3 id="1-2-scope-指定实例化的模式"><a href="#1-2-scope-指定实例化的模式" class="headerlink" title="1.2 scope 指定实例化的模式"></a>1.2 scope 指定实例化的模式</h3><p>scope 的默认取值是 <code>singleton</code>, getBean 调用的时候都是单例的形式返回。另一种取值是 <code>prototype</code> ，调用 getBean 实例化的时候使用 模型的模式 创建新的对象返回</p>
+<p>类<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> foo.bar;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">BeanStub</span> &#123;</span>&#125;</span><br></pre></td></tr></table></figure></p>
+<p>配置文件<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- 默认创建单例对象 --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">bean</span> <span class="attr">id</span>=<span class="string">"myBeanStub"</span>          <span class="attr">class</span>=<span class="string">"foo.bar.BeanStub"</span>/&gt;</span></span><br><span class="line"><span class="comment">&lt;!-- 通过 scope 指明通过模型的方式创建对象 --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">bean</span> <span class="attr">id</span>=<span class="string">"myBeanStubPrototype"</span> <span class="attr">class</span>=<span class="string">"foo.bar.BeanStub"</span> <span class="attr">scope</span>=<span class="string">"prototype"</span>/&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>通过代码<br><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">System.out.println(<span class="keyword">factory</span>.getBean(<span class="string">"beanStub"</span>) == <span class="keyword">factory</span>.getBean(<span class="string">"beanStub"</span>));</span><br><span class="line">System.out.println(<span class="keyword">factory</span>.getBean(<span class="string">"beanStubPrototype"</span>) == <span class="keyword">factory</span>.getBean(<span class="string">"beanStubPrototype"</span>));</span><br></pre></td></tr></table></figure></p>
+<p>返回结果<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="literal">true</span></span><br><span class="line"><span class="literal">false</span></span><br></pre></td></tr></table></figure></p>
+<h3 id="1-3-bean-钩子函数-init-method-destroy-method"><a href="#1-3-bean-钩子函数-init-method-destroy-method" class="headerlink" title="1.3 bean 钩子函数 init-method destroy-method"></a>1.3 bean 钩子函数 init-method destroy-method</h3><p>bean 的创建与回收有对应的hook函数</p>
+<p>类定义<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">BeanStub</span>&#123;</span><br><span class="line">    <span class="comment">// 创建时候的钩子函数</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">initHook</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">        System.<span class="keyword">out</span>.println(<span class="string">"bean hook init"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 回收时候的钩子函数</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">destroyHook</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">        System.<span class="keyword">out</span>.println(<span class="string">"bean hook destroy"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>配置文件<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># beans.xml</span></span><br><span class="line">&lt;bean <span class="built_in">id</span>=<span class="string">"myBeanStub"</span> <span class="built_in">class</span>=<span class="string">"foo.bar.BeanStub"</span> init-method=<span class="string">"initHook"</span> destroy-method=<span class="string">"destroyHook"</span>/&gt;</span><br></pre></td></tr></table></figure></p>
+<p>通过 <code>getBean</code> 获取实例化对象<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">BeanStub </span><span class="keyword">beanStub </span>= (<span class="keyword">BeanStub)factory.getBean("myBeanStub");</span></span><br></pre></td></tr></table></figure></p>
+<p>得到结果<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">bean </span>hook init</span><br></pre></td></tr></table></figure></p>
+<p>此时钩子函数 <code>destroyHook</code> 并没有被执行，这是因为 xxxxxx<br>这个钩子函数是需要容器关闭的时候执行的 这里没有用到容器</p>
+<h2 id="2-创建"><a href="#2-创建" class="headerlink" title="2. 创建"></a>2. 创建</h2><h3 id="2-1-通过构造函数创建"><a href="#2-1-通过构造函数创建" class="headerlink" title="2.1 通过构造函数创建"></a>2.1 通过构造函数创建</h3><h3 id="2-2-通过工厂方法创建"><a href="#2-2-通过工厂方法创建" class="headerlink" title="2.2 通过工厂方法创建"></a>2.2 通过工厂方法创建</h3><h3 id="2-3-创建参数"><a href="#2-3-创建参数" class="headerlink" title="2.3 创建参数"></a>2.3 创建参数</h3><h2 id="3-依赖关系"><a href="#3-依赖关系" class="headerlink" title="3. 依赖关系"></a>3. 依赖关系</h2><h3 id="3-1"><a href="#3-1" class="headerlink" title="3.1"></a>3.1</h3>
+            
+                
+
+            
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/beans/">beans</a> <a class="tag tag--primary tag--small t-link" href="/tags/java/">java</a> <a class="tag tag--primary tag--small t-link" href="/tags/spring/">spring</a>
+
+            </div>
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--disabled">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/06/25/Linux中程序在shell中的执行过程/" data-tooltip="Linux中程序在shell中的执行过程">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2019/08/06/spring-beans使用/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2019/08/06/spring-beans使用/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2019/08/06/spring-beans使用/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+            
+                <div id="ds-thread" class="ds-thread" data-thread-key="2019/08/06/spring-beans使用/"
+     data-title="spring-beans使用" data-url="/2019/08/06/spring-beans使用/">
+</div>
+
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2019 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="3">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--disabled">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/06/25/Linux中程序在shell中的执行过程/" data-tooltip="Linux中程序在shell中的执行过程">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2019/08/06/spring-beans使用/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2019/08/06/spring-beans使用/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2019/08/06/spring-beans使用/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="3">
+    <ul class="share-options">
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=/2019/08/06/spring-beans使用/">
+                <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2019/08/06/spring-beans使用/">
+                <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=/2019/08/06/spring-beans使用/">
+                <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><p> good at develop framework </p>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+        <script type="text/javascript">
+            var duoshuoQuery = {short_name:'fantiq'};
+            (function() {
+                var ds = document.createElement('script');
+                ds.type = 'text/javascript';ds.async = true;
+                ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+                ds.charset = 'UTF-8';
+                (document.getElementsByTagName('head')[0]
+                || document.getElementsByTagName('body')[0]).appendChild(ds);
+            })();
+        </script>
+    
+
+
+
+</html>

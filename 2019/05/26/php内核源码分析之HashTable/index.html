@@ -1,0 +1,537 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>php内核源码分析之HashTable - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta name="description" content="HashTable是一个常用的数据结构，在php内核对HashTable的使用很多，我们熟知的 array 在内核中的实现形式其实也是 HashTable，包括在其他语言中存在的数据结构 LinkList ，在php中已经将这些基本数据类型屏蔽 对用户只以 array 的形式暴漏，理解php内核中的hashtable对理解php数组十分重要。">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="php内核源码分析之HashTable">
+<meta property="og:url" content="/2019/05/26/php内核源码分析之HashTable/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:description" content="HashTable是一个常用的数据结构，在php内核对HashTable的使用很多，我们熟知的 array 在内核中的实现形式其实也是 HashTable，包括在其他语言中存在的数据结构 LinkList ，在php中已经将这些基本数据类型屏蔽 对用户只以 array 的形式暴漏，理解php内核中的hashtable对理解php数组十分重要。">
+<meta property="og:image" content="/20190530195834.png">
+<meta property="og:image" content="/php-HashTable.gif">
+<meta property="og:updated_time" content="2019-06-02T03:47:34.698Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="php内核源码分析之HashTable">
+<meta name="twitter:description" content="HashTable是一个常用的数据结构，在php内核对HashTable的使用很多，我们熟知的 array 在内核中的实现形式其实也是 HashTable，包括在其他语言中存在的数据结构 LinkList ，在php中已经将这些基本数据类型屏蔽 对用户只以 array 的形式暴漏，理解php内核中的hashtable对理解php数组十分重要。">
+<meta name="twitter:image" content="/20190530195834.png">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="3">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="3">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+            <div id="main" data-behavior="3"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title" itemprop="headline">
+            php内核源码分析之HashTable
+        </h1>
+    
+    <div class="post-meta">
+    <time itemprop="datePublished" content="Sun May 26 2019 21:35:59 GMT+0800">
+	
+		    5月 26, 2019
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/php/">php</a>
+
+
+    
+</div>
+</div>
+    
+    <div class="post-content markdown" itemprop="articleBody">
+        <div class="main-content-wrap">
+            <p>HashTable是一个常用的数据结构，在php内核对HashTable的使用很多，我们熟知的 array 在内核中的实现形式其实也是 HashTable，包括在其他语言中存在的数据结构 <code>LinkList</code> ，在php中已经将这些基本数据类型屏蔽 对用户只以 <code>array</code> 的形式暴漏，理解php内核中的hashtable对理解php数组十分重要。<br><a id="more"></a></p>
+<h2 id="1-基本数据结构"><a href="#1-基本数据结构" class="headerlink" title="1. 基本数据结构"></a>1. 基本数据结构</h2><p>在php中数据类型是通过 <code>struct</code> 体现的，对于HashTable 也是以array类型体现的，看下其代码结构:<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> _zend_array HashTable;</span><br><span class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> _zend_array      zend_array;</span><br></pre></td></tr></table></figure></p>
+<p>其中 <code>zend_array</code> <code>HashTable</code> 对应的都是结构体 <code>struct _zend_array</code>，结构题代码如下:<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> _zend_array &#123;</span><br><span class="line">    zend_refcounted_h gc; <span class="comment">// 引用次数记录 gc回收使用</span></span><br><span class="line">    <span class="keyword">union</span> &#123;</span><br><span class="line">        <span class="keyword">struct</span> &#123;</span><br><span class="line">            ZEND_ENDIAN_LOHI_4(</span><br><span class="line">                zend_uchar    flags,</span><br><span class="line">                zend_uchar    _unused,</span><br><span class="line">                zend_uchar    nIteratorsCount,</span><br><span class="line">                zend_uchar    _unused2)</span><br><span class="line">        &#125; v;</span><br><span class="line">        <span class="keyword">uint32_t</span> flags;</span><br><span class="line">    &#125; u; <span class="comment">// 这个联合体记录 数据类型相关的信息 </span></span><br><span class="line">    <span class="keyword">uint32_t</span>          nTableMask;           <span class="comment">// 掩码 计算hashcode 映射区索引</span></span><br><span class="line">    Bucket           *arData;               <span class="comment">// 指针 指向 Bucket 类型数组的 内存地址</span></span><br><span class="line">    <span class="keyword">uint32_t</span>          nNumUsed;             <span class="comment">// 每新增一次这个属性会计数加一 删除的时候这个值不会减</span></span><br><span class="line">    <span class="keyword">uint32_t</span>          nNumOfElements;       <span class="comment">// 哈希表中实际存储的可用元素 与 nNumUsed的区别是 这个属性会在删除元素的时候减一</span></span><br><span class="line">    <span class="keyword">uint32_t</span>          nTableSize;           <span class="comment">// 哈希表中能存储的元素总数 这个值总是与 8 对齐的</span></span><br><span class="line">    <span class="keyword">uint32_t</span>          nInternalPointer;     <span class="comment">// 内部迭代计数器相关的函数有 next prev end reset current</span></span><br><span class="line">    zend_long         nNextFreeElement;     <span class="comment">// ？？？</span></span><br><span class="line">    <span class="keyword">dtor_func_t</span>       pDestructor;          <span class="comment">// 析构函数地址 算是个钩子函数 当哈希表被销毁的时候被调用</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>这就是一个哈希表的数据类型，但是其核心的数据存储在 指针 <code>arData</code> 那里，需要看下 <code>Bucket</code> 这个类型 其实Bucket存储的是一个键值对<br><figure class="highlight thrift"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> _<span class="title">Bucket</span> </span>&#123;</span><br><span class="line">    zval              val;  <span class="comment">// 值部分 类型是zval 也就是 struct _zval_struct</span></span><br><span class="line">    zend_ulong        h;    <span class="comment">// 键 字符串的 hashcode 值</span></span><br><span class="line">    zend_string      *key;  <span class="comment">// 哈希表中一个键值对的 键 类型字符串</span></span><br><span class="line">&#125; Bucket;</span><br></pre></td></tr></table></figure></p>
+<p>以上是 存储一个键值对的 Bucket，主要是值部分需要看下，zval 类型就是 <code>struct _zval_struct</code> 则是 php中数据类型的总类型，其中在哈希表中常用的有以下两个属性<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">zval<span class="selector-class">.value</span>      <span class="comment">// 这个是 Bucket 中 值部分的真实值的存储地方</span></span><br><span class="line">zval<span class="selector-class">.u2</span><span class="selector-class">.next</span>    <span class="comment">// 这个是 哈希表中用以构成冲突链表 存储下一个元素存储位置的索引</span></span><br></pre></td></tr></table></figure></p>
+<p>具体行程的链表形式看下面</p>
+<h2 id="2-初始化创建"><a href="#2-初始化创建" class="headerlink" title="2. 初始化创建"></a>2. 初始化创建</h2><p>在php中创建数组可以使用宏 <code>zend_new_array</code> 最终的调用链如下<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#define zend_new_array(size) _zend_new_array(size)</span></span><br><span class="line"></span><br><span class="line">ZEND_API HashTable* ZEND_FASTCALL _zend_new_array(uint32_t nSize)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 申请内存 存储 HashTable</span></span><br><span class="line">    HashTable *ht = emalloc(sizeof(HashTable));</span><br><span class="line">    <span class="comment">// 初始化</span></span><br><span class="line">    _zend_hash_init_int(ht, nSize, ZVAL_PTR_DTOR, <span class="number">0</span>);</span><br><span class="line">    <span class="keyword">return</span> ht;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 初始化一个 HashTable</span></span><br><span class="line"><span class="keyword">static</span> zend_always_inline void _zend_hash_init_int(HashTable *ht, uint32_t nSize, dtor_func_t pDestructor, zend_bool persistent)</span><br><span class="line">&#123;</span><br><span class="line">    GC_SET_REFCOUNT(ht, <span class="number">1</span>);</span><br><span class="line">    GC_TYPE_INFO(ht) = IS_ARRAY | (persistent ? (GC_PERSISTENT &lt;&lt; GC_FLAGS_SHIFT) : (GC_COLLECTABLE &lt;&lt; GC_FLAGS_SHIFT));</span><br><span class="line">    <span class="comment">// 设置为未初始化</span></span><br><span class="line">    HT_FLAGS(ht) = HASH_FLAG_UNINITIALIZED;</span><br><span class="line">    <span class="comment">// 掩码</span></span><br><span class="line">    ht-&gt;nTableMask = HT_MIN_MASK;</span><br><span class="line">    <span class="comment">// 设置 arData 的地址</span></span><br><span class="line">    HT_SET_DATA_ADDR(ht, &amp;uninitialized_bucket);</span><br><span class="line">    <span class="comment">// 以下属性 上面讲过其代表意义 这里统一初始化为 0</span></span><br><span class="line">    ht-&gt;nNumUsed = <span class="number">0</span>;</span><br><span class="line">    ht-&gt;nNumOfElements = <span class="number">0</span>;</span><br><span class="line">    ht-&gt;nInternalPointer = <span class="number">0</span>;</span><br><span class="line">    ht-&gt;nNextFreeElement = <span class="number">0</span>;</span><br><span class="line">    ht-&gt;pDestructor = pDestructor;</span><br><span class="line">    <span class="comment">// 计算哈希表的尺寸</span></span><br><span class="line">    ht-&gt;nTableSize = zend_hash_check_size(nSize);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>着重看下初始化的几个重要步骤</p>
+<ol>
+<li>设置掩码，掩码设置的值是一个宏 <code>#define HT_MIN_MASK ((uint32_t) -2)</code> 是无符号的 -2 </li>
+<li>设置数据部分的地址 调用的也是宏，涉及到的宏如下<figure class="highlight livescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">HT_SET_DATA_ADDR(ht, &amp;uninitialized_bucket);</span><br><span class="line"></span><br><span class="line"><span class="regexp">// 定义的初始化的一个数组 长度为2 默认值是 无符号的-1 也就是所有位都是1 </span><br><span class="line"><span class="comment">#define HT_INVALID_IDX ((uint32_t) -1)</span></span><br><span class="line">static const uint32_t uninitialized_bucket[-HT_MIN_MASK] =</span><br><span class="line">    &#123;HT_INVALID_IDX, HT_INVALID_IDX&#125;;</span><br><span class="line">//</span> 这里是对哈希表中的 arData进行赋值</span><br><span class="line"><span class="comment">#define HT_SET_DATA_ADDR(ht, ptr) do &#123; \</span></span><br><span class="line">        <span class="function"><span class="params">(ht)</span>-&gt;</span><span class="function"><span class="title">arData</span> = <span class="params">(Bucket*)(((char*)(ptr)) + HT_HASH_SIZE((ht)-&gt;nTableMask))</span>; \</span><br><span class="line">    &#125; <span class="title">while</span> <span class="params">(<span class="number">0</span>)</span></span><br><span class="line">#<span class="title">define</span> <span class="title">HT_HASH_SIZE</span><span class="params">(nTableMask)</span> \</span><br><span class="line">    <span class="params">(((size_t)(uint32_t)-(int32_t)(nTableMask)) * sizeof(uint32_t))</span></span></span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>重点需要看下给 arData 赋值地址的过程，宏进行展开后的结果是<code>ht-&gt;arData = (Bucket*)(ptr + (uint32_t)(-1 * ht-&gt;nTableMask) * sizeof(unit32_t));</code> ，如果按照初始化时候 mask 为 -2 进行计算的话 arData正好是 数组 uninitialized_bucket 的结尾处</p>
+<p>这里哈希映射区是 数据区的两倍 目的是为了减少 哈希冲突，相当于 php中哈希的平衡因子是 0.5。</p>
+<ol>
+<li>计算哈希表的尺寸 调用了函数 <code>zend_hash_check_size</code></li>
+</ol>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 哈希表最小尺寸</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> HT_MIN_SIZE 8</span></span><br><span class="line"><span class="comment">// 哈希表最大尺寸</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> HT_MAX_SIZE 0x80000000</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> zend_always_inline uint32_t <span class="title">zend_hash_check_size</span><span class="params">(<span class="keyword">uint32_t</span> nSize)</span></span><br><span class="line"></span>&#123;</span><br><span class="line">    <span class="comment">/* Use big enough power of 2 */</span></span><br><span class="line">    <span class="comment">/* size should be between HT_MIN_SIZE and HT_MAX_SIZE */</span></span><br><span class="line">    <span class="comment">// 如果用户申请的尺寸小于等于 宏定义的最小尺寸 则使用宏定义的最小尺寸</span></span><br><span class="line">    <span class="keyword">if</span> (nSize &lt;= HT_MIN_SIZE) &#123;</span><br><span class="line">        <span class="keyword">return</span> HT_MIN_SIZE;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (UNEXPECTED(nSize &gt;= HT_MAX_SIZE)) &#123;</span><br><span class="line">        <span class="comment">// 超出定义的最大尺寸则报错了</span></span><br><span class="line">        zend_error_noreturn(E_ERROR, <span class="string">"Possible integer overflow in memory allocation (%u * %zu + %zu)"</span>, nSize, <span class="keyword">sizeof</span>(Bucket), <span class="keyword">sizeof</span>(Bucket));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 尺寸以8对齐</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0x2</span> &lt;&lt; (__builtin_clz(nSize - <span class="number">1</span>) ^ <span class="number">0x1f</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="2-1-哈希表数据部分的存储结构"><a href="#2-1-哈希表数据部分的存储结构" class="headerlink" title="2.1 哈希表数据部分的存储结构"></a>2.1 哈希表数据部分的存储结构</h4><p>对于上面的结构刚开始是很奇怪的，注意这里代码是 php7.4 的，这个版本以下的实现方式并不一样。这里可以看下php的哈希表的设计思路了，用户存储哈希表数据的内存地址被分为两个部分，一部分是数据部分存储元素地址 <code>Bucket *</code> 另一部分是 hash值与数据部分索引的关系，其结构如下图所示：<br><img src="20190530195834.png" alt="哈希表数据部分结构"><br>这段内存可以分为两个部分 <code>数据部分</code> 和 <code>hash映射部分</code>，整个哈希表的操作都是基于这个结构进行计算的。看看这段内存有什么特征：</p>
+<ol>
+<li>整个内存在真正开始使用的时候才分配 分配的时候是将两部分所需内存加在一起申请的</li>
+<li>ht-&gt;arData 所指向的内存地址正好是存储数据部分的内存地址的开始位置</li>
+<li>hash映射部分存储的数据个数是数据部分的两倍 但是两者占用的内存空间是一样的，哈希部分存储的数据类型是 uint32_t 4个字节 数据部分存储的是指针 也就是内存地址 内存地址是 8字节</li>
+</ol>
+<p>了解了这个结构 再看看 如何使用的，以添加元素为例：</p>
+<ol>
+<li>得到键值对 计算键字符串的哈希值</li>
+<li>将键值对 Bucket 顺序存储到 数据部分</li>
+<li>通过哈希值与掩码 ht-&gt;nTableMask 与 运算 计算出哈希映射区的索引</li>
+<li>形成链表 映射部分的值赋值给数据部分的 next指针 (zval.u2.next) , 将数据的索引值 赋值给映射区对应内存块</li>
+</ol>
+<p>以上第 4 步 在形成冲突的时候，会被映射到相同的 映射区域 ，好在 通过 zval.u2.next 可以形成冲突链表，具体实现看下一部分</p>
+<h2 id="3-添加或更新元素"><a href="#3-添加或更新元素" class="headerlink" title="3. 添加或更新元素"></a>3. 添加或更新元素</h2><p>添加元素与更新元素的区别是 更新元素需要先查找，所以这部分可以分为 添加 与 查找两部分，实现这个过程的代码是下面这个函数<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br></pre></td><td class="code"><pre><span class="line">static zend_always_inline zval *_zend_hash_add_or_update_i(<span class="name">HashTable</span> *ht, zend_string *key, zval *pData, uint32_t flag)</span><br><span class="line">&#123;</span><br><span class="line">    zend_ulong h;</span><br><span class="line">    uint32_t nIndex;</span><br><span class="line">    uint32_t idx;</span><br><span class="line">    Bucket *p, *arData;</span><br><span class="line"></span><br><span class="line">    IS_CONSISTENT(ht);</span><br><span class="line">    HT_ASSERT_RC1(ht);</span><br><span class="line">    // #1 初始化</span><br><span class="line">    if (UNEXPECTED(HT_FLAGS(ht) &amp; (HASH_FLAG_UNINITIALIZED|HASH_FLAG_PACKED))) &#123;</span><br><span class="line">        if (EXPECTED(HT_FLAGS(ht) &amp; HASH_FLAG_UNINITIALIZED)) &#123;</span><br><span class="line">            zend_hash_real_init_mixed(ht);</span><br><span class="line">            if (!ZSTR_IS_INTERNED(key)) &#123;</span><br><span class="line">                zend_string_addref(key);</span><br><span class="line">                HT_FLAGS(ht) &amp;= ~HASH_FLAG_STATIC_KEYS;</span><br><span class="line">                zend_string_hash_val(key);</span><br><span class="line">            &#125;</span><br><span class="line">            goto add_to_hash;</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            zend_hash_packed_to_hash(ht);</span><br><span class="line">            if (!ZSTR_IS_INTERNED(key)) &#123;</span><br><span class="line">                zend_string_addref(key);</span><br><span class="line">                HT_FLAGS(ht) &amp;= ~HASH_FLAG_STATIC_KEYS;</span><br><span class="line">                zend_string_hash_val(key);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; else if ((flag &amp; HASH_ADD_NEW) == 0) &#123;</span><br><span class="line">        #2 更新数据 先查找</span><br><span class="line">        p = zend_hash_find_bucket(ht, key, 0);</span><br><span class="line"></span><br><span class="line">        if (p) &#123;</span><br><span class="line">            zval *data<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">            if (<span class="name">flag</span> &amp; HASH_ADD) &#123;</span><br><span class="line">                if (!(<span class="name">flag</span> &amp; HASH_UPDATE_INDIRECT)) &#123;</span><br><span class="line">                    return NULL<span class="comment">;</span></span><br><span class="line">                &#125;</span><br><span class="line">                ZEND_ASSERT(<span class="name">&amp;p-&gt;val</span> != pData)<span class="comment">;</span></span><br><span class="line">                data = <span class="symbol">&amp;p-&gt;val</span><span class="comment">;</span></span><br><span class="line">                if (<span class="name">Z_TYPE_P</span>(<span class="name">data</span>) == IS_INDIRECT) &#123;</span><br><span class="line">                    data = Z_INDIRECT_P(<span class="name">data</span>)<span class="comment">;</span></span><br><span class="line">                    if (<span class="name">Z_TYPE_P</span>(<span class="name">data</span>) != IS_UNDEF) &#123;</span><br><span class="line">                        return NULL<span class="comment">;</span></span><br><span class="line">                    &#125;</span><br><span class="line">                &#125; else &#123;</span><br><span class="line">                    return NULL<span class="comment">;</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                ZEND_ASSERT(<span class="name">&amp;p-&gt;val</span> != pData)<span class="comment">;</span></span><br><span class="line">                data = <span class="symbol">&amp;p-&gt;val</span><span class="comment">;</span></span><br><span class="line">                if ((<span class="name">flag</span> &amp; HASH_UPDATE_INDIRECT) <span class="symbol">&amp;&amp;</span> Z_TYPE_P(<span class="name">data</span>) == IS_INDIRECT) &#123;</span><br><span class="line">                    data = Z_INDIRECT_P(<span class="name">data</span>)<span class="comment">;</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            if (<span class="name">ht-&gt;pDestructor</span>) &#123;</span><br><span class="line">                ht-&gt;pDestructor(<span class="name">data</span>)<span class="comment">;</span></span><br><span class="line">            &#125;</span><br><span class="line">            ZVAL_COPY_VALUE(<span class="name">data</span>, pData)<span class="comment">;</span></span><br><span class="line">            return data<span class="comment">;</span></span><br><span class="line">        &#125;</span><br><span class="line">        if (!ZSTR_IS_INTERNED(<span class="name">key</span>)) &#123;</span><br><span class="line">            zend_string_addref(<span class="name">key</span>)<span class="comment">;</span></span><br><span class="line">            HT_FLAGS(<span class="name">ht</span>) <span class="symbol">&amp;=</span> ~HASH_FLAG_STATIC_KEYS<span class="comment">;</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125; else if (!ZSTR_IS_INTERNED(<span class="name">key</span>)) &#123;</span><br><span class="line">        zend_string_addref(<span class="name">key</span>)<span class="comment">;</span></span><br><span class="line">        HT_FLAGS(<span class="name">ht</span>) <span class="symbol">&amp;=</span> ~HASH_FLAG_STATIC_KEYS<span class="comment">;</span></span><br><span class="line">        zend_string_hash_val(<span class="name">key</span>)<span class="comment">;</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    #3 数组扩容</span><br><span class="line">    ZEND_HASH_IF_FULL_DO_RESIZE(<span class="name">ht</span>)<span class="comment">;        /* If the Hash table is full, resize it */</span></span><br><span class="line">#4 添加新元素</span><br><span class="line">add_to_hash:</span><br><span class="line">    idx = ht-&gt;nNumUsed++<span class="comment">;</span></span><br><span class="line">    ht-&gt;nNumOfElements++<span class="comment">;</span></span><br><span class="line">    arData = ht-&gt;arData<span class="comment">;</span></span><br><span class="line">    p = arData + idx<span class="comment">;</span></span><br><span class="line">    p-&gt;key = key<span class="comment">;</span></span><br><span class="line">    p-&gt;h = h = ZSTR_H(<span class="name">key</span>)<span class="comment">;</span></span><br><span class="line">    nIndex = h | ht-&gt;nTableMask<span class="comment">;</span></span><br><span class="line">    Z_NEXT(<span class="name">p-&gt;val</span>) = HT_HASH_EX(<span class="name">arData</span>, nIndex)<span class="comment">;</span></span><br><span class="line">    HT_HASH_EX(<span class="name">arData</span>, nIndex) = HT_IDX_TO_HASH(<span class="name">idx</span>)<span class="comment">;</span></span><br><span class="line">    ZVAL_COPY_VALUE(<span class="name">&amp;p-&gt;val</span>, pData)<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">    return <span class="symbol">&amp;p-&gt;val</span><span class="comment">;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>其核心部分在代码里已经标明 分别是 <code>#1 初始化 #2 更新数据 先查找 #3 数组扩容 #4 添加新元素</code>，其中扩容部分在下一部分单独讲，下面分步分析</p>
+<h4 id="3-1-初始化"><a href="#3-1-初始化" class="headerlink" title="3.1 初始化"></a>3.1 初始化</h4><p>初始化部分代码设计到的两个函数 <code>zend_hash_real_init_mixed</code> <code>zend_hash_packed_to_hash</code> 对于 <code>zend_hash_real_init_mixed</code>最终调用的函数是 <code>zend_hash_real_init_mixed_ex</code><br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">static zend_always_inline void zend_hash_real_init_mixed_ex(<span class="name">HashTable</span> *ht)</span><br><span class="line">&#123;</span><br><span class="line">    void *data<span class="comment">;</span></span><br><span class="line">    uint32_t nSize = ht-&gt;nTableSize<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">    if (<span class="name">UNEXPECTED</span>(<span class="name">GC_FLAGS</span>(<span class="name">ht</span>) &amp; IS_ARRAY_PERSISTENT)) &#123;</span><br><span class="line">        data = pemalloc(<span class="name">HT_SIZE_EX</span>(<span class="name">nSize</span>, HT_SIZE_TO_MASK(<span class="name">nSize</span>)), <span class="number">1</span>)<span class="comment">;</span></span><br><span class="line">    &#125; else if (<span class="name">EXPECTED</span>(<span class="name">nSize</span> == HT_MIN_SIZE)) &#123;</span><br><span class="line">        data = emalloc(<span class="name">HT_SIZE_EX</span>(<span class="name">HT_MIN_SIZE</span>, HT_SIZE_TO_MASK(<span class="name">HT_MIN_SIZE</span>)))<span class="comment">;</span></span><br><span class="line">        // ......</span><br><span class="line">        return<span class="comment">;</span></span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        // 申请一段新的内存</span><br><span class="line">        data = emalloc(<span class="name">HT_SIZE_EX</span>(<span class="name">nSize</span>, HT_SIZE_TO_MASK(<span class="name">nSize</span>)))<span class="comment">;</span></span><br><span class="line">    &#125;</span><br><span class="line">    // 计算掩码</span><br><span class="line">    ht-&gt;nTableMask = HT_SIZE_TO_MASK(<span class="name">nSize</span>)<span class="comment">;</span></span><br><span class="line">    // 给arData重新赋值 这时其实已经抛弃了哈希表初始化时候使用的 uninitialized_bucket</span><br><span class="line">    HT_SET_DATA_ADDR(<span class="name">ht</span>, data)<span class="comment">;</span></span><br><span class="line">    // 设置类型</span><br><span class="line">    HT_FLAGS(<span class="name">ht</span>) = HASH_FLAG_STATIC_KEYS<span class="comment">;</span></span><br><span class="line">    // 初始化</span><br><span class="line">    HT_HASH_RESET(<span class="name">ht</span>)<span class="comment">;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>逻辑过程不复杂 就是申请内存 初始化哈希表的一些值，为了更好的理解代码 还是要对这些宏展开分析<br><figure class="highlight livescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="regexp">// 计算整个哈希表需要的内存空间 单位 byte，其实就是数据部分与哈希映射部分的内存空间只和</span><br><span class="line"><span class="comment">#define HT_SIZE_EX(nTableSize, nTableMask) \</span></span><br><span class="line">    (HT_DATA_SIZE((nTableSize)) + HT_HASH_SIZE((nTableMask)))</span><br><span class="line">//</span> 哈希映射部分需要的内存空间</span><br><span class="line"><span class="comment">#define HT_HASH_SIZE(nTableMask) \</span></span><br><span class="line">    (((size_t)(uint32_t)-(int32_t)(nTableMask)) * sizeof(uint32_t))</span><br><span class="line"><span class="regexp">// 数据部分需要的内存空间</span><br><span class="line"><span class="comment">#define HT_DATA_SIZE(nTableSize) \</span></span><br><span class="line">    ((size_t)(nTableSize) * sizeof(Bucket))</span><br><span class="line">//</span> 通过哈希表尺寸计算对应的掩码 其实就是 (unsigned int)(-<span class="number">2</span> * nTableSize)</span><br><span class="line"><span class="comment">#define HT_SIZE_TO_MASK(nTableSize) \</span></span><br><span class="line">    ((uint32_t)(-((nTableSize) + (nTableSize))))</span><br><span class="line"><span class="regexp">// 设置 arData的值 通过上面的分析 arData的值是数据部分开始的内存地址</span><br><span class="line">//</span> 这里就是通过 申请到的内存开始地址 ptr 加上哈希映射部分的长度(HT_HASH_SIZE)得到到</span><br><span class="line"><span class="comment">#define HT_SET_DATA_ADDR(ht, ptr) do &#123; \</span></span><br><span class="line">        <span class="function"><span class="params">(ht)</span>-&gt;</span><span class="function"><span class="title">arData</span> = <span class="params">(Bucket*)(((char*)(ptr)) + HT_HASH_SIZE((ht)-&gt;nTableMask))</span>; \</span><br><span class="line">    &#125; <span class="title">while</span> <span class="params">(<span class="number">0</span>)</span></span></span><br></pre></td></tr></table></figure></p>
+<p>然后是 <code>zend_hash_to_packed</code> ，这个初始化针对的是 哈希的键部分是数字的情况 这个时候并不需要 通过哈希值进行映射，所以这种情况的初始化并不会申请哈希映射部分的内存<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">ZEND_API void ZEND_FASTCALL zend_hash_to_packed(<span class="name">HashTable</span> *ht)</span><br><span class="line">&#123;</span><br><span class="line">    void *new_data, *old_data = HT_GET_DATA_ADDR(ht);</span><br><span class="line">    Bucket *old_buckets = ht-&gt;arData<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">    HT_ASSERT_RC1(<span class="name">ht</span>)<span class="comment">;</span></span><br><span class="line">    // 申请一块新的内存 注意这个内存的哈希映射部分是 HT_MIN_MASK 也就是只分配了两个</span><br><span class="line">    new_data = pemalloc(<span class="name">HT_SIZE_EX</span>(<span class="name">ht-&gt;nTableSize</span>, HT_MIN_MASK), GC_FLAGS(<span class="name">ht</span>) &amp; IS_ARRAY_PERSISTENT)<span class="comment">;</span></span><br><span class="line">    HT_FLAGS(<span class="name">ht</span>) |= HASH_FLAG_PACKED | HASH_FLAG_STATIC_KEYS<span class="comment">;</span></span><br><span class="line">    // 掩码也设置成了最小值</span><br><span class="line">    ht-&gt;nTableMask = HT_MIN_MASK<span class="comment">;</span></span><br><span class="line">    // 设置内存地址</span><br><span class="line">    HT_SET_DATA_ADDR(<span class="name">ht</span>, new_data)<span class="comment">;</span></span><br><span class="line">    // 初始化哈希映射部分内存的值为 <span class="number">-1</span> </span><br><span class="line">    HT_HASH_RESET_PACKED(<span class="name">ht</span>)<span class="comment">;</span></span><br><span class="line">    // 将数据拷贝到新分配的内存上</span><br><span class="line">    memcpy(<span class="name">ht-&gt;arData</span>, old_buckets, sizeof(<span class="name">Bucket</span>) * ht-&gt;nNumUsed);</span><br><span class="line">    // 释放老的内存</span><br><span class="line">    pefree(old_data, GC_FLAGS(ht) &amp; IS_ARRAY_PERSISTENT);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>对于 packed 类型的 哈希表，php对其做了特殊处理，取消了哈希表的 哈希映射区域的内存。哈希的查询可以直接将 h 作为 元素的 索引进行操作。但是packed类型的哈希会很容易失效，数据索引一定要是顺序的，添加数据的时候索引一定要存在 不然就会被convert成hash类型的表<br>packed哈希表的查询<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">ZEND_API zval* ZEND_FASTCALL zend_hash_index_find(<span class="keyword">const</span> HashTable *ht, zend_ulong h)</span><br><span class="line">&#123;</span><br><span class="line">    Bucket *p;</span><br><span class="line">    IS_CONSISTENT(ht);</span><br><span class="line">    <span class="comment">// 如果是 packed 类型</span></span><br><span class="line">    <span class="keyword">if</span> (HT_FLAGS(ht) &amp; HASH_FLAG_PACKED) &#123;</span><br><span class="line">        <span class="comment">// 查询 索引值一定是小于 nNumUsed 的</span></span><br><span class="line">        <span class="keyword">if</span> (h &lt; ht-&gt;nNumUsed) &#123;</span><br><span class="line">            <span class="comment">// 直接根据索引值 h 偏移</span></span><br><span class="line">            p = ht-&gt;arData + h;</span><br><span class="line">            <span class="comment">// 值不空就返回了</span></span><br><span class="line">            <span class="keyword">if</span> (Z_TYPE(p-&gt;val) != IS_UNDEF) &#123;</span><br><span class="line">                <span class="keyword">return</span> &amp;p-&gt;val;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">NULL</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 当作 hash 类型的表查询了</span></span><br><span class="line">    p = zend_hash_index_find_bucket(ht, h);</span><br><span class="line">    <span class="keyword">return</span> p ? &amp;p-&gt;val : <span class="keyword">NULL</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>然后是packed类型表的添加更新 看函数 <code>_zend_hash_index_add_or_update_i</code> 的部分截取<br><figure class="highlight xl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// packed 类型的哈希表</span></span><br><span class="line"><span class="keyword">if</span> (HT_FLAGS(ht) &amp; HASH_FLAG_PACKED) &#123;</span><br><span class="line">    <span class="comment">// 若 h 小于增长值 nNumUsed 则一定是更新操作</span></span><br><span class="line">    <span class="function"><span class="title">if</span> (h &lt; ht-&gt;</span>nNumUsed) &#123;</span><br><span class="line">        <span class="function"><span class="title">p</span> = ht-&gt;</span>arData + h;</span><br><span class="line">        <span class="function"><span class="title">if</span> (Z_TYPE(p-&gt;</span>val) != IS_UNDEF) &#123;</span><br><span class="line">replace:</span><br><span class="line">            <span class="comment">// 要是添加操作直接返回 NULL 了</span></span><br><span class="line">            <span class="keyword">if</span> (flag &amp; HASH_ADD) &#123;</span><br><span class="line">                return NULL;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="function"><span class="title">if</span> (ht-&gt;</span>pDestructor) &#123;</span><br><span class="line">                <span class="function"><span class="title">ht</span>-&gt;</span><span class="function"><span class="title">pDestructor</span>(&amp;p-&gt;</span>val);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 更新值</span></span><br><span class="line">            ZVAL_COPY_VALUE(&amp;<span class="function"><span class="title">p</span>-&gt;</span>val, pData);</span><br><span class="line">            <span class="function"><span class="title">return</span> &amp;p-&gt;</span>val;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 若 h 对应的元素是空的 也就是说 不存在这个索引</span></span><br><span class="line">        <span class="comment">// 这个时候更新操作还要继续的话 packed 类型中是无法实现了 因为会破坏元素的顺序</span></span><br><span class="line">        <span class="comment">// 只能将 哈希表转成hash类型 然后走普通的更新操作</span></span><br><span class="line">        <span class="keyword">else</span> &#123; <span class="comment">/* we have to keep the order :( */</span></span><br><span class="line">            goto convert_to_hash;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 索引 h 在范围 nNumUsed - nTableSize 则一定是添加操作</span></span><br><span class="line">    <span class="function"><span class="title">else</span> <span class="keyword">if</span> (EXPECTED(h &lt; ht-&gt;</span>nTableSize)) &#123;</span><br><span class="line">add_to_packed:</span><br><span class="line">        <span class="function"><span class="title">p</span> = ht-&gt;</span>arData + h;</span><br><span class="line">        <span class="comment">/* incremental initialization of empty Buckets */</span></span><br><span class="line">        <span class="keyword">if</span> ((flag &amp; (HASH_ADD_NEW|HASH_ADD_NEXT)) != (HASH_ADD_NEW|HASH_ADD_NEXT)) &#123;</span><br><span class="line">            <span class="comment">// 将 nNumUsed - h 部分的元素 置空</span></span><br><span class="line">            <span class="comment">// 这样在查询的时候 不存在的 idx 会返回 NULL</span></span><br><span class="line">            <span class="function"><span class="title">if</span> (h &gt; ht-&gt;</span>nNumUsed) &#123;</span><br><span class="line">                B<span class="function"><span class="title">ucket</span> *q = ht-&gt;</span><span class="function"><span class="title">arData</span> + ht-&gt;</span>nNumUsed;</span><br><span class="line">                <span class="keyword">while</span> (q != p) &#123;</span><br><span class="line">                    ZVAL_UNDEF(&amp;<span class="function"><span class="title">q</span>-&gt;</span>val);</span><br><span class="line">                    q++;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="function"><span class="title">ht</span>-&gt;</span><span class="function"><span class="title">nNextFreeElement</span> = ht-&gt;</span>nNumUsed = h + <span class="number">1</span>;</span><br><span class="line">        goto add;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 哈希表可用元素过半 且 h 在 两倍 nTableSize 范围内 则进行扩容</span></span><br><span class="line">    <span class="function"><span class="title">else</span> <span class="keyword">if</span> ((h &gt;&gt; 1) &lt; ht-&gt;</span>nTableSize &amp;&amp;</span><br><span class="line">               (<span class="function"><span class="title">ht</span>-&gt;</span><span class="function"><span class="title">nTableSize</span> &gt;&gt; 1) &lt; ht-&gt;</span>nNumOfElements) &#123;</span><br><span class="line">        zend_hash_packed_grow(ht);</span><br><span class="line">        goto add_to_packed;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 转成hash类型</span></span><br><span class="line">    <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="function"><span class="title">if</span> (ht-&gt;</span><span class="function"><span class="title">nNumUsed</span> &gt;= ht-&gt;</span>nTableSize) &#123;</span><br><span class="line">            <span class="function"><span class="title">ht</span>-&gt;</span><span class="function"><span class="title">nTableSize</span> += ht-&gt;</span>nTableSize;</span><br><span class="line">        &#125;</span><br><span class="line">convert_to_hash:</span><br><span class="line">        zend_hash_packed_to_hash(ht);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 未初始化 进行初始化处理</span></span><br><span class="line"><span class="keyword">else</span> <span class="keyword">if</span> (HT_FLAGS(ht) &amp; HASH_FLAG_UNINITIALIZED) &#123;</span><br><span class="line">    <span class="comment">// 若索引在哈希表范围内 初始化成 packed表</span></span><br><span class="line">    <span class="function"><span class="title">if</span> (h &lt; ht-&gt;</span>nTableSize) &#123;</span><br><span class="line">        zend_hash_real_init_packed_ex(ht);</span><br><span class="line">        goto add_to_packed;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 转换成 hash类型表</span></span><br><span class="line">    zend_hash_real_init_mixed(ht);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> ((flag &amp; HASH_ADD_NEW) == <span class="number">0</span>) &#123;</span><br><span class="line">        p = zend_hash_index_find_bucket(ht, h);</span><br><span class="line">        <span class="keyword">if</span> (p) &#123;</span><br><span class="line">            goto replace;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ZEND_HASH_IF_FULL_DO_RESIZE(ht);        <span class="comment">/* If the Hash table is full, resize it */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="3-2-添加新元素"><a href="#3-2-添加新元素" class="headerlink" title="3.2 添加新元素"></a>3.2 添加新元素</h4><figure class="highlight xl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">add_to_hash:</span><br><span class="line">    <span class="comment">// 紧邻可用的数据区内存索引</span></span><br><span class="line">    <span class="function"><span class="title">idx</span> = ht-&gt;</span>nNumUsed++;</span><br><span class="line">    <span class="function"><span class="title">ht</span>-&gt;</span>nNumOfElements++;</span><br><span class="line">    <span class="function"><span class="title">arData</span> = ht-&gt;</span>arData;</span><br><span class="line">    <span class="comment">//p 是可以内存地址</span></span><br><span class="line">    p = arData + idx;</span><br><span class="line">    <span class="function"><span class="title">p</span>-&gt;</span>key = key;</span><br><span class="line">    <span class="function"><span class="title">p</span>-&gt;</span>h = h = ZSTR_H(key);</span><br><span class="line">    <span class="comment">// 计算映射区的索引</span></span><br><span class="line">    <span class="function"><span class="title">nIndex</span> = h | ht-&gt;</span>nTableMask;</span><br><span class="line">    <span class="comment">// 将映射区索引值赋值给 zval.u2.next</span></span><br><span class="line">    Z_NEXT(<span class="function"><span class="title">p</span>-&gt;</span>val) = HT_HASH_EX(arData, nIndex);</span><br><span class="line">    <span class="comment">// 将数据区索引赋值给 映射区对应内存</span></span><br><span class="line">    HT_HASH_EX(arData, nIndex) = HT_IDX_TO_HASH(idx);</span><br><span class="line">    <span class="comment">// 将pData数据拷贝到新的元素所在内存地址中</span></span><br><span class="line">    ZVAL_COPY_VALUE(&amp;<span class="function"><span class="title">p</span>-&gt;</span>val, pData);</span><br></pre></td></tr></table></figure>
+<p>需要解释的几个步骤</p>
+<ol>
+<li>计算可用数据区内存地址 <figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">arData</span> = ht-&gt;arData;</span><br><span class="line"><span class="attr">p</span> = arData + idx;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>ht-&gt;arData 的类型是 <code>Bucket *</code>，正对应数据区的数据类型 这个时候 + idx 其实是偏移量 偏移idx个 <code>Bucket *</code> 尺寸</p>
+<ol>
+<li>读取哈希映射区的值 这里使用的宏<figure class="highlight haskell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#define HT_HASH_EX(data, idx) \</span></span><br><span class="line">    ((uint32_t*)(<span class="class"><span class="keyword">data</span>))[(<span class="title">int32_t</span>)(<span class="title">idx</span>)]</span></span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>首先 idx 类型转成了 <code>int32_t</code> 这个时候是有符号的 也就是这个索引是负值<br>其次 data类型被转成 <code>uint32_t*</code> 一个是类型 <code>uint32_t</code> 对应哈希映射区的类型 一个是指针类型 这样可以用数组的形式读取内存数据</p>
+<ol>
+<li>数据拷贝 使用了宏 ZVAL_COPY_VALUE<figure class="highlight livescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#define ZVAL_COPY_VALUE(z, v)                           \</span></span><br><span class="line">    <span class="keyword">do</span> &#123;                                                <span class="string">\</span></span><br><span class="line">        zval *_z1 = (z);                                <span class="string">\</span></span><br><span class="line">        <span class="keyword">const</span> zval *_z2 = (v);                          <span class="string">\</span></span><br><span class="line">        zend_refcounted *_gc = Z_COUNTED_P(_z2);        <span class="string">\</span></span><br><span class="line">        uint32_t _t = Z_TYPE_INFO_P(_z2);               <span class="string">\</span></span><br><span class="line">        ZVAL_COPY_VALUE_EX(_z1, _z2, _gc, _t);          <span class="string">\</span></span><br><span class="line">    &#125; <span class="keyword">while</span> (<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#define Z_COUNTED(zval)             (zval).value.counted</span></span><br><span class="line"><span class="comment">#define Z_COUNTED_P(zval_p)         Z_COUNTED(*(zval_p))</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#define Z_TYPE_INFO(zval)           (zval).u1.type_info</span></span><br><span class="line"><span class="comment">#define Z_TYPE_INFO_P(zval_p)       Z_TYPE_INFO(*(zval_p))</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># define ZVAL_COPY_VALUE_EX(z, v, gc, t)                \</span></span><br><span class="line">    <span class="keyword">do</span> &#123;                                                <span class="string">\</span></span><br><span class="line">        Z_COUNTED_P(z) = gc;                            <span class="string">\</span></span><br><span class="line">        Z_TYPE_INFO_P(z) = t;                           <span class="string">\</span></span><br><span class="line">    &#125; <span class="keyword">while</span> (<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>以上涉及到的宏能简化成如下结果<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">z<span class="selector-class">.value</span><span class="selector-class">.counted</span> = v<span class="selector-class">.value</span><span class="selector-class">.counted</span></span><br><span class="line">z<span class="selector-class">.u1</span><span class="selector-class">.type_info</span> = v<span class="selector-class">.u1</span><span class="selector-class">.type_info</span></span><br></pre></td></tr></table></figure></p>
+<p>也就是zval的拷贝过程其实复制的就是 <code>zval.u1.type_info</code> 和 <code>zval.value.counted</code> 这两个值的属性，其中<code>zval.u1.type_info</code>存储的是变量类型信息，<code>zval.value.counted</code>存储的是变量的值。这里 <code>zval.value.counted</code> 其实是 <code>union zend_value</code>中的属性，作为联合体 这里读取的属性只提供的内存地址而已，其读取的值 取决于 最后一次对这块内存写入的值是多少，属性类型来看 都是指针类型的变量 占用内存长度都是 8 byte 。</p>
+<p>哈希冲突链表的建立过程可以看下面这个演示图 :<br><img src="php-HashTable.gif" alt="哈希冲突链表的建立过程"></p>
+<h4 id="3-3-查找元素"><a href="#3-3-查找元素" class="headerlink" title="3.3 查找元素"></a>3.3 查找元素</h4><p>熟悉哈希表的结构 元素的查找就好理解了，其逻辑过程如下：</p>
+<ol>
+<li>通过键字符串计算出 哈希值</li>
+<li>通过哈希值与掩码与运算计算出 哈希映射区的索引 并取出对应的冲突链表中的头节点</li>
+<li>取出头节点 对比  键字符串长度、 哈希值 和 对应的值 是否相等 相等则返回结束</li>
+<li>不想等则遍历冲突链表 通过 zval.u2.next 找到下一个元素 重复步骤 3 </li>
+<li>直到 zval.u2.next == HT_INVALID_IDX 结束遍历循环<br>下面是通过键字符串查找的代码例子<figure class="highlight xl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">static zend_always_inline Bucket *zend_hash_str_find_bucket(const HashTable *ht, const char *str, size_t len, zend_ulong h)</span><br><span class="line">&#123;</span><br><span class="line">    uint32_t nIndex;</span><br><span class="line">    uint32_t idx;</span><br><span class="line">    Bucket *p, *arData;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="title">arData</span> = ht-&gt;</span>arData;</span><br><span class="line">    <span class="function"><span class="title">nIndex</span> = h | ht-&gt;</span>nTableMask;</span><br><span class="line">    idx = HT_HASH_EX(arData, nIndex);</span><br><span class="line">    <span class="comment">// 遍历冲突链表 直到遇到 HT_INVALID_IDX</span></span><br><span class="line">    <span class="keyword">while</span> (idx != HT_INVALID_IDX) &#123;</span><br><span class="line">        ZEND_ASSERT(<span class="function"><span class="title">idx</span> &lt; HT_IDX_TO_HASH(ht-&gt;</span>nTableSize));</span><br><span class="line">        <span class="comment">// 读取元素内存地址</span></span><br><span class="line">        <span class="comment">// 设置偏移量 到指定的 数据部分的内存地址</span></span><br><span class="line">        p = HT_HASH_TO_BUCKET_EX(arData, idx);</span><br><span class="line">        <span class="comment">// 对比 哈希值、键值长度、值</span></span><br><span class="line">        <span class="function"><span class="title">if</span> ((p-&gt;</span>h == h)</span><br><span class="line">             &amp;&amp; <span class="function"><span class="title">p</span>-&gt;</span>key</span><br><span class="line">             &amp;&amp; (ZSTR_LEN(<span class="function"><span class="title">p</span>-&gt;</span>key) == len)</span><br><span class="line">             &amp;&amp; !<span class="function"><span class="title">memcmp</span>(ZSTR_VAL(p-&gt;</span>key), str, len)) &#123;</span><br><span class="line">                <span class="comment">// 找到则返回</span></span><br><span class="line">            return p;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 移动到冲突链表的下一个元素</span></span><br><span class="line">        <span class="comment">// #define Z_NEXT(zval)             (zval).u2.next</span></span><br><span class="line">        <span class="function"><span class="title">idx</span> = Z_NEXT(p-&gt;</span>val);</span><br><span class="line">    &#125;</span><br><span class="line">    return NULL;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<h2 id="4-扩容"><a href="#4-扩容" class="headerlink" title="4. 扩容"></a>4. 扩容</h2><p>扩容部分使用了宏<br><figure class="highlight coffeescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#define ZEND_HASH_IF_FULL_DO_RESIZE(ht)             \</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="function"><span class="params">(ht)</span>-&gt;</span>nNumUsed &gt;= <span class="function"><span class="params">(ht)</span>-&gt;</span>nTableSize) &#123;       \</span><br><span class="line">        zend_hash_do_resize(ht);                    \</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>若 <code>nNumUsed &gt;= nTableSize</code> 则通过函数 <code>zend_hash_do_resize</code> 进行扩容，也就是当添加次数 &gt;= 哈希表尺寸的时候，这个条件不考虑删除的元素，删除的情况在函数 <code>zend_hash_do_resize</code> 中有处理，下面看下 函数 <code>zend_hash_do_resize</code></p>
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">static void ZEND_FASTCALL zend_hash_do_resize(HashTable *ht)</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">    IS_CONSISTENT(ht);</span><br><span class="line">    HT_ASSERT_RC1(ht);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 这里考虑了删除元素的情况 达到一定阀值的时候 并不会直接进行两倍扩容 而是对哈希表中的元素进行收缩 清楚 删除元素</span></span><br><span class="line">    <span class="function"><span class="title">if</span> (ht-&gt;</span><span class="function"><span class="title">nNumUsed</span> &gt; ht-&gt;</span><span class="function"><span class="title">nNumOfElements</span> + (ht-&gt;</span>nNumOfElements &gt;&gt; <span class="number">5</span>)) &#123; <span class="comment">/* additional term is there to amortize the cost of compaction */</span></span><br><span class="line">        zend_hash_rehash(ht);</span><br><span class="line">    &#125; <span class="function"><span class="title">else</span> <span class="keyword">if</span> (ht-&gt;</span>nTableSize &lt; HT_MAX_SIZE) &#123;  <span class="comment">/* Let's double the table size */</span></span><br><span class="line">        <span class="comment">// 两倍扩容</span></span><br><span class="line">        void *new_data, *old_data = HT_GET_DATA_ADDR(ht);</span><br><span class="line">        <span class="comment">// 尺寸扩大到两倍 用加代理乘 提高计算效率</span></span><br><span class="line">        <span class="function"><span class="title">uint32_t</span> nSize = ht-&gt;</span><span class="function"><span class="title">nTableSize</span> + ht-&gt;</span>nTableSize;</span><br><span class="line">        <span class="comment">// 扩容前的数据</span></span><br><span class="line">        B<span class="function"><span class="title">ucket</span> *old_buckets = ht-&gt;</span>arData;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="title">ht</span>-&gt;</span>nTableSize = nSize;</span><br><span class="line">        <span class="comment">// 申请新的扩容后的内存片段</span></span><br><span class="line">        new_data = pemalloc(HT_SIZE_EX(nSize, HT_SIZE_TO_MASK(nSize)), GC_FLAGS(ht) &amp; IS_ARRAY_PERSISTENT);</span><br><span class="line">        <span class="comment">// 重新计算哈希映射区</span></span><br><span class="line">        <span class="function"><span class="title">ht</span>-&gt;</span><span class="function"><span class="title">nTableMask</span> = HT_SIZE_TO_MASK(ht-&gt;</span>nTableSize);</span><br><span class="line">        <span class="comment">// 赋值新的内存地址</span></span><br><span class="line">        HT_SET_DATA_ADDR(ht, new_data);</span><br><span class="line">        <span class="comment">// 将之前的数据拷贝到新申请的内存中</span></span><br><span class="line">        <span class="function"><span class="title">memcpy</span>(ht-&gt;</span><span class="function"><span class="title">arData</span>, old_buckets, sizeof(Bucket) * ht-&gt;</span>nNumUsed);</span><br><span class="line">        <span class="comment">// 释放之前内存段</span></span><br><span class="line">        pefree(old_data, GC_FLAGS(ht) &amp; IS_ARRAY_PERSISTENT);</span><br><span class="line">        <span class="comment">// 重新计算哈希映射区 以及数据区</span></span><br><span class="line">        zend_hash_rehash(ht);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="function"><span class="title">zend_error_noreturn</span>(E_ERROR, "Possible <span class="keyword">integer</span> overflow <span class="built_in">in</span> memory allocation (%u * %zu + %zu)", ht-&gt;</span>nTableSize * <span class="number">2</span>, sizeof(Bucket) + sizeof(uint32_t), sizeof(Bucket));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>注意这里并不是直接二倍扩容的，其分为两种情况，其中一个条件 <code>ht-&gt;nNumUsed &gt; ht-&gt;nNumOfElements + (ht-&gt;nNumOfElements &gt;&gt; 5)</code> 并不会直接扩容，而是直接调整哈希 实现对删除元素的收缩。</p>
+<p>删除的元素 超过哈希表尺寸的 1/33 ，也就是说 哈希表中 删除的元素占比超过 0.031 的时候 哈希表的扩容并不会启动 而是选择重建</p>
+<p>然后是哈希重建的过程<br><figure class="highlight xl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line">ZEND_API int ZEND_FASTCALL zend_hash_rehash(HashTable *ht)</span><br><span class="line">&#123;</span><br><span class="line">    Bucket *p;</span><br><span class="line">    uint32_t nIndex, i;</span><br><span class="line">    IS_CONSISTENT(ht);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// hashtable 为空 初始化内存</span></span><br><span class="line">    <span class="function"><span class="title">if</span> (UNEXPECTED(ht-&gt;</span>nNumOfElements == <span class="number">0</span>)) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!(HT_FLAGS(ht) &amp; HASH_FLAG_UNINITIALIZED)) &#123;</span><br><span class="line">            <span class="function"><span class="title">ht</span>-&gt;</span>nNumUsed = <span class="number">0</span>;</span><br><span class="line">            HT_HASH_RESET(ht);</span><br><span class="line">        &#125;</span><br><span class="line">        return SUCCESS;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 初始化 哈希映射部分的内存</span></span><br><span class="line">    HT_HASH_RESET(ht);</span><br><span class="line">    i = <span class="number">0</span>;</span><br><span class="line">    <span class="function"><span class="title">p</span> = ht-&gt;</span>arData;</span><br><span class="line">    <span class="comment">// hashtable 中没有空洞 也就是没有被删除（type_info 设置为 UNDEF）的元素</span></span><br><span class="line">    <span class="keyword">if</span> (HT_IS_WITHOUT_HOLES(ht)) &#123;</span><br><span class="line">        <span class="keyword">do</span> &#123;</span><br><span class="line">            <span class="comment">// 上一步的宏 HT_HASH_RESET 会将 h与idx的映射段初始化 也就是之前的那段数据全部设置为 HT_INVALID_IDX 了</span></span><br><span class="line">            <span class="comment">// 所以这里其实是重新建立这段数据的关系 以及 bucket 链表关系</span></span><br><span class="line">            <span class="function"><span class="title">nIndex</span> = p-&gt;</span><span class="function"><span class="title">h</span> | ht-&gt;</span>nTableMask;</span><br><span class="line">            Z_NEXT(<span class="function"><span class="title">p</span>-&gt;</span>val) = HT_HASH(ht, nIndex);</span><br><span class="line">            HT_HASH(ht, nIndex) = HT_IDX_TO_HASH(i);</span><br><span class="line">            p++;</span><br><span class="line">        &#125; <span class="function"><span class="title">while</span> (++i &lt; ht-&gt;</span>nNumUsed); <span class="comment">// 循环遍历整个元素</span></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 这一步循环遍历数据部分 将删除的元素从哈希表中移除 然后将后面的数据向前移动</span></span><br><span class="line">        <span class="keyword">do</span> &#123;</span><br><span class="line">            <span class="comment">// 如果当前元素是已经删除的</span></span><br><span class="line">            <span class="function"><span class="title">if</span> (UNEXPECTED(Z_TYPE(p-&gt;</span>val) == IS_UNDEF)) &#123;</span><br><span class="line">                uint32_t j = i;</span><br><span class="line">                Bucket *q = p;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (EXPECTED(!HT_HAS_ITERATORS(ht))) &#123;</span><br><span class="line">                    <span class="function"><span class="title">while</span> (++i &lt; ht-&gt;</span>nNumUsed) &#123;</span><br><span class="line">                        p++;</span><br><span class="line">                        <span class="comment">// 此时 q 是后一个， p 是前一个 若 q == IS_UNDEF &amp;&amp; p != IS_UNDEF 这时将 p 的数据复制到 q 中</span></span><br><span class="line">                        <span class="function"><span class="title">if</span> (EXPECTED(Z_TYPE_INFO(p-&gt;</span>val) != IS_UNDEF)) &#123;</span><br><span class="line">                            ZVAL_COPY_VALUE(&amp;<span class="function"><span class="title">q</span>-&gt;</span><span class="function"><span class="title">val</span>, &amp;p-&gt;</span>val);</span><br><span class="line">                            <span class="function"><span class="title">q</span>-&gt;</span><span class="function"><span class="title">h</span> = p-&gt;</span>h;</span><br><span class="line">                            <span class="function"><span class="title">nIndex</span> = q-&gt;</span><span class="function"><span class="title">h</span> | ht-&gt;</span>nTableMask;</span><br><span class="line">                            <span class="function"><span class="title">q</span>-&gt;</span><span class="function"><span class="title">key</span> = p-&gt;</span>key;</span><br><span class="line">                            <span class="comment">// 将q指向的元素添加到 冲突链表中</span></span><br><span class="line">                            Z_NEXT(<span class="function"><span class="title">q</span>-&gt;</span>val) = HT_HASH(ht, nIndex);</span><br><span class="line">                            HT_HASH(ht, nIndex) = HT_IDX_TO_HASH(j);</span><br><span class="line">                            <span class="function"><span class="title">if</span> (UNEXPECTED(ht-&gt;</span>nInternalPointer == i)) &#123;</span><br><span class="line">                                <span class="function"><span class="title">ht</span>-&gt;</span>nInternalPointer = j;</span><br><span class="line">                            &#125;</span><br><span class="line">                            q++;</span><br><span class="line">                            j++;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    <span class="comment">// 迭代器的处理 代码逻辑类似上面步骤</span></span><br><span class="line">                &#125;</span><br><span class="line">                <span class="function"><span class="title">ht</span>-&gt;</span>nNumUsed = j;</span><br><span class="line">                break;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 非删除元素直接调整</span></span><br><span class="line">            <span class="function"><span class="title">nIndex</span> = p-&gt;</span><span class="function"><span class="title">h</span> | ht-&gt;</span>nTableMask;</span><br><span class="line">            Z_NEXT(<span class="function"><span class="title">p</span>-&gt;</span>val) = HT_HASH(ht, nIndex);</span><br><span class="line">            HT_HASH(ht, nIndex) = HT_IDX_TO_HASH(i);</span><br><span class="line">            p++;</span><br><span class="line">        &#125; <span class="function"><span class="title">while</span> (++i &lt; ht-&gt;</span>nNumUsed); <span class="comment">// 循环遍历整个元素</span></span><br><span class="line">    &#125;</span><br><span class="line">    return SUCCESS;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里对删除元素合并的操作代码单独分析下，将代码简化后如下:<br><figure class="highlight cos"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">do</span> &#123;</span><br><span class="line">    <span class="comment">// 当遇到删除元素 进行合并 将后面未删除元素拿来填充到前面的删除元素部分</span></span><br><span class="line">    <span class="keyword">if</span> (UNEXPECTED(Z_TYPE(p-&gt;val) == IS_UNDEF)) &#123;</span><br><span class="line">        uint32_t <span class="keyword">j</span> = i<span class="comment">;</span></span><br><span class="line">        <span class="comment">// 第一次遇到删除元素 此时 q p 均指向这个元素</span></span><br><span class="line">        Bucket *<span class="keyword">q</span> = p<span class="comment">;</span></span><br><span class="line">        <span class="comment">// 基于第一个空元素往后遍历</span></span><br><span class="line">        <span class="keyword">while</span> (++i &lt; ht-&gt;nNumUsed) &#123;</span><br><span class="line">            <span class="comment">// p 往后遍历</span></span><br><span class="line">            p++<span class="comment">;</span></span><br><span class="line">            <span class="comment">// 直到在后面找到非删除的元素 将其拷贝到 q 指定的位置</span></span><br><span class="line">            <span class="keyword">if</span> (EXPECTED(Z_TYPE_INFO(p-&gt;val) != IS_UNDEF)) &#123;</span><br><span class="line">                <span class="comment">// 拷贝数据 重建冲突链表</span></span><br><span class="line">                <span class="comment">// 这里并没有将 p 指向的非删除元素删除 因为没有必要</span></span><br><span class="line">                <span class="comment">// q是单步增长的 且不会判断是否为空 值是直接拷贝的</span></span><br><span class="line">                </span><br><span class="line">                <span class="comment">// q 向前移动一个位置</span></span><br><span class="line">                <span class="keyword">q</span>++<span class="comment">;</span></span><br><span class="line">                <span class="keyword">j</span>++<span class="comment">;</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        ht-&gt;nNumUsed = <span class="keyword">j</span><span class="comment">;</span></span><br><span class="line">        <span class="keyword">break</span><span class="comment">;</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 重建冲突链表</span></span><br><span class="line">    <span class="comment">// ......</span></span><br><span class="line">    p++<span class="comment">;</span></span><br><span class="line">&#125; <span class="keyword">while</span> (++i &lt; ht-&gt;nNumUsed)<span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p>这个算法类似于删除数组中值为 0 的元素 且保持数组元素顺序<br><figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">$arr = [<span class="number">21</span>, <span class="number">0</span>, <span class="number">34</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">23</span>, <span class="number">11</span>, <span class="number">2</span>, <span class="number">0</span>, <span class="number">233</span>, <span class="number">89</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">783</span>, <span class="number">9</span>, <span class="number">0</span>, <span class="number">32</span>, <span class="number">0</span>];</span><br><span class="line">$len = count($arr);</span><br><span class="line">$i = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">do</span> &#123;</span><br><span class="line">    <span class="regexp">//</span> 先找到第一个空洞</span><br><span class="line">    <span class="keyword">if</span> ($arr[$i] != <span class="number">0</span>) continue;</span><br><span class="line">    <span class="regexp">//</span> $i 指向列表第一个空洞</span><br><span class="line">    $j = $i;</span><br><span class="line">    <span class="keyword">while</span> (++$j&lt; $len) &#123;</span><br><span class="line">        <span class="regexp">//</span> $j 指向后面第一个不为<span class="number">0</span>的值</span><br><span class="line">        <span class="keyword">if</span> ($arr[$j] != <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="regexp">//</span> 将$j 的值 填充到 $i </span><br><span class="line">            $arr[$i] = $arr[$j];</span><br><span class="line">            $i++;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    $arr = array_slice($arr, <span class="number">0</span>, $i);</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">while</span>(++$i&lt;$len);</span><br></pre></td></tr></table></figure></p>
+<h2 id="5-删除元素"><a href="#5-删除元素" class="headerlink" title="5. 删除元素"></a>5. 删除元素</h2><p>删除的过程先是查找到要删除的元素 <code>zend_hash_del</code> ，找到后执行 <code>_zend_hash_del_el_ex</code> 进行删除逻辑，删除的过程并不会真的从哈希表中移除，而是将要删除元素的值设置为 <code>IS_UNDEF</code> 类型。</p>
+<p>哈希表删除元素的函数 这里主要逻辑是查询<br><figure class="highlight xl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">ZEND_API int ZEND_FASTCALL zend_hash_del(HashTable *ht, zend_string *key)</span><br><span class="line">&#123;</span><br><span class="line">    zend_ulong h;</span><br><span class="line">    uint32_t nIndex;</span><br><span class="line">    uint32_t idx;</span><br><span class="line">    Bucket *p;</span><br><span class="line">    Bucket *prev = NULL;</span><br><span class="line"></span><br><span class="line">    IS_CONSISTENT(ht);</span><br><span class="line">    HT_ASSERT_RC1(ht);</span><br><span class="line">    <span class="comment">// 通过key的hash code 获取数据存储的索引 idx</span></span><br><span class="line">    h = zend_string_hash_val(key);</span><br><span class="line">    <span class="function"><span class="title">nIndex</span> = h | ht-&gt;</span>nTableMask;</span><br><span class="line">    idx = HT_HASH(ht, nIndex);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 在冲突链表中查询数据</span></span><br><span class="line">    <span class="keyword">while</span> (idx != HT_INVALID_IDX) &#123;</span><br><span class="line">        p = HT_HASH_TO_BUCKET(ht, idx);</span><br><span class="line">        <span class="function"><span class="title">if</span> ((p-&gt;</span>key == key) ||</span><br><span class="line">            (<span class="function"><span class="title">p</span>-&gt;</span>h == h &amp;&amp;</span><br><span class="line">             <span class="function"><span class="title">p</span>-&gt;</span>key &amp;&amp;</span><br><span class="line">             <span class="function"><span class="title">zend_string_equal_content</span>(p-&gt;</span>key, key))) &#123;</span><br><span class="line">            <span class="comment">// 执行删除操作 这里会传递上一个元素的内存地址 prev 方便处理链表</span></span><br><span class="line">            _zend_hash_del_el_ex(ht, idx, p, prev);</span><br><span class="line">            return SUCCESS;</span><br><span class="line">        &#125;</span><br><span class="line">        prev = p;</span><br><span class="line">        <span class="function"><span class="title">idx</span> = Z_NEXT(p-&gt;</span>val);</span><br><span class="line">    &#125;</span><br><span class="line">    return FAILURE;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>执行真正的删除操作<br><figure class="highlight xl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">static zend_always_inline void _zend_hash_del_el_ex(HashTable *ht, uint32_t idx, Bucket *p, Bucket *prev) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!(HT_FLAGS(ht) &amp; HASH_FLAG_PACKED)) &#123; <span class="comment">// ht 不是纯数字索引</span></span><br><span class="line">        <span class="comment">// 将 p 从冲突链表中移除</span></span><br><span class="line">        <span class="keyword">if</span> (prev) &#123; <span class="comment">// p 不是第一个</span></span><br><span class="line">            Z_NEXT(<span class="function"><span class="title">prev</span>-&gt;</span><span class="function"><span class="title">val</span>) = Z_NEXT(p-&gt;</span>val);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 头指针</span></span><br><span class="line">            HT_HASH(<span class="function"><span class="title">ht</span>, p-&gt;</span><span class="function"><span class="title">h</span> | ht-&gt;</span><span class="function"><span class="title">nTableMask</span>) = Z_NEXT(p-&gt;</span>val);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    idx = HT_HASH_TO_IDX(idx);</span><br><span class="line">    <span class="comment">// nNumOfElements 记录哈希表中存储的元素总数</span></span><br><span class="line">    <span class="function"><span class="title">ht</span>-&gt;</span>nNumOfElements--;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 这里是重置迭代</span></span><br><span class="line">    <span class="function"><span class="title">if</span> (ht-&gt;</span>nInternalPointer == idx || UNEXPECTED(HT_HAS_ITERATORS(ht))) &#123;</span><br><span class="line">        <span class="comment">// ......</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 删除的是最后一个元素</span></span><br><span class="line">    <span class="function"><span class="title">if</span> (ht-&gt;</span>nNumUsed - <span class="number">1</span> == idx) &#123;</span><br><span class="line">        <span class="keyword">do</span> &#123;</span><br><span class="line">            <span class="comment">// 此时这个值才会收缩</span></span><br><span class="line">            <span class="function"><span class="title">ht</span>-&gt;</span>nNumUsed--;</span><br><span class="line">        <span class="comment">// 这里循环的条件 是 1. 还有元素 2. 从后往前遍历元素 如果碰到是 IS_UNDEF 的元素 这里会继续减 nNumUsed 否则就停止遍历</span></span><br><span class="line">        &#125; <span class="function"><span class="title">while</span> (ht-&gt;</span><span class="function"><span class="title">nNumUsed</span> &gt; 0 &amp;&amp; (UNEXPECTED(Z_TYPE(ht-&gt;</span><span class="function"><span class="title">arData</span>[ht-&gt;</span>nNumUsed-<span class="number">1</span>].val) == IS_UNDEF)));</span><br><span class="line">        <span class="function"><span class="title">ht</span>-&gt;</span><span class="function"><span class="title">nInternalPointer</span> = MIN(ht-&gt;</span><span class="function"><span class="title">nInternalPointer</span>, ht-&gt;</span>nNumUsed);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 回收资源 这个元素要删除了</span></span><br><span class="line">    <span class="function"><span class="title">if</span> (p-&gt;</span>key) &#123;</span><br><span class="line">        <span class="function"><span class="title">zend_string_release</span>(p-&gt;</span>key);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 调用析构函数</span></span><br><span class="line">    <span class="function"><span class="title">if</span> (ht-&gt;</span>pDestructor) &#123;</span><br><span class="line">        <span class="comment">// 将这个要回收的变量传递给 析构函数</span></span><br><span class="line">        zval tmp;</span><br><span class="line">        ZVAL_COPY_VALUE(&amp;<span class="function"><span class="title">tmp</span>, &amp;p-&gt;</span>val);</span><br><span class="line">        ZVAL_UNDEF(&amp;<span class="function"><span class="title">p</span>-&gt;</span>val); <span class="comment">// 这里在传递值之前先将他的 变量类型设置为 0</span></span><br><span class="line">        <span class="function"><span class="title">ht</span>-&gt;</span>pDestructor(&amp;tmp);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        ZVAL_UNDEF(&amp;<span class="function"><span class="title">p</span>-&gt;</span>val);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>删除的主要部分 一个是删除后需要在冲突链表中也将其删除 另一个就是设置其值为 IS_UNDEF 使用了宏 如下：<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> IS_UNDEF                    0</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ZVAL_UNDEF(z) do &#123;              \</span></span><br><span class="line">        Z_TYPE_INFO_P(z) = IS_UNDEF;    \</span><br><span class="line">    &#125; <span class="keyword">while</span> (<span class="number">0</span>)</span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> Z_TYPE_INFO_P(zval_p)       Z_TYPE_INFO(*(zval_p))</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> Z_TYPE_INFO(zval)           (zval).u1.type_info</span></span><br><span class="line"><span class="comment">// 展开的结果是 </span></span><br><span class="line">zval.u1.type_info = <span class="number">0</span>;</span><br></pre></td></tr></table></figure></p>
+
+            
+                
+
+            
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/php/">php</a> <a class="tag tag--primary tag--small t-link" href="/tags/php-src/">php-src</a> <a class="tag tag--primary tag--small t-link" href="/tags/内核源码/">内核源码</a>
+
+            </div>
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/06/25/Linux进程基本用法/"  data-tooltip="Linux进程基本用法">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/05/26/c语言基础-类型到底是什么/" data-tooltip="c语言基础-类型到底是什么">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2019/05/26/php内核源码分析之HashTable/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2019/05/26/php内核源码分析之HashTable/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2019/05/26/php内核源码分析之HashTable/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+            
+                <div id="ds-thread" class="ds-thread" data-thread-key="2019/05/26/php内核源码分析之HashTable/"
+     data-title="php内核源码分析之HashTable" data-url="/2019/05/26/php内核源码分析之HashTable/">
+</div>
+
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2019 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="3">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/06/25/Linux进程基本用法/"  data-tooltip="Linux进程基本用法">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/05/26/c语言基础-类型到底是什么/" data-tooltip="c语言基础-类型到底是什么">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2019/05/26/php内核源码分析之HashTable/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2019/05/26/php内核源码分析之HashTable/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2019/05/26/php内核源码分析之HashTable/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="3">
+    <ul class="share-options">
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=/2019/05/26/php内核源码分析之HashTable/">
+                <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2019/05/26/php内核源码分析之HashTable/">
+                <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=/2019/05/26/php内核源码分析之HashTable/">
+                <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><p> good at develop framework </p>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+        <script type="text/javascript">
+            var duoshuoQuery = {short_name:'fantiq'};
+            (function() {
+                var ds = document.createElement('script');
+                ds.type = 'text/javascript';ds.async = true;
+                ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+                ds.charset = 'UTF-8';
+                (document.getElementsByTagName('head')[0]
+                || document.getElementsByTagName('body')[0]).appendChild(ds);
+            })();
+        </script>
+    
+
+
+
+</html>
