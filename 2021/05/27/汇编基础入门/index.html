@@ -1,0 +1,677 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>汇编基础入门 - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta name="description" content="熟悉汇编会对代码的运行过程有一个深入的认知，这里简单总结下汇编的一个整体结构，汇编代码是如何协调CPU与内存、CPU寄存器的作用、高级语言的功能其ASM的实现本质等。">
+<meta name="keywords" content="汇编">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="汇编基础入门">
+<meta property="og:url" content="/2021/05/27/汇编基础入门/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:description" content="熟悉汇编会对代码的运行过程有一个深入的认知，这里简单总结下汇编的一个整体结构，汇编代码是如何协调CPU与内存、CPU寄存器的作用、高级语言的功能其ASM的实现本质等。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:updated_time" content="2021-05-27T10:39:35.783Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="汇编基础入门">
+<meta name="twitter:description" content="熟悉汇编会对代码的运行过程有一个深入的认知，这里简单总结下汇编的一个整体结构，汇编代码是如何协调CPU与内存、CPU寄存器的作用、高级语言的功能其ASM的实现本质等。">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="3">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="3">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+            <div id="main" data-behavior="3"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title" itemprop="headline">
+            汇编基础入门
+        </h1>
+    
+    <div class="post-meta">
+    <time itemprop="datePublished" content="Thu May 27 2021 11:27:32 GMT+0800">
+	
+		    5月 27, 2021
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/汇编/">汇编</a>
+
+
+    
+</div>
+</div>
+    
+    <div class="post-content markdown" itemprop="articleBody">
+        <div class="main-content-wrap">
+            <p>熟悉汇编会对代码的运行过程有一个深入的认知，这里简单总结下汇编的一个整体结构，汇编代码是如何协调CPU与内存、CPU寄存器的作用、高级语言的功能其ASM的实现本质等。</p>
+<a id="more"></a>
+<h2 id="1-环境搭建"><a href="#1-环境搭建" class="headerlink" title="1. 环境搭建"></a>1. 环境搭建</h2><table>
+<thead>
+<tr>
+<th>软件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>centos</td>
+<td>操作系统 编译执行环境</td>
+</tr>
+<tr>
+<td>nasm</td>
+<td>汇编代码编译器</td>
+</tr>
+<tr>
+<td>gcc</td>
+<td>编译链接工具生成可执行代码</td>
+</tr>
+</tbody>
+</table>
+<p>需要安装汇编代码的编译器 <code>nasm</code> ，nasm会将汇编代码 <code>*.asm</code> 编辑成中间对象 <code>*.o</code> ，想要得到可执行文件还需要gcc对中间文件进行<code>link</code>操作，具体操作方式如下</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 将汇编代码编译成中间码</span></span><br><span class="line"><span class="attribute">nasm</span> -g -f elf <span class="string">"source.asm"</span> -o <span class="string">"dist.o"</span></span><br></pre></td></tr></table></figure>
+<p>其中 <code>-g</code> 是为了生成调试符号，这样就可以用<code>gdb</code>进行代码调试，<code>-f elf</code> 是用来指定生成的中间代码格式，这里指定生成的是 <code>elf</code> 这个是在unix系统中用的格式，其他支持的格式暂未了解</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 将中间码链接包装成可执行文件</span></span><br><span class="line"><span class="attribute">gcc</span> -m32 <span class="string">"dist.o"</span> -o <span class="string">"dist"</span></span><br></pre></td></tr></table></figure>
+<p>这里使用的是 <code>gcc</code>编译，其中的<code>-m32</code>指的是按照32位CPU指令 x86 架构的格式编译 （在mac上未能成功，mac已经不支持x86的编译，这里是在centos中操作的）</p>
+<h2 id="2-用gdb调试汇编代码"><a href="#2-用gdb调试汇编代码" class="headerlink" title="2. 用gdb调试汇编代码"></a>2. 用gdb调试汇编代码</h2><p>为了验证一些汇编指令具体做了什么事情，可以通过 gdb 对代码断点调试，查看中间态验证命令的作用，这里终结了常用的gdb命令以及基础用法</p>
+<h4 id="基本用法"><a href="#基本用法" class="headerlink" title="基本用法"></a>基本用法</h4><p><code>gdb ${可执行文件}</code> 启动gdb并打开需要调试的文件 （记得编译的时候使用参数 -g 保留调试符号 否则无法用gdb调试）</p>
+<p><code>set disassembly-flavor intel</code> 将汇编设置为intel格式方便阅读</p>
+<p><code>disas main</code> gdb提供的反汇编指令（disassemble），其中的 <code>main</code>作为参数是函数名称</p>
+<h4 id="常用断点调试命令"><a href="#常用断点调试命令" class="headerlink" title="常用断点调试命令"></a>常用断点调试命令</h4><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>简写</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>run</td>
+<td>r</td>
+<td>开始执行代码</td>
+</tr>
+<tr>
+<td>break ${num/address}</td>
+<td>b</td>
+<td>设置断点 可以 break 12 指定代码行 也可以 break *0x11 指定指令内存地址</td>
+</tr>
+<tr>
+<td>stepi</td>
+<td>si</td>
+<td>CPU指令级别的单步调试 若遇函数调用则进入函数内部</td>
+</tr>
+<tr>
+<td>nexti</td>
+<td>ni</td>
+<td>CPU指令级别的单步调试 若遇函数调用不会进入函数内部</td>
+</tr>
+<tr>
+<td>continue</td>
+<td>c</td>
+<td>执行代码到下一个断点</td>
+</tr>
+<tr>
+<td>info</td>
+<td>i</td>
+<td>查看断点/寄存器/变量等信息</td>
+</tr>
+<tr>
+<td>list</td>
+<td>l</td>
+<td>查看源代码</td>
+</tr>
+<tr>
+<td>quit</td>
+<td>q</td>
+<td>退出gdb</td>
+</tr>
+<tr>
+<td>step/next</td>
+<td>s/n</td>
+<td>参考指令 stepi/nexti 区别是 这两个指令并非CPU指令级别的单步，而是代码行级别的</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-寄存器和内存的通信"><a href="#3-寄存器和内存的通信" class="headerlink" title="3. 寄存器和内存的通信"></a>3. 寄存器和内存的通信</h2><p>汇编的作用就是操作CPU进行计算，CPU在计算的时候需要存储计算的值，这些值的存储位置就是CPU的寄存器，复杂的计算还需要内存辅助数据的存储，这里看下内存与CPU寄存器的配合方式</p>
+<p>####关于寄存器</p>
+<p>CPU的通用寄存器有 <code>eax</code> <code>ebx</code> <code>ecx</code> <code>edx</code> 等，不同架构提供的通用寄存器数量和名称有区别，这些通用寄存器就是可以给用户侧（汇编代码）<strong>自由使用</strong>的寄存器，其他的非通用寄存器如 <code>eip</code> <code>esp</code> <code>eflags</code>等是为了CPU实现一些功能用的，不会开放给用户侧使用</p>
+<p>其中寄存器 <code>eax</code> 通常会当作饭回值使用，比如我们的可执行文件执行完成饭回的值 (<code>echo $?</code>) 其实就是 执行完成后寄存器 <code>eax</code>当时的值</p>
+<p>一个简单的汇编代码，运行结果是 28</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">gloabl main</span><br><span class="line"><span class="symbol">    main:</span></span><br><span class="line">        <span class="keyword">mov</span> <span class="built_in">eax</span>, <span class="number">20</span> <span class="comment">; 给eax寄存器赋值</span></span><br><span class="line">        <span class="keyword">add</span> <span class="built_in">eax</span>, <span class="number">8</span>  <span class="comment">; 给eax的值 +8</span></span><br><span class="line">        <span class="keyword">ret</span> <span class="comment">; 结束 返回了eax中的值</span></span><br></pre></td></tr></table></figure>
+<h4 id="内存操作"><a href="#内存操作" class="headerlink" title="内存操作"></a>内存操作</h4><p>代码在加载的时候需要将数据加载到内存，CPU在进行计算的时候会将内存的数据读入到寄存器（通过汇编mov执行）</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">global</span> main</span><br><span class="line"><span class="symbol">		main:</span></span><br><span class="line">				<span class="keyword">mov</span> <span class="built_in">eax</span>, [myvar] <span class="comment">; 将内存数据写入到寄存器</span></span><br><span class="line"><span class="meta">section</span> .data <span class="comment">; 数据区</span></span><br><span class="line">	myvar <span class="built_in">dd</span> <span class="number">12</span> <span class="comment">; 定义内存变量（常亮）值</span></span><br></pre></td></tr></table></figure>
+<p>其中定义内存值的方式是 <code>变量名称 dd 具体的值</code> 其中的 <code>dd</code> 是 <code>define double word</code> 的意思 占用32bit（4字节），还可以定义为 <code>dw</code> define word 是占用16bit（2字节），使用的时候就是通过汇编指令写入到CPU寄存器</p>
+<h2 id="4-汇编指令与寄存器"><a href="#4-汇编指令与寄存器" class="headerlink" title="4.汇编指令与寄存器"></a>4.汇编指令与寄存器</h2><h4 id="基本运算"><a href="#基本运算" class="headerlink" title="基本运算"></a>基本运算</h4><p>常用的计算指令有 ADD SUB MUL DIV 分别对应 加 减 乘 除，其中指令 CMP 也是计算指令，两数比较其实就是两个数字相减。CMP质量主要配合指令 JMP有条件跳转 进行使用。</p>
+<h4 id="指令跳转"><a href="#指令跳转" class="headerlink" title="指令跳转"></a>指令跳转</h4><p>指令跳转相关的操作指令有 <code>JMP</code> <code>CALL</code> <code>RET</code> ，其中指令 <code>RET</code> 是直接返回调用处，配合指令 <code>CALL</code> 完成函数调用。<code>JMP</code> 和 <code>CALL</code> 的区别是，<code>CALL</code> 指令在执行完成后 会返回到 跳转处继续向下执行，但是<code>JMP</code>不会调转回来。</p>
+<h4 id="数据传输指令"><a href="#数据传输指令" class="headerlink" title="数据传输指令"></a>数据传输指令</h4><p>常用的数据传输指令有 <code>MOV``PUSH``POP</code>，其中的<code>MOV</code>指令是将数据复制到CPU寄存器或读取CPU寄存器中的值，<code>PUSH``POP</code>这两个指令是将寄存器中的值存储到一个栈结构中，这个功能可以实现高级语言中的局部变量功能（因为CPU中的变量存储在寄存器中，而寄存器是全局可用的，稍微复杂的计算就会导致寄存器中的值覆盖）</p>
+<p>还有两个用于实现原子操作的指令 <code>XCHG</code> <code>CMPXCHG</code> ，其功能是将汇编中的值与寄存器中的值进行交换，<code>CMPXCHG</code> 是要先比较再交换</p>
+<h2 id="5-高级语言功能的实现"><a href="#5-高级语言功能的实现" class="headerlink" title="5.高级语言功能的实现"></a>5.高级语言功能的实现</h2><h4 id="判断循环的实现"><a href="#判断循环的实现" class="headerlink" title="判断循环的实现"></a>判断循环的实现</h4><h5 id="判断的实现"><a href="#判断的实现" class="headerlink" title="判断的实现"></a>判断的实现</h5><p>实现条件判断需要用到的指令有 <code>CMP</code> 和 <code>JMP</code> ，先看JMP指令，JMP直接将指令执行顺序切换到了其他位置，如下代码执行结果是 <code>6</code></p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="symbol">main:</span></span><br><span class="line">    <span class="keyword">mov</span> <span class="built_in">eax</span>, <span class="number">10</span></span><br><span class="line">    <span class="keyword">jmp</span> other</span><br><span class="line">    <span class="keyword">mov</span> <span class="built_in">eax</span>, <span class="number">20</span> <span class="comment">; jmp 指令跳转后不会返回来继续执行这条命令</span></span><br><span class="line">    <span class="keyword">ret</span></span><br><span class="line"><span class="symbol">other:</span></span><br><span class="line">    <span class="keyword">mov</span> <span class="built_in">eax</span>, <span class="number">6</span></span><br><span class="line">    <span class="keyword">ret</span></span><br></pre></td></tr></table></figure>
+<p>其实CPU在实现JMP指令功能的时候用到了一个重要的寄存器 <code>EIP</code> ，EIP记录了执行执行的位置，改变EIP中的指令位置就可以实现 JMP 指令的功能。</p>
+<p>若想实现条件判断的功能需要用到 <code>CMP</code> 指令 和有条件的 <code>JMP</code> 指令，有条件的JMP指令如 <code>JE</code> 比较指令结果是等于跳转 、<code>JG</code>比较指令结果是大于跳转 、<code>JL</code>比较指令结果是小于跳转等，对于指令的执行 <code>CMP</code> 的比较结果需要存储，这就涉及到另一个重要的寄存器 <code>EFLAGS</code> ，在指令进行计算的时候产生的结果会影响到<code>EFLAGS</code>寄存器中各个标志位的值，CMP进行相减运算后同样会影响<code>EFLAGS</code>寄存器，有条件跳转就可以通过这个寄存器决定是否需要跳转到其他指令位置</p>
+<p>如下代码</p>
+<figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">int a = <span class="number">10</span><span class="comment">;</span></span><br><span class="line">int <span class="keyword">b </span>= <span class="number">0</span><span class="comment">;</span></span><br><span class="line">if (a &gt; <span class="number">20</span>) &#123;</span><br><span class="line">		<span class="keyword">b </span>= <span class="number">10</span><span class="comment">;</span></span><br><span class="line">&#125; else &#123;</span><br><span class="line">		<span class="keyword">b </span>= <span class="number">20</span><span class="comment">;</span></span><br><span class="line">&#125;</span><br><span class="line">return <span class="keyword">b </span>+ <span class="number">10</span><span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<p>使用汇编改写</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">global</span> main</span><br><span class="line"><span class="symbol">    main:</span></span><br><span class="line">        <span class="keyword">mov</span> <span class="built_in">eax</span>, <span class="number">10</span></span><br><span class="line">        <span class="keyword">mov</span> <span class="built_in">ebx</span>, <span class="number">0</span></span><br><span class="line">        <span class="keyword">cmp</span> <span class="built_in">eax</span>, <span class="number">20</span></span><br><span class="line">        <span class="keyword">jg</span> other</span><br><span class="line">        <span class="keyword">mov</span> <span class="built_in">ebx</span>, <span class="number">20</span></span><br><span class="line">        <span class="keyword">jmp</span> end <span class="comment">; 这里需要调过 other分支 执行后面的代码指令</span></span><br><span class="line"><span class="symbol">    other:</span></span><br><span class="line">        <span class="keyword">mov</span> <span class="built_in">ebx</span>, <span class="number">10</span></span><br><span class="line"><span class="symbol">    end:</span></span><br><span class="line">        <span class="keyword">add</span> <span class="built_in">ebx</span>, <span class="number">10</span></span><br><span class="line">        <span class="keyword">mov</span> <span class="built_in">eax</span>, <span class="built_in">ebx</span></span><br><span class="line">        <span class="keyword">ret</span></span><br></pre></td></tr></table></figure>
+<p>上面汇编还是需要 jmp 指令跳回到主逻辑中，这样对代码的阅读是不便的，高级语言在做这一步翻译的时候往往会将代码逻辑的判断进行一个<code>倒置</code>操作</p>
+<h5 id="循环的实现"><a href="#循环的实现" class="headerlink" title="循环的实现"></a>循环的实现</h5><p>循环的实现相对就简单了，可以通过指令JMP相互调用实现循环，通过上面的判断实现循环的结束</p>
+<figure class="highlight matlab"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">int a = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">for</span> (int <span class="built_in">i</span> = <span class="number">0</span>; <span class="built_in">i</span> &lt; <span class="number">10</span>; <span class="built_in">i</span>++) &#123;</span><br><span class="line">	a = a + <span class="built_in">i</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">return</span> a;</span><br></pre></td></tr></table></figure>
+<p>对应的汇编代码</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="symbol">main:</span></span><br><span class="line">    <span class="keyword">mov</span> <span class="built_in">eax</span>, <span class="number">0</span></span><br><span class="line">    <span class="keyword">mov</span> <span class="built_in">ebx</span>, <span class="number">0</span></span><br><span class="line"><span class="symbol">_do:</span></span><br><span class="line">		<span class="comment">; 判断停止条件</span></span><br><span class="line">    <span class="keyword">cmp</span> <span class="built_in">ebx</span>, <span class="number">10</span></span><br><span class="line">    <span class="keyword">jg</span> _end</span><br><span class="line">    <span class="comment">; 执行具体逻辑</span></span><br><span class="line">    <span class="keyword">add</span> <span class="built_in">eax</span>, <span class="built_in">ebx</span></span><br><span class="line">    <span class="keyword">inc</span> <span class="built_in">ebx</span></span><br><span class="line">    <span class="comment">; 循环实现</span></span><br><span class="line">    <span class="keyword">jmp</span> _<span class="built_in">do</span></span><br><span class="line"><span class="symbol">_end:</span> <span class="comment">; 结束部分</span></span><br><span class="line">		<span class="keyword">ret</span></span><br></pre></td></tr></table></figure>
+<h4 id="函数调用的实现"><a href="#函数调用的实现" class="headerlink" title="函数调用的实现"></a>函数调用的实现</h4><p>函数调用相对简单 可以使用CALL指令直接实现函数的调用，CPU在实现CALL指令的功能用到了寄存器 <code>ESP</code> 这是一个栈（stack）寄存器，这样就能实现函数之间的<strong>层层调用</strong> ，ESP寄存器中会记录（入栈）每个函数的调用地址，调用结束寄存器出栈就能获得上层调用的指令地址，这样就实现了调用的返回。函数涉及到的入参、返回值就需要使用通用寄存器来实现，当调用场景交复杂的话，这些寄存器作为全局可读写的参数存储介质，很容易被覆盖参数，这时候要实现函数变量中的局部变量，就要用到指令 <code>PUSH</code> <code>POP</code> 对寄存器的值进行入栈、出栈操作。</p>
+<p>如下一个例子可以观察到变量被覆盖的情况</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> eax = <span class="number">1</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">fibo</span><span class="params">(<span class="keyword">int</span> eax)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> (eax &gt; <span class="number">2</span>) <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">return</span> fibo(eax + <span class="number">1</span>) + eax</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对应的汇编代码如下</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="symbol">main:</span></span><br><span class="line">    <span class="keyword">mov</span> <span class="built_in">eax</span>, <span class="number">1</span></span><br><span class="line">    <span class="keyword">mov</span> <span class="built_in">ebx</span>, <span class="number">0</span></span><br><span class="line"><span class="symbol">fibo:</span></span><br><span class="line">    <span class="keyword">cmp</span> <span class="built_in">eax</span>, <span class="number">2</span></span><br><span class="line">    <span class="keyword">jg</span> end</span><br><span class="line">		</span><br><span class="line">    <span class="keyword">push</span> <span class="built_in">ebx</span> <span class="comment">; 寄存器入栈 保存当前变量的值</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">mov</span> <span class="built_in">ebx</span>, <span class="built_in">eax</span></span><br><span class="line">    <span class="keyword">add</span> <span class="built_in">eax</span>, <span class="number">1</span></span><br><span class="line">    <span class="keyword">call</span> fibo</span><br><span class="line">    <span class="keyword">add</span> <span class="built_in">eax</span>, <span class="built_in">ebx</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">pop</span> <span class="built_in">ebx</span> <span class="comment">; 寄存器出栈 取出上次 push 时候保存的值</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">ret</span></span><br><span class="line"><span class="symbol">end:</span></span><br><span class="line">    <span class="keyword">mov</span> <span class="built_in">eax</span>, <span class="number">1</span></span><br><span class="line">    <span class="keyword">ret</span></span><br></pre></td></tr></table></figure>
+<p>正确的运行结果应该是 <code>4</code> 可以尝试将寄存器 ebx 进行出栈入栈的操作注释掉看看，运行结果确是 <code>5</code>，可以分析下这个结果的得出原因其实就是ebx 在call的调用中其中的值被覆盖了，倒置调用完成回来的时候的 <code>+n</code> 操作，其中的n已经被改变了，具体可以将汇编过程展开来看</p>
+<table>
+<thead>
+<tr>
+<th>第一层</th>
+<th>第二层</th>
+<th>第三层</th>
+<th>EAX</th>
+<th>EBX</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mov eax, 1 mov ebx, 0</td>
+<td></td>
+<td></td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr>
+<td>cmp eax, 2 jg end [false]</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>mov ebx, eax</td>
+<td></td>
+<td></td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr>
+<td>add eax, 1</td>
+<td></td>
+<td></td>
+<td>2</td>
+<td>1</td>
+</tr>
+<tr>
+<td></td>
+<td>cmp eax, 2 jg end [false]</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>mov ebx, eax</td>
+<td></td>
+<td>2</td>
+<td>2</td>
+</tr>
+<tr>
+<td></td>
+<td>add eax, 1</td>
+<td></td>
+<td>3</td>
+<td>2</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td>cmp eax, 2 jg end [true]</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td>mov eax, 1</td>
+<td>1</td>
+<td>2</td>
+</tr>
+<tr>
+<td></td>
+<td>add eax, ebx</td>
+<td></td>
+<td>3</td>
+<td>2</td>
+</tr>
+<tr>
+<td>add eax, ebx</td>
+<td></td>
+<td></td>
+<td>5</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<p>这里出错的主要点在 最后一步，此时的ebx应该是 <code>1</code> 而不是被第二层、第三层修改调的 <code>2</code> ，要达到既窜正确需要在后面调用层进入前把这个值给存储起来，也就是 PUSH 操作，等需要回调完成需要这个值的时候将这个值POP出来参与运算。</p>
+<h4 id="CMPXCHG指令"><a href="#CMPXCHG指令" class="headerlink" title="CMPXCHG指令"></a>CMPXCHG指令</h4><p>交换指令 <code>XCHG eax, ebx</code> 就是简单的交换 eax 与 ebx 的值，<code>CMPXCHG ebx, ecx</code> 需要先让 ebx 与 eax 进行比较，相等的话才会将ecx 的值赋值给 ebx （ecx的值不变），不相等的话会将ebx的值赋值给eax，等同如下代码逻辑</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">int <span class="selector-tag">a</span> = <span class="number">4</span></span><br><span class="line">void cmpxchg(<span class="selector-tag">b</span>, c) &#123;</span><br><span class="line">	<span class="keyword">if</span> (<span class="selector-tag">b</span> == a) &#123;</span><br><span class="line">		<span class="selector-tag">b</span> = c</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="selector-tag">a</span> = b</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对应的汇编代码如下</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">mov</span> <span class="built_in">eax</span>, <span class="number">4</span></span><br><span class="line"><span class="keyword">mov</span> <span class="built_in">ebx</span>, <span class="number">3</span></span><br><span class="line"><span class="keyword">mov</span> <span class="built_in">ecx</span>, <span class="number">5</span></span><br><span class="line"><span class="keyword">cmpxchg</span> <span class="built_in">ebx</span>, <span class="built_in">ecx</span> <span class="comment">; ebx == eax ? ebx = ecx : eax = ebx</span></span><br><span class="line"><span class="comment">; mov eax, ebx</span></span><br><span class="line"><span class="keyword">ret</span></span><br></pre></td></tr></table></figure>
+<p>分析其实现原子赋值的过程，假设我们需要将变量b的值从4改为5，那么对应的汇编代码过程应该是 </p>
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">mov ebx, [b] ; 变量b的值存储到寄存器 ebx [eax = <span class="number">0</span>, ebx = <span class="number">4</span>]</span><br><span class="line">mov eax, ebx ; 此时ebx的值为老值 [eax = <span class="number">4</span>, ebx = <span class="number">4</span>]</span><br><span class="line">mov ecx, <span class="number">5</span></span><br><span class="line">; 中间存在ebx的值可能被修改的指令</span><br><span class="line">cmpxchg ecx, ebx ; 若ebx的值未修改 [eax = <span class="number">4</span>, ebx = <span class="number">4</span>] -&gt; [eax = <span class="number">4</span>, ebx = <span class="number">5</span>]</span><br><span class="line">							   ; 若ebx的值被修改 [eax = <span class="number">4</span>, ebx = <span class="number">10</span>] -&gt; [eax = <span class="number">10</span>, ebx = <span class="number">10</span>]</span><br></pre></td></tr></table></figure>
+<p>若eax与ebx的相等则说明修改不成功，若相等则修改成功</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmp</span>, <span class="built_in">eax</span>, <span class="built_in">ebx</span></span><br><span class="line"><span class="keyword">je</span> 失败</span><br><span class="line">成功</span><br></pre></td></tr></table></figure>
+<p>参考 <a href="https://www.zhihu.com/column/c_144694924" target="_blank" rel="noopener">汇编入门</a></p>
+
+            
+                
+
+            
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/汇编/">汇编</a>
+
+            </div>
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2021/05/31/JAVA基础语法特性/"  data-tooltip="JAVA基础语法特性">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2020/05/17/JAVA中HashMap死循环形成过程的分析/" data-tooltip="JAVA中HashMap死循环形成过程的分析">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2021/05/27/汇编基础入门/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2021/05/27/汇编基础入门/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2021/05/27/汇编基础入门/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+            
+                <div id="ds-thread" class="ds-thread" data-thread-key="2021/05/27/汇编基础入门/"
+     data-title="汇编基础入门" data-url="/2021/05/27/汇编基础入门/">
+</div>
+
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="3">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2021/05/31/JAVA基础语法特性/"  data-tooltip="JAVA基础语法特性">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2020/05/17/JAVA中HashMap死循环形成过程的分析/" data-tooltip="JAVA中HashMap死循环形成过程的分析">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2021/05/27/汇编基础入门/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2021/05/27/汇编基础入门/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2021/05/27/汇编基础入门/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="3">
+    <ul class="share-options">
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=/2021/05/27/汇编基础入门/">
+                <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2021/05/27/汇编基础入门/">
+                <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=/2021/05/27/汇编基础入门/">
+                <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><p> good at develop framework </p>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+        <script type="text/javascript">
+            var duoshuoQuery = {short_name:'fantiq'};
+            (function() {
+                var ds = document.createElement('script');
+                ds.type = 'text/javascript';ds.async = true;
+                ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+                ds.charset = 'UTF-8';
+                (document.getElementsByTagName('head')[0]
+                || document.getElementsByTagName('body')[0]).appendChild(ds);
+            })();
+        </script>
+    
+
+
+
+</html>

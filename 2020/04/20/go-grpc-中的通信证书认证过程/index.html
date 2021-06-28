@@ -1,0 +1,460 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>go-grpc 中的通信证书认证过程 - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta name="description" content="内容比较乱，需要整理。大致需要解释 证书生成过程/证书如何实现对数据的加密/如何通过跟证书验证加密证书的合法性 grpc 通信使用的非对称加密">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="go-grpc 中的通信证书认证过程">
+<meta property="og:url" content="/2020/04/20/go-grpc-中的通信证书认证过程/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:description" content="内容比较乱，需要整理。大致需要解释 证书生成过程/证书如何实现对数据的加密/如何通过跟证书验证加密证书的合法性 grpc 通信使用的非对称加密">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:updated_time" content="2020-04-20T02:12:28.965Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="go-grpc 中的通信证书认证过程">
+<meta name="twitter:description" content="内容比较乱，需要整理。大致需要解释 证书生成过程/证书如何实现对数据的加密/如何通过跟证书验证加密证书的合法性 grpc 通信使用的非对称加密">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="3">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="3">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+            <div id="main" data-behavior="3"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title" itemprop="headline">
+            go-grpc 中的通信证书认证过程
+        </h1>
+    
+    <div class="post-meta">
+    <time itemprop="datePublished" content="Mon Apr 20 2020 10:03:29 GMT+0800">
+	
+		    4月 20, 2020
+    	
+    </time>
+    
+</div>
+</div>
+    
+    <div class="post-content markdown" itemprop="articleBody">
+        <div class="main-content-wrap">
+            <p>内容比较乱，需要整理。大致需要解释 证书生成过程/证书如何实现对数据的加密/如何通过跟证书验证加密证书的合法性</p>
+<p>grpc 通信使用的非对称加密</p>
+<a id="more"></a>
+<h2 id="无证书验证-只是数据加密解密"><a href="#无证书验证-只是数据加密解密" class="headerlink" title="无证书验证 只是数据加密解密"></a>无证书验证 只是数据加密解密</h2><p>秘钥生成过程:<br><figure class="highlight delphi"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -<span class="keyword">out</span> server.key <span class="number">2048</span></span><br><span class="line">openssl ecparam -genkey -<span class="keyword">name</span> secp384r1 -<span class="keyword">out</span> server.key</span><br></pre></td></tr></table></figure></p>
+<p>证书生成过程:<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl req -new -x509 -sha256 -key server<span class="selector-class">.key</span> -out server<span class="selector-class">.pem</span> -days <span class="number">3650</span></span><br></pre></td></tr></table></figure></p>
+<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Country Name (2 letter code) []:CN</span><br><span class="line">State <span class="keyword">or</span> Province Name (full name) []:ZheJiang</span><br><span class="line">Locality Name (eg, city) []:HangZhou</span><br><span class="line">Organization Name (eg, company) []:HangZhou Bianfeng<span class="built_in"> Network </span>Technology Co.,Ltd</span><br><span class="line">Organizational Unit Name (eg, section) []:comb</span><br><span class="line">Common Name (eg, fully qualified host name) []:bianfeng</span><br><span class="line">Email<span class="built_in"> Address </span>[]:admin@bianfeng.com</span><br></pre></td></tr></table></figure>
+<p>对应信息<br><figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">Country</span> <span class="selector-tag">Name</span> (<span class="number">2</span> letter code) <span class="selector-attr">[]</span>: 国家</span><br><span class="line"><span class="selector-tag">State</span> <span class="selector-tag">or</span> <span class="selector-tag">Province</span> <span class="selector-tag">Name</span> (full name) <span class="selector-attr">[]</span>:省</span><br><span class="line"><span class="selector-tag">Locality</span> <span class="selector-tag">Name</span> (eg, city) <span class="selector-attr">[]</span>:市</span><br><span class="line"><span class="selector-tag">Organization</span> <span class="selector-tag">Name</span> (eg, company) <span class="selector-attr">[]</span>:公司</span><br><span class="line"><span class="selector-tag">Organizational</span> <span class="selector-tag">Unit</span> <span class="selector-tag">Name</span> (eg, section) <span class="selector-attr">[]</span>:部门</span><br><span class="line"><span class="selector-tag">Common</span> <span class="selector-tag">Name</span> (eg, fully qualified host name) <span class="selector-attr">[]</span>:域名</span><br><span class="line"><span class="selector-tag">Email</span> <span class="selector-tag">Address</span> <span class="selector-attr">[]</span>:联系邮箱</span><br></pre></td></tr></table></figure></p>
+<p>客户端证书在Load过程中需要填写的 Host信息 需要与 证书中填写的 <code>Common Name</code> 对应</p>
+<h2 id="双向证书来源验证"><a href="#双向证书来源验证" class="headerlink" title="双向证书来源验证"></a>双向证书来源验证</h2><p>客户端 服务端的证书通过一个 ca 证书进行签名生成<br>通信过程发送的证书 通过 ca 验证证书来源是否合法</p>
+<p>参考链接</p>
+<p><a href="https://cloud.tencent.com/developer/article/1423345" target="_blank" rel="noopener">grpc-go 双向认证</a></p>
+<p><a href="https://ningyu1.github.io/site/post/51-ssl-cert/" target="_blank" rel="noopener">自签名证书生成</a></p>
+<p>证书生成时候需要填写的信息 其中 <code>Common Name</code> 必填 很重要，客户端需要填写这个 一般是域名<br>若不是基于http 可以不必填写域名<br>可以在生成的时候使用 参数 <code>-subj &quot;/C=CN/O=${公司名称}/OU=${公司部门}/CN=${域名}/ST=${省}/L=${市}/emailAddress=${邮箱}</code> 快速指定<br>查看证书信息的命令 <code>openssl x509 -in [pem证书] -noout -text</code></p>
+<h4 id="生成根证书"><a href="#生成根证书" class="headerlink" title="生成根证书"></a>生成根证书</h4><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -out ca<span class="selector-class">.key</span> <span class="number">2048</span></span><br><span class="line">openssl req -new -x509 -key ca<span class="selector-class">.key</span> -out ca<span class="selector-class">.pem</span> -subj <span class="string">"/CN=bianfeng"</span></span><br></pre></td></tr></table></figure>
+<h4 id="生成服务端证书"><a href="#生成服务端证书" class="headerlink" title="生成服务端证书"></a>生成服务端证书</h4><figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -out <span class="keyword">server</span>.key <span class="number">2048</span></span><br><span class="line"><span class="meta"># 生成请求证书</span></span><br><span class="line">openssl req -<span class="keyword">new</span> -key <span class="keyword">server</span>.key -out <span class="keyword">server</span>.csr -subj <span class="string">"/CN=bianfeng"</span></span><br><span class="line"><span class="meta"># 通过 ca 证书对 csr签名 生成pem证书</span></span><br><span class="line">openssl x509 -req -sha256 -CA ca.pem -CAkey ca.key -CAcreateserial -days <span class="number">3650</span> -in <span class="keyword">server</span>.csr -out <span class="keyword">server</span>.pem</span><br></pre></td></tr></table></figure>
+<h4 id="生成客户端证书"><a href="#生成客户端证书" class="headerlink" title="生成客户端证书"></a>生成客户端证书</h4><figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -out <span class="keyword">client</span>.key <span class="number">2048</span></span><br><span class="line"><span class="meta"># 生成请求证书</span></span><br><span class="line">openssl req -<span class="keyword">new</span> -key <span class="keyword">client</span>.key -out <span class="keyword">client</span>.csr -subj <span class="string">"/CN=bianfeng"</span></span><br><span class="line"><span class="meta"># 通过 ca 证书对 csr签名 生成pem证书</span></span><br><span class="line">openssl x509 -req -sha256 -CA ca.pem -CAkey ca.key -CAcreateserial -days <span class="number">3650</span> -in <span class="keyword">client</span>.csr -out <span class="keyword">client</span>.pem</span><br></pre></td></tr></table></figure>
+<h5 id="grpc-go-中的配置"><a href="#grpc-go-中的配置" class="headerlink" title="grpc-go 中的配置"></a>grpc-go 中的配置</h5><p>server side:<br><figure class="highlight dts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">tls.Config&#123;</span><br><span class="line"><span class="symbol">    ClientAuth:</span>   tls.RequireAndVerifyClientCert, <span class="comment">// 对客户端证书进行验证</span></span><br><span class="line"><span class="symbol">    Certificates:</span> []tls.Certificate&#123;服务端证书 用以服务端发送数据&#125;,</span><br><span class="line"><span class="symbol">    ClientCAs:</span>    certPool, <span class="comment">// 签发客户端证书的 根证书</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>client side:<br><figure class="highlight dts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">tls.Config&#123;</span><br><span class="line"><span class="symbol">    ServerName:</span>   <span class="string">"bianfeng"</span>, <span class="comment">// 对应证书的 Common Name</span></span><br><span class="line"><span class="symbol">    Certificates:</span> []tls.Certificate&#123;客户端证书 用以客户端发送数据&#125;,</span><br><span class="line"><span class="symbol">    RootCAs:</span>      certPool, <span class="comment">// 签发服务端证书的 跟证书</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+
+            
+                
+
+            
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2020/05/17/JAVA中HashMap死循环形成过程的分析/"  data-tooltip="JAVA中HashMap死循环形成过程的分析">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/08/13/java基础-编译运行原理/" data-tooltip="java基础-编译运行原理">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2020/04/20/go-grpc-中的通信证书认证过程/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2020/04/20/go-grpc-中的通信证书认证过程/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2020/04/20/go-grpc-中的通信证书认证过程/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+            
+                <div id="ds-thread" class="ds-thread" data-thread-key="2020/04/20/go-grpc-中的通信证书认证过程/"
+     data-title="go-grpc 中的通信证书认证过程" data-url="/2020/04/20/go-grpc-中的通信证书认证过程/">
+</div>
+
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="3">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2020/05/17/JAVA中HashMap死循环形成过程的分析/"  data-tooltip="JAVA中HashMap死循环形成过程的分析">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/08/13/java基础-编译运行原理/" data-tooltip="java基础-编译运行原理">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2020/04/20/go-grpc-中的通信证书认证过程/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2020/04/20/go-grpc-中的通信证书认证过程/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2020/04/20/go-grpc-中的通信证书认证过程/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="3">
+    <ul class="share-options">
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=/2020/04/20/go-grpc-中的通信证书认证过程/">
+                <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2020/04/20/go-grpc-中的通信证书认证过程/">
+                <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=/2020/04/20/go-grpc-中的通信证书认证过程/">
+                <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><p> good at develop framework </p>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+        <script type="text/javascript">
+            var duoshuoQuery = {short_name:'fantiq'};
+            (function() {
+                var ds = document.createElement('script');
+                ds.type = 'text/javascript';ds.async = true;
+                ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+                ds.charset = 'UTF-8';
+                (document.getElementsByTagName('head')[0]
+                || document.getElementsByTagName('body')[0]).appendChild(ds);
+            })();
+        </script>
+    
+
+
+
+</html>
