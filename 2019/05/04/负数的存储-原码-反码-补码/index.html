@@ -1,0 +1,602 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>负数的存储-原码 反码 补码 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"在计算机中，数字是用二进制来表示的，使用二进制的方式考虑到两点 1. 问题简单化 电路简单 2. 计算简单化 二进制特性使然。在计算机中 数字是有限位的这是与数学概念不同的地方，比如在32位系统中 char 类型表示1个byte 1个byte由8个bit组成，这8个bit的数字表达能力（能表示的不同状态）是 2^8 = 256 个，也就是说1个byte能表达的数字范围是 1 ～ 256 考虑到0的特殊性 需要把 0 也加进来 这时候的表达范围是 0 ~ 255 。对于自然数 存在负数的形式 需要将一半的数据拿来表达负数，这个时候1byte能表达有符号数字的范围是 -1 ～ -128 + 0 ～ 127 也就是 -128 ～ 127 ，这个是概念 在这些比特位上如何去实现这样的设想呢，目前的计算机中是将正数和零 正常存储（也就是存在低位）负数通过补码的形式存储(存储在高位) 且 补码的求法是 补码 = 反码 + 1。\n\n其实对于这个 补码 的来历以及求法很疑惑，并不清楚通过什么逻辑得到的，虽然这样的设计非常巧妙 这样的存储形式 可以直接用原码的形式进行简单的加法计算，这样也进一步降低的计算机逻辑电路的复杂度，通过补码这种存储形式 可以将所有的计算看作加法这一种形式。补码 在帕斯卡的机械计算器中也有用到，也许是第一次使用补码的形式把。\n接下来我要一步步的分析下 前辈是如何发现并利用这样一个数字特性的（这并不是发明 这是数字存在的特性 我们是发现了这些特性并使用在了计算机上）,8bit太多 这里简化问题 使用 3bit来分析。首先需要说明几个概念 ，既然我们是利用这些 bit 位实现对正负数的表达 就涉及到一些变化，对于最终在计算机上的存储形式 称作 原码 而这个bit组合状态 所表达的实际值 称作 表达值。\n3bit所能表达的状态如下：\n123  000    001    010    011    100    101    110    111---+------+------+------+------+------+------+------+---   0      1      2      3      4      5      6      7   &lt;--- 原码\n考虑到负数的引入，这里需要拿出一半的状态用来表示负数，最先想到的方式 是 数学中数轴的表达方式，如下：\n1234  000    001    010    011    100    101    110    111---+------+------+------+------+------+------+------+---   0      1      2      3      4      5      6      7   &lt;--- 原码   X     -3     -2     -1      0      1      2      3   &lt;--- 表达值\n这时有一个位是没有用到的，可以先暂时忽略，关注主体。其实这里的数字是可以直接用来计算了，可以用来计算的原因是他们按照数学计算逻辑中的大小顺序排列的。其中 表达值 = 原码 - 状态总数/2 这样是可以直接通过原码进行计算的，证明过程如下：\n123456789101112131415假设：    状态总数            C    表达值1             x    表达值1的源码        x&#x27;    表达值2             y    表达值2的源码        y&#x27;已知：    x = x&#x27; - C/2    y = y&#x27; - C/2求：x+y = x&#x27; - C/2 + y&#x27; - C/2     = x&#x27; + y&#x27; - 2(C/2)    = x&#x27; + y&#x27; - C\n表达值的计算最终可以转换成原码的计算，但需要减去状态总数，这其实多了一步转换，且这些转换对于正数负数都需要，对这个排列进行优化 会想到将正数放在低位 负数放在高位，这样正数的表达值 = 原码 ，需要转换处理的是负数，这样得到如下结果：\n1234  000    001    010    011    100    101    110    111---+------+------+------+------+------+------+------+---   0      1      2      3      4      5      6      7   &lt;--- 原码   0      1      2      3      X     -3     -2     -1   &lt;--- 表达值\n这样的排列形式还是可以直接进行运算的，因为其核心 只是将正负数的连续数字部分做了偏移 这些偏移是可以通过等价条件相互转换的，分析这个转换过程：已知之前的转换条件是 表达值 = 原码 - 状态总数/2 我们需要将正数与负数的位置进行调换，这时候需要分开对正数与负数的变换过程进行分析：\n1234567891011121314151617181920212223对于之前的表达值与原码的关系可得表达值=原码 - 状态总数/2原码=表达值+状态总数/2已知     原码 = 表达值+状态总数/2表达值的整体左移 `状态总数/2` 个位置 相当于 原码右移 `状态总数/2` 个位置 也就是 源码应该减去 `状态总数/2`则有     原码 = 原码-状态总数/2         = 表达值+状态总数/2-状态总数/2        = 表达值也就是说此次的移动 正数的表达值就是原码同理得到负数的情况 负数是右移 `状态总数/2`则有    原码 = 原码 + 状态总数/2         = 表达值 + 状态总数/2  + 状态总数/2        = 表达值 + 状态总数最总得到转换后的 源码 与 表达值的关系    正数  表达值 = 原码    负数  表达值 = 原码 - 状态总数\n上面已经说了，位置的调整不会影响到计算，我们也通过转换关系改变了 表达值 与 原码的转换关系，这个时候数字的可计算性是没有变化的，也就是说 通过这个转换过程我们就能通过表达值的计算转换成 原码的计算。\n虽然，经过上一步的位移 我们减少了对正数的转换，但是负数还是需要转换，且增加了对正数负数情况的区别，看起来并没有简化问题。但是对于负数的情况我们需要单独分析下，表达式 = 原码 - 状态总数 这个公式 中的 原码 - 状态总数 其实就是 原码 其中的  - 状态总数 并无意义。这要说起计算机的数字是有限范围的 而数学中的数字是没有范围的（他是概念的形式存在的），对于数字有范围的计算机 当其值超出其所能表达的范围外的时候 这个计数会从 零 重新开始。\n数学上的数轴是从无限小到无限大 ， 计算机中的这个数轴更像是钟表的环形样式，超过十二点就是一点了。所以任何值 加上或减去 状态总数 其实就等于其本身。由于这样一个特性 我们可以将上面负数的转换过程进行简化调整，\n1表达值 = 原码 - 状态总数 = 原码\n进而，对于正数、负数都成立的 表达式 = 原码，也就是 可以直接参与计算了 直接用原码进行数学元算即可！\n这其中的负数那部分 原码 其实是被叫做 补码 的 ， 他特指负数的原码，关于 补码 的推导过程如下：\n123456789101112131415假设    负数表达值         x    原码              x&#x27;    范围最大值         MAX    状态总数           C已知    C = MAX + 1    MAX = -x + ^(-x)求    x&#x27;  = x + C        = x + MAX + 1        = x + (-x) + ^(-x) + 1        = ^(-x) + 1\n最终得到 x‘ = ^(-x) + 1由于 x 是负数 -x 是这个负数的绝对值 也就是正数 ^(-x) 也就是负数对应的正数的反码原码 = 表达值绝对值的反码 + 1也就是现在常说的 补码 = 反码 + 1\n","dateCreated":"2019-05-04T16:43:54+08:00","dateModified":"2019-05-06T00:59:09+08:00","datePublished":"2019-05-04T16:43:54+08:00","description":"在计算机中，数字是用二进制来表示的，使用二进制的方式考虑到两点 1. 问题简单化 电路简单 2. 计算简单化 二进制特性使然。在计算机中 数字是有限位的这是与数学概念不同的地方，比如在32位系统中 char 类型表示1个byte 1个byte由8个bit组成，这8个bit的数字表达能力（能表示的不同状态）是 2^8 = 256 个，也就是说1个byte能表达的数字范围是 1 ～ 256 考虑到0的特殊性 需要把 0 也加进来 这时候的表达范围是 0 ~ 255 。对于自然数 存在负数的形式 需要将一半的数据拿来表达负数，这个时候1byte能表达有符号数字的范围是 -1 ～ -128 + 0 ～ 127 也就是 -128 ～ 127 ，这个是概念 在这些比特位上如何去实现这样的设想呢，目前的计算机中是将正数和零 正常存储（也就是存在低位）负数通过补码的形式存储(存储在高位) 且 补码的求法是 补码 = 反码 + 1。","headline":"负数的存储-原码 反码 补码","image":[],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2019/05/04/%E8%B4%9F%E6%95%B0%E7%9A%84%E5%AD%98%E5%82%A8-%E5%8E%9F%E7%A0%81-%E5%8F%8D%E7%A0%81-%E8%A1%A5%E7%A0%81/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2019/05/04/%E8%B4%9F%E6%95%B0%E7%9A%84%E5%AD%98%E5%82%A8-%E5%8E%9F%E7%A0%81-%E5%8F%8D%E7%A0%81-%E8%A1%A5%E7%A0%81/","keywords":"计算机原理"}</script>
+    <meta name="description" content="在计算机中，数字是用二进制来表示的，使用二进制的方式考虑到两点 1. 问题简单化 电路简单 2. 计算简单化 二进制特性使然。在计算机中 数字是有限位的这是与数学概念不同的地方，比如在32位系统中 char 类型表示1个byte 1个byte由8个bit组成，这8个bit的数字表达能力（能表示的不同状态）是 2^8 &#x3D; 256 个，也就是说1个byte能表达的数字范围是 1 ～ 256 考虑到0的">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="负数的存储-原码 反码 补码">
+<meta property="og:url" content="https://fantiq.github.io/2019/05/04/%E8%B4%9F%E6%95%B0%E7%9A%84%E5%AD%98%E5%82%A8-%E5%8E%9F%E7%A0%81-%E5%8F%8D%E7%A0%81-%E8%A1%A5%E7%A0%81/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="在计算机中，数字是用二进制来表示的，使用二进制的方式考虑到两点 1. 问题简单化 电路简单 2. 计算简单化 二进制特性使然。在计算机中 数字是有限位的这是与数学概念不同的地方，比如在32位系统中 char 类型表示1个byte 1个byte由8个bit组成，这8个bit的数字表达能力（能表示的不同状态）是 2^8 &#x3D; 256 个，也就是说1个byte能表达的数字范围是 1 ～ 256 考虑到0的">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-05-04T08:43:54.000Z">
+<meta property="article:modified_time" content="2019-05-05T16:59:09.314Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="计算机原理">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            负数的存储-原码 反码 补码
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2019-05-04T16:43:54+08:00">
+	
+		    5月 04, 2019
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%8E%9F%E7%90%86/">计算机原理</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>在计算机中，数字是用二进制来表示的，使用二进制的方式考虑到两点 1. 问题简单化 电路简单 2. 计算简单化 二进制特性使然。在计算机中 数字是有限位的这是与数学概念不同的地方，比如在32位系统中 char 类型表示1个byte 1个byte由8个bit组成，这8个bit的数字表达能力（能表示的不同状态）是 2^8 = 256 个，也就是说1个byte能表达的数字范围是 1 ～ 256 考虑到0的特殊性 需要把 0 也加进来 这时候的表达范围是 0 ~ 255 。对于自然数 存在负数的形式 需要将一半的数据拿来表达负数，这个时候1byte能表达有符号数字的范围是 -1 ～ -128 + 0 ～ 127 也就是 -128 ～ 127 ，这个是概念 在这些比特位上如何去实现这样的设想呢，目前的计算机中是将正数和零 正常存储（也就是存在低位）负数通过<code>补码</code>的形式存储(存储在高位) 且 补码的求法是 <code>补码 = 反码 + 1</code>。</p>
+<span id="more"></span>
+<p>其实对于这个 <code>补码</code> 的来历以及求法很疑惑，并不清楚通过什么逻辑得到的，虽然这样的设计非常巧妙 这样的存储形式 可以直接用<code>原码</code>的形式进行简单的加法计算，这样也进一步降低的计算机逻辑电路的复杂度，通过<code>补码</code>这种存储形式 可以将所有的计算看作加法这一种形式。<code>补码</code> 在帕斯卡的机械计算器中也有用到，也许是第一次使用补码的形式把。</p>
+<p>接下来我要一步步的分析下 前辈是如何发现并利用这样一个数字特性的（这并不是发明 这是数字存在的特性 我们是发现了这些特性并使用在了计算机上）,8bit太多 这里简化问题 使用 3bit来分析。首先需要说明几个概念 ，既然我们是利用这些 bit 位实现对正负数的表达 就涉及到一些变化，对于最终在计算机上的存储形式 称作 <code>原码</code> 而这个bit组合状态 所表达的实际值 称作 <code>表达值</code>。</p>
+<p>3bit所能表达的状态如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">  000    001    010    011    100    101    110    111</span><br><span class="line">---+------+------+------+------+------+------+------+---</span><br><span class="line">   0      1      2      3      4      5      6      7   &lt;--- 原码</span><br></pre></td></tr></table></figure>
+<p>考虑到负数的引入，这里需要拿出一半的状态用来表示负数，最先想到的方式 是 数学中数轴的表达方式，如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">  000    001    010    011    100    101    110    111</span><br><span class="line">---+------+------+------+------+------+------+------+---</span><br><span class="line">   0      1      2      3      4      5      6      7   &lt;--- 原码</span><br><span class="line">   X     -3     -2     -1      0      1      2      3   &lt;--- 表达值</span><br></pre></td></tr></table></figure>
+<p>这时有一个位是没有用到的，可以先暂时忽略，关注主体。其实这里的数字是可以直接用来计算了，可以用来计算的原因是他们按照数学计算逻辑中的大小顺序排列的。其中 <code>表达值 = 原码 - 状态总数/2</code> 这样是可以直接通过原码进行计算的，证明过程如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">假设：</span><br><span class="line">    状态总数            C</span><br><span class="line">    表达值1             x</span><br><span class="line">    表达值1的源码        x&#x27;</span><br><span class="line">    表达值2             y</span><br><span class="line">    表达值2的源码        y&#x27;</span><br><span class="line"></span><br><span class="line">已知：</span><br><span class="line">    x = x&#x27; - C/2</span><br><span class="line">    y = y&#x27; - C/2</span><br><span class="line"></span><br><span class="line">求：</span><br><span class="line">x+y = x&#x27; - C/2 + y&#x27; - C/2 </span><br><span class="line">    = x&#x27; + y&#x27; - 2(C/2)</span><br><span class="line">    = x&#x27; + y&#x27; - C</span><br></pre></td></tr></table></figure>
+<p>表达值的计算最终可以转换成原码的计算，但需要减去状态总数，这其实多了一步转换，且这些转换对于正数负数都需要，对这个排列进行优化 会想到将正数放在低位 负数放在高位，这样正数的表达值 = 原码 ，需要转换处理的是负数，这样得到如下结果：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">  000    001    010    011    100    101    110    111</span><br><span class="line">---+------+------+------+------+------+------+------+---</span><br><span class="line">   0      1      2      3      4      5      6      7   &lt;--- 原码</span><br><span class="line">   0      1      2      3      X     -3     -2     -1   &lt;--- 表达值</span><br></pre></td></tr></table></figure>
+<p>这样的排列形式还是可以直接进行运算的，因为其核心 只是将正负数的连续数字部分做了偏移 这些偏移是可以通过等价条件相互转换的，分析这个转换过程：已知之前的转换条件是 <code>表达值 = 原码 - 状态总数/2</code> 我们需要将正数与负数的位置进行调换，这时候需要分开对正数与负数的变换过程进行分析：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">对于之前的表达值与原码的关系可得</span><br><span class="line">表达值=原码 - 状态总数/2</span><br><span class="line">原码=表达值+状态总数/2</span><br><span class="line"></span><br><span class="line">已知 </span><br><span class="line">    原码 = 表达值+状态总数/2</span><br><span class="line"></span><br><span class="line">表达值的整体左移 `状态总数/2` 个位置 相当于 原码右移 `状态总数/2` 个位置 也就是 源码应该减去 `状态总数/2`</span><br><span class="line">则有 </span><br><span class="line">    原码 = 原码-状态总数/2 </span><br><span class="line">        = 表达值+状态总数/2-状态总数/2</span><br><span class="line">        = 表达值</span><br><span class="line">也就是说此次的移动 正数的表达值就是原码</span><br><span class="line"></span><br><span class="line">同理得到负数的情况 负数是右移 `状态总数/2`</span><br><span class="line">则有</span><br><span class="line">    原码 = 原码 + 状态总数/2 </span><br><span class="line">        = 表达值 + 状态总数/2  + 状态总数/2</span><br><span class="line">        = 表达值 + 状态总数</span><br><span class="line"></span><br><span class="line">最总得到转换后的 源码 与 表达值的关系</span><br><span class="line">    正数  表达值 = 原码</span><br><span class="line">    负数  表达值 = 原码 - 状态总数</span><br></pre></td></tr></table></figure>
+<p>上面已经说了，位置的调整不会影响到计算，我们也通过转换关系改变了 表达值 与 原码的转换关系，这个时候数字的可计算性是没有变化的，也就是说 通过这个转换过程我们就能通过表达值的计算转换成 原码的计算。</p>
+<p>虽然，经过上一步的位移 我们减少了对正数的转换，但是负数还是需要转换，且增加了对正数负数情况的区别，看起来并没有简化问题。但是对于负数的情况我们需要单独分析下，<code>表达式 = 原码 - 状态总数</code> 这个公式 中的 <code>原码 - 状态总数</code> 其实就是 <code>原码</code> 其中的 <code> - 状态总数</code> 并无意义。这要说起计算机的数字是有限范围的 而数学中的数字是没有范围的（他是概念的形式存在的），对于数字有范围的计算机 当其值超出其所能表达的范围外的时候 这个计数会从 零 重新开始。</p>
+<p>数学上的数轴是从无限小到无限大 ， 计算机中的这个数轴更像是钟表的环形样式，超过十二点就是一点了。所以任何值 加上或减去 状态总数 其实就等于其本身。由于这样一个特性 我们可以将上面负数的转换过程进行简化调整，</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">表达值 = 原码 - 状态总数 = 原码</span><br></pre></td></tr></table></figure>
+<p>进而，对于正数、负数都成立的 <code>表达式 = 原码</code>，也就是 可以直接参与计算了 直接用原码进行数学元算即可！</p>
+<p>这其中的负数那部分 原码 其实是被叫做 <code>补码</code> 的 ， 他特指负数的原码，关于 <code>补码</code> 的推导过程如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">假设</span><br><span class="line">    负数表达值         x</span><br><span class="line">    原码              x&#x27;</span><br><span class="line">    范围最大值         MAX</span><br><span class="line">    状态总数           C</span><br><span class="line"></span><br><span class="line">已知</span><br><span class="line">    C = MAX + 1</span><br><span class="line">    MAX = -x + ^(-x)</span><br><span class="line"></span><br><span class="line">求</span><br><span class="line">    x&#x27;  = x + C</span><br><span class="line">        = x + MAX + 1</span><br><span class="line">        = x + (-x) + ^(-x) + 1</span><br><span class="line">        = ^(-x) + 1</span><br></pre></td></tr></table></figure>
+<p>最终得到 x‘ = ^(-x) + 1<br>由于 x 是负数 -x 是这个负数的绝对值 也就是正数 ^(-x) 也就是负数对应的正数的反码<br>原码 = 表达值绝对值的反码 + 1<br>也就是现在常说的 <code>补码 = 反码 + 1</code></p>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%8E%9F%E7%90%86/" rel="tag">计算机原理</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/05/13/linux%E4%B8%AD%E7%9A%84%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/"
+                    data-tooltip="linux中的内存管理"
+                    aria-label="上一篇: linux中的内存管理"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/03/17/%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90%E7%94%B5%E5%AD%90%E4%BB%A5%E5%8F%8A%E4%B8%89%E6%9E%81%E7%AE%A1%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%BD%A2%E5%BC%8F/"
+                    data-tooltip="深入分析电子以及三极管的工作形式"
+                    aria-label="下一篇: 深入分析电子以及三极管的工作形式"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/05/04/%E8%B4%9F%E6%95%B0%E7%9A%84%E5%AD%98%E5%82%A8-%E5%8E%9F%E7%A0%81-%E5%8F%8D%E7%A0%81-%E8%A1%A5%E7%A0%81/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/05/04/%E8%B4%9F%E6%95%B0%E7%9A%84%E5%AD%98%E5%82%A8-%E5%8E%9F%E7%A0%81-%E5%8F%8D%E7%A0%81-%E8%A1%A5%E7%A0%81/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2019/05/04/%E8%B4%9F%E6%95%B0%E7%9A%84%E5%AD%98%E5%82%A8-%E5%8E%9F%E7%A0%81-%E5%8F%8D%E7%A0%81-%E8%A1%A5%E7%A0%81/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/05/13/linux%E4%B8%AD%E7%9A%84%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/"
+                    data-tooltip="linux中的内存管理"
+                    aria-label="上一篇: linux中的内存管理"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/03/17/%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90%E7%94%B5%E5%AD%90%E4%BB%A5%E5%8F%8A%E4%B8%89%E6%9E%81%E7%AE%A1%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%BD%A2%E5%BC%8F/"
+                    data-tooltip="深入分析电子以及三极管的工作形式"
+                    aria-label="下一篇: 深入分析电子以及三极管的工作形式"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/05/04/%E8%B4%9F%E6%95%B0%E7%9A%84%E5%AD%98%E5%82%A8-%E5%8E%9F%E7%A0%81-%E5%8F%8D%E7%A0%81-%E8%A1%A5%E7%A0%81/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/05/04/%E8%B4%9F%E6%95%B0%E7%9A%84%E5%AD%98%E5%82%A8-%E5%8E%9F%E7%A0%81-%E5%8F%8D%E7%A0%81-%E8%A1%A5%E7%A0%81/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2019/05/04/%E8%B4%9F%E6%95%B0%E7%9A%84%E5%AD%98%E5%82%A8-%E5%8E%9F%E7%A0%81-%E5%8F%8D%E7%A0%81-%E8%A1%A5%E7%A0%81/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/05/04/%E8%B4%9F%E6%95%B0%E7%9A%84%E5%AD%98%E5%82%A8-%E5%8E%9F%E7%A0%81-%E5%8F%8D%E7%A0%81-%E8%A1%A5%E7%A0%81/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/05/04/%E8%B4%9F%E6%95%B0%E7%9A%84%E5%AD%98%E5%82%A8-%E5%8E%9F%E7%A0%81-%E5%8F%8D%E7%A0%81-%E8%A1%A5%E7%A0%81/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2019/05/04/%E8%B4%9F%E6%95%B0%E7%9A%84%E5%AD%98%E5%82%A8-%E5%8E%9F%E7%A0%81-%E5%8F%8D%E7%A0%81-%E8%A1%A5%E7%A0%81/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

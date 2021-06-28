@@ -1,0 +1,616 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>用alpine编译php制作docker镜像 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"内容主要包括 1. docker原理 2. alpine系统 3. php的编译安装 4. 镜像的制作\n\n关于dockerdocker作为容器化技术，方便运维对目前分布式、集群的部署进行编排 以及 机器的扩容。docker本质并不是一个硬件隔离的系统，而是通过文件系统以及进程等资源的namespace功能实现了表面上的隔离，在宿主机上 docker 容器其实本质是一个进程。容器实现了软件运行环境的隔离，也就是说对底层包的依赖lib与宿主机进行隔离，这样在进行部署或者增加机器的时候不用关心宿主机的环境，宿主机只需要提供内核以及docker服务就好。\nlinux系统的启动过程是：\n1234567# https://www.cnblogs.com/codecc/p/boot.htmlBIOS\t\t硬件加电自检 查找并加载MBRMBR\t\t\t查找BootLoader 加载grubGRUB\t\t通过grub配置加载系统内核Kernel\t\t装载驱动 挂载rootfs 执行/sbin/initInit\t\tOS初始化 执行 runlevel 相关程序Runlevel \t启动指定级别的服务\n\ndocker在上面说了，其实是一个线程，所以docker并没有bios、mbr、grub、kernel 这些过程，docker容器使用的是宿主机的内核\ndocker在使用上其实分为 镜像(image)与容器(container)镜像相关命令\n12345678docker images \t\t\t\t列出所有的镜像docker rmi [image_id] \t\t删除镜像docker pull [image_name]\t下载镜像docker build Dockfile\t\t通过脚本构建镜像docker loaddocker savedocker commitdocker push\n容器相关命令\n12345678910111213docker ps -a \t\t\t\t\t\t列出所有的容器docker create -it -v -p [image_id]\t创建容器docker run -it -v -p [image_id]\t\t创建并启动容器docker start [image_id]\t\t\t\t启动容器docker restart [image_id]\t\t\t重启容器docker stop [image_id]\t\t\t\t停止容器docker rm [container_id]\t\t\t删除容器docker rename [old_name new_name]\t修改容器名字docker exec -it [image_id cmd]\t\t在容器里执行命令 且 交互式的docker top [image_id]docker logs [image_id]docker export [image_id] ???docker import [image_id] ???\n\n综上来看 docker其实在文件上来讲就是一个文件系统，下文要说的嵌入式系统 alpine 就提供这样的文件系统，我们接下来会使用他的文件系统来制作base image。alpine是一个嵌入式的 所以系统占用空间非常小，docker官方镜像也在使用alpine作为base image，也可以docker pull alpine或者docker官方的镜像，我这边拉取的镜像存在网络问题，所以我是自己import文件系统制作的镜像。\n通过系统文件制作镜像\n12345678910wget http://dl-cdn.alpinelinux.org/alpine/v3.7/releases/x86_64/alpine-minirootfs-3.7.0-x86_64.tar.gzgunzip alpine-minirootfs-3.7.0-x86_64.tar.gzcat alpine-minirootfs-3.7.0-x86_64.tar | docker import - alpine:3.7.0# 此时执行 `docker images` 就可以看到你创建的镜像docker iamgesREPOSITORY          TAG                 IMAGE ID            CREATED             VIRTUAL SIZEalpine              3.7.0               b05c13e3639e        47 seconds ago      4.139 MB\n关于alpinealpine官网有对这个系统的简单介绍\n\nSmall. Simple. Secure.Alpine Linux is a security-oriented, lightweight Linux distribution based on musl libc and busybox.\n\n可以看出alpine与centos相比，主要的不同是使用了不同的底层包的工具链，centos使用的是glibc 而 alpine使用的是 musl libc\nalpine除了小外，官网提供的pkg系统也是很全的，软件比较新 比 yum 好用的多，我在编译php的过程中可以使用apk完成所有的第三方包的下载安装，不需要自己手动编译第三方包\napk命令\n1234567891011# 常用命令apk add [pkg_name]apk del [pkg_name]apk search [pkg_name]apk info [pkg_name]apk update# 常用参数--no-cache\t\t\t\t不要从本地缓存中读取--repository [url] \t\t指定pkg仓库地址 有时候需要下载非stable版(edge) 的时候需要\n在alpine里编译php在alpine进行php源码的编译需要对应平台的编译工具，需要用到的编译工具如下\n1234# 这些是通用的gcc编译工具make autoconf# 这些看了下大概的介绍 主要是提供了 dl 这样的工具等build-base abuild binutils \n\n下载php代码 并解压\n12wget https://github.com/php/php-src/archive/php-7.2.4.tar.gztar -zxvf php-7.2.4.tar.gz\n\nconfigure\n12345678910111213141516171819202122232425262728293031323334353637383940414243./buildconf --force # 生成configure# 安装依赖包apk add \\# 命令行  \\bison readline readline-dev \\# 格式 压缩 \\libxslt libxslt-dev libxml2 libxml2-dev openssl openssl-dev bzip2 bzip2-dev curl curl-dev \\# 图片 \\freetype freetype-dev libpng libpng-dev libwebp libwebp-dev libjpeg-turbo libjpeg-turbo-dev \\libsodium libsodium-dev \\# 加密 这里没有稳定版需要指定edge分支的源apk add argon2 argon2-dev --repository http://dl-cdn.alpinelinux.org/alpine/edge/main --no-cache #configure 这里主要编译了cli php-fpm./configure \\--prefix=/usr/local/php-7.2.4 \\--disable-cgi \\--enable-fpm \\--with-readline \\--with-bz2 \\--with-zlib \\--enable-zip \\--with-password-argon2 \\--with-sodium \\--with-openssl \\--enable-mbstring \\--with-gd \\--with-webp-dir \\--with-jpeg-dir \\--with-png-dir \\--with-freetype-dir \\--enable-gd-jis-conv \\--enable-exif \\--enable-bcmath \\--with-curl \\--enable-sockets \\--with-xsl \\--with-pdo-mysql=shared,mysqlnd \\--disable-rpath \\--without-pear \\make &amp;&amp; make install\n\n然后还要安装一些扩展 redis swoole mongodb \n123456wget http://pecl.php.net/get/redis-4.0.0.tgz &amp;&amp; tar -zxf redis-4.0.0.tgzwget http://pecl.php.net/get/swoole-2.1.3.tgz &amp;&amp; tar -zxf swoole-2.1.3.tgzwget http://pecl.php.net/get/mongodb-1.4.2.tgz &amp;&amp; tar -zxf mongodb-1.4.2.tgz/usr/local/php-7.2.4/bin/phpize &amp;&amp; ./configure --with-php-config=/usr/local/php-7.2.4/bin/php-configmake &amp;&amp; make install\n制作docker镜像通过上一步我们得到了主要的两个二进制文件 bin/php sbin/php-fpm 以及 对应的配置文件在制作镜像的时候只需要把对应的依赖包装上 然后将这两个二进制文件丢进镜像就好了\n安装依赖包\n12345# 依赖包不需要dev包了，这里不需要编译apk add bison readline libxslt libxml2 openssl bzip2 curl freetype libpng libwebp libjpeg-turbo libsodium # 这里的argon2 包需要dev包apk add argon2 argon2-dev --repository http://dl-cdn.alpinelinux.org/alpine/edge/main --no-cache ","dateCreated":"2018-04-17T17:31:36+08:00","dateModified":"2018-05-03T16:54:44+08:00","datePublished":"2018-04-17T17:31:36+08:00","description":"内容主要包括 1. docker原理 2. alpine系统 3. php的编译安装 4. 镜像的制作","headline":"用alpine编译php制作docker镜像","image":[],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2018/04/17/%E7%94%A8alpine%E7%BC%96%E8%AF%91php%E5%88%B6%E4%BD%9Cdocker%E9%95%9C%E5%83%8F/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2018/04/17/%E7%94%A8alpine%E7%BC%96%E8%AF%91php%E5%88%B6%E4%BD%9Cdocker%E9%95%9C%E5%83%8F/","keywords":"docker alpine php"}</script>
+    <meta name="description" content="内容主要包括 1. docker原理 2. alpine系统 3. php的编译安装 4. 镜像的制作">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="用alpine编译php制作docker镜像">
+<meta property="og:url" content="https://fantiq.github.io/2018/04/17/%E7%94%A8alpine%E7%BC%96%E8%AF%91php%E5%88%B6%E4%BD%9Cdocker%E9%95%9C%E5%83%8F/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="内容主要包括 1. docker原理 2. alpine系统 3. php的编译安装 4. 镜像的制作">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2018-04-17T09:31:36.000Z">
+<meta property="article:modified_time" content="2018-05-03T08:54:44.217Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="docker alpine php">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            用alpine编译php制作docker镜像
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2018-04-17T17:31:36+08:00">
+	
+		    4月 17, 2018
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/docker/">docker</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>内容主要包括 1. docker原理 2. alpine系统 3. php的编译安装 4. 镜像的制作</p>
+<span id="more"></span>
+<h1 id="关于docker"><a href="#关于docker" class="headerlink" title="关于docker"></a>关于docker</h1><p>docker作为容器化技术，方便运维对目前分布式、集群的部署进行编排 以及 机器的扩容。docker本质并不是一个硬件隔离的系统，而是通过文件系统以及进程等资源的namespace功能实现了表面上的隔离，在宿主机上 docker 容器其实本质是一个进程。容器实现了软件运行环境的隔离，也就是说对底层包的依赖lib与宿主机进行隔离，这样在进行部署或者增加机器的时候不用关心宿主机的环境，宿主机只需要提供内核以及docker服务就好。</p>
+<p>linux系统的启动过程是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># https://www.cnblogs.com/codecc/p/boot.html</span><br><span class="line">BIOS		硬件加电自检 查找并加载MBR</span><br><span class="line">MBR			查找BootLoader 加载grub</span><br><span class="line">GRUB		通过grub配置加载系统内核</span><br><span class="line">Kernel		装载驱动 挂载rootfs 执行/sbin/init</span><br><span class="line">Init		OS初始化 执行 runlevel 相关程序</span><br><span class="line">Runlevel 	启动指定级别的服务</span><br></pre></td></tr></table></figure>
+
+<p>docker在上面说了，其实是一个线程，所以docker并没有bios、mbr、grub、kernel 这些过程，docker容器使用的是宿主机的内核</p>
+<p>docker在使用上其实分为 镜像(image)与容器(container)<br>镜像相关命令</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">docker images 				列出所有的镜像</span><br><span class="line">docker rmi [image_id] 		删除镜像</span><br><span class="line">docker pull [image_name]	下载镜像</span><br><span class="line">docker build Dockfile		通过脚本构建镜像</span><br><span class="line">docker load</span><br><span class="line">docker save</span><br><span class="line">docker commit</span><br><span class="line">docker push</span><br></pre></td></tr></table></figure>
+<p>容器相关命令</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">docker ps -a 						列出所有的容器</span><br><span class="line">docker create -it -v -p [image_id]	创建容器</span><br><span class="line">docker run -it -v -p [image_id]		创建并启动容器</span><br><span class="line">docker start [image_id]				启动容器</span><br><span class="line">docker restart [image_id]			重启容器</span><br><span class="line">docker stop [image_id]				停止容器</span><br><span class="line">docker rm [container_id]			删除容器</span><br><span class="line">docker rename [old_name new_name]	修改容器名字</span><br><span class="line">docker exec -it [image_id cmd]		在容器里执行命令 且 交互式的</span><br><span class="line">docker top [image_id]</span><br><span class="line">docker logs [image_id]</span><br><span class="line">docker export [image_id] ???</span><br><span class="line">docker import [image_id] ???</span><br></pre></td></tr></table></figure>
+
+<p>综上来看 docker其实在文件上来讲就是一个文件系统，下文要说的嵌入式系统 <a target="_blank" rel="noopener" href="https://www.alpinelinux.org/">alpine</a> 就提供这样的文件系统，我们接下来会使用他的文件系统来制作base image。alpine是一个嵌入式的 所以系统占用空间非常小，docker官方镜像也在使用alpine作为base image，也可以<code>docker pull alpine</code>或者docker官方的镜像，我这边拉取的镜像存在网络问题，所以我是自己import文件系统制作的镜像。</p>
+<p>通过系统文件制作镜像</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">wget http://dl-cdn.alpinelinux.org/alpine/v3.7/releases/x86_64/alpine-minirootfs-3.7.0-x86_64.tar.gz</span><br><span class="line">gunzip alpine-minirootfs-3.7.0-x86_64.tar.gz</span><br><span class="line">cat alpine-minirootfs-3.7.0-x86_64.tar | docker import - alpine:3.7.0</span><br><span class="line"></span><br><span class="line"># 此时执行 `docker images` 就可以看到你创建的镜像</span><br><span class="line">docker iamges</span><br><span class="line"></span><br><span class="line">REPOSITORY          TAG                 IMAGE ID            CREATED             VIRTUAL SIZE</span><br><span class="line">alpine              3.7.0               b05c13e3639e        47 seconds ago      4.139 MB</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h1 id="关于alpine"><a href="#关于alpine" class="headerlink" title="关于alpine"></a>关于alpine</h1><p>alpine官网有对这个系统的简单介绍</p>
+<blockquote>
+<p>Small. Simple. Secure.<br>Alpine Linux is a security-oriented, lightweight Linux distribution based on musl libc and busybox.</p>
+</blockquote>
+<p>可以看出alpine与centos相比，主要的不同是使用了不同的底层包的工具链，centos使用的是glibc 而 alpine使用的是 musl libc</p>
+<p>alpine除了小外，官网提供的<a target="_blank" rel="noopener" href="https://pkgs.alpinelinux.org/packages">pkg</a>系统也是很全的，软件比较新 比 yum 好用的多，我在编译php的过程中可以使用apk完成所有的第三方包的下载安装，不需要自己手动编译第三方包</p>
+<p>apk命令</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"># 常用命令</span><br><span class="line">apk add [pkg_name]</span><br><span class="line">apk del [pkg_name]</span><br><span class="line">apk search [pkg_name]</span><br><span class="line">apk info [pkg_name]</span><br><span class="line">apk update</span><br><span class="line"></span><br><span class="line"># 常用参数</span><br><span class="line">--no-cache				不要从本地缓存中读取</span><br><span class="line">--repository [url] 		指定pkg仓库地址 有时候需要下载非stable版(edge) 的时候需要</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h1 id="在alpine里编译php"><a href="#在alpine里编译php" class="headerlink" title="在alpine里编译php"></a>在alpine里编译php</h1><p>在alpine进行php源码的编译需要对应平台的编译工具，需要用到的编译工具如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># 这些是通用的gcc编译工具</span><br><span class="line">make autoconf</span><br><span class="line"># 这些看了下大概的介绍 主要是提供了 dl 这样的工具等</span><br><span class="line">build-base abuild binutils </span><br></pre></td></tr></table></figure>
+
+<p>下载php代码 并解压</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">wget https://github.com/php/php-src/archive/php-7.2.4.tar.gz</span><br><span class="line">tar -zxvf php-7.2.4.tar.gz</span><br></pre></td></tr></table></figure>
+
+<p>configure</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">./buildconf --force # 生成configure</span><br><span class="line"># 安装依赖包</span><br><span class="line">apk add \</span><br><span class="line"># 命令行  \</span><br><span class="line">bison readline readline-dev \</span><br><span class="line"># 格式 压缩 \</span><br><span class="line">libxslt libxslt-dev libxml2 libxml2-dev openssl openssl-dev bzip2 bzip2-dev curl curl-dev \</span><br><span class="line"># 图片 \</span><br><span class="line">freetype freetype-dev libpng libpng-dev libwebp libwebp-dev libjpeg-turbo libjpeg-turbo-dev \</span><br><span class="line">libsodium libsodium-dev \</span><br><span class="line"></span><br><span class="line"># 加密 这里没有稳定版需要指定edge分支的源</span><br><span class="line">apk add argon2 argon2-dev --repository http://dl-cdn.alpinelinux.org/alpine/edge/main --no-cache </span><br><span class="line"></span><br><span class="line">#configure 这里主要编译了cli php-fpm</span><br><span class="line">./configure \</span><br><span class="line">--prefix=/usr/local/php-7.2.4 \</span><br><span class="line">--disable-cgi \</span><br><span class="line">--enable-fpm \</span><br><span class="line">--with-readline \</span><br><span class="line">--with-bz2 \</span><br><span class="line">--with-zlib \</span><br><span class="line">--enable-zip \</span><br><span class="line">--with-password-argon2 \</span><br><span class="line">--with-sodium \</span><br><span class="line">--with-openssl \</span><br><span class="line">--enable-mbstring \</span><br><span class="line">--with-gd \</span><br><span class="line">--with-webp-dir \</span><br><span class="line">--with-jpeg-dir \</span><br><span class="line">--with-png-dir \</span><br><span class="line">--with-freetype-dir \</span><br><span class="line">--enable-gd-jis-conv \</span><br><span class="line">--enable-exif \</span><br><span class="line">--enable-bcmath \</span><br><span class="line">--with-curl \</span><br><span class="line">--enable-sockets \</span><br><span class="line">--with-xsl \</span><br><span class="line">--with-pdo-mysql=shared,mysqlnd \</span><br><span class="line">--disable-rpath \</span><br><span class="line">--without-pear \</span><br><span class="line"></span><br><span class="line">make &amp;&amp; make install</span><br></pre></td></tr></table></figure>
+
+<p>然后还要安装一些扩展 <code>redis</code> <code>swoole</code> <code>mongodb</code> </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">wget http://pecl.php.net/get/redis-4.0.0.tgz &amp;&amp; tar -zxf redis-4.0.0.tgz</span><br><span class="line">wget http://pecl.php.net/get/swoole-2.1.3.tgz &amp;&amp; tar -zxf swoole-2.1.3.tgz</span><br><span class="line">wget http://pecl.php.net/get/mongodb-1.4.2.tgz &amp;&amp; tar -zxf mongodb-1.4.2.tgz</span><br><span class="line"></span><br><span class="line">/usr/local/php-7.2.4/bin/phpize &amp;&amp; ./configure --with-php-config=/usr/local/php-7.2.4/bin/php-config</span><br><span class="line">make &amp;&amp; make install</span><br></pre></td></tr></table></figure>
+<h1 id="制作docker镜像"><a href="#制作docker镜像" class="headerlink" title="制作docker镜像"></a>制作docker镜像</h1><p>通过上一步我们得到了主要的两个二进制文件 <code>bin/php</code> <code>sbin/php-fpm</code> 以及 对应的配置文件<br>在制作镜像的时候只需要把对应的依赖包装上 然后将这两个二进制文件丢进镜像就好了</p>
+<p>安装依赖包</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># 依赖包不需要dev包了，这里不需要编译</span><br><span class="line">apk add bison readline libxslt libxml2 openssl bzip2 curl freetype libpng libwebp libjpeg-turbo libsodium </span><br><span class="line"># 这里的argon2 包需要dev包</span><br><span class="line">apk add argon2 argon2-dev --repository http://dl-cdn.alpinelinux.org/alpine/edge/main --no-cache </span><br><span class="line"></span><br></pre></td></tr></table></figure>
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/docker-alpine-php/" rel="tag">docker alpine php</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/"
+                    data-tooltip="gcc的基本使用简介"
+                    aria-label="上一篇: gcc的基本使用简介"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2017/07/06/%E5%A6%82%E4%BD%95%E6%AD%A3%E7%A1%AE%E7%9A%84%E5%88%A0%E9%99%A4%E8%BD%AF%E8%BF%9E%E6%8E%A5/"
+                    data-tooltip="如何正确的删除软连接"
+                    aria-label="下一篇: 如何正确的删除软连接"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2018/04/17/%E7%94%A8alpine%E7%BC%96%E8%AF%91php%E5%88%B6%E4%BD%9Cdocker%E9%95%9C%E5%83%8F/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2018/04/17/%E7%94%A8alpine%E7%BC%96%E8%AF%91php%E5%88%B6%E4%BD%9Cdocker%E9%95%9C%E5%83%8F/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2018/04/17/%E7%94%A8alpine%E7%BC%96%E8%AF%91php%E5%88%B6%E4%BD%9Cdocker%E9%95%9C%E5%83%8F/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/"
+                    data-tooltip="gcc的基本使用简介"
+                    aria-label="上一篇: gcc的基本使用简介"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2017/07/06/%E5%A6%82%E4%BD%95%E6%AD%A3%E7%A1%AE%E7%9A%84%E5%88%A0%E9%99%A4%E8%BD%AF%E8%BF%9E%E6%8E%A5/"
+                    data-tooltip="如何正确的删除软连接"
+                    aria-label="下一篇: 如何正确的删除软连接"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2018/04/17/%E7%94%A8alpine%E7%BC%96%E8%AF%91php%E5%88%B6%E4%BD%9Cdocker%E9%95%9C%E5%83%8F/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2018/04/17/%E7%94%A8alpine%E7%BC%96%E8%AF%91php%E5%88%B6%E4%BD%9Cdocker%E9%95%9C%E5%83%8F/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2018/04/17/%E7%94%A8alpine%E7%BC%96%E8%AF%91php%E5%88%B6%E4%BD%9Cdocker%E9%95%9C%E5%83%8F/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2018/04/17/%E7%94%A8alpine%E7%BC%96%E8%AF%91php%E5%88%B6%E4%BD%9Cdocker%E9%95%9C%E5%83%8F/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2018/04/17/%E7%94%A8alpine%E7%BC%96%E8%AF%91php%E5%88%B6%E4%BD%9Cdocker%E9%95%9C%E5%83%8F/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2018/04/17/%E7%94%A8alpine%E7%BC%96%E8%AF%91php%E5%88%B6%E4%BD%9Cdocker%E9%95%9C%E5%83%8F/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

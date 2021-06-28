@@ -1,0 +1,789 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>spring-beans使用 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"在spring框架中其核心功能是IoC的实现，Spring实现IoC靠的是组件 spring-beans ，搞清楚 beans 的原理有利于理解 spring 框架的设计思路。Beans是对类如何实例化的定义，这些定义是通过配置的形式提现的，spring目前支持的定义格式有 Properties Groovy XML 以及后来在组件 spring-context 中通过 注解 的实现形式。容器的本质是一个HashMap 用于存储对象实例化后的地址 或者 存储如何实例化对象的数据(配置)。\n\n1 spring-beans 整体概览1.1 容器的基本信息在 spring-beans 组件中作为容器的类是 org.springframework.beans.factory.support.DefaultListableBeanFactory, 其提供方法 public void registerBeanDefinition(String beanName, BeanDefinition beanDefinition) throws BeanDefinitionStoreException 用来注册对象信息到容器，提供方法 public Object getBean(String name) throws BeansException 读取对象（这个方法是其从父类中继承过来的）。\n容器中的HashMap定义如下：\n1private final Map&lt;String, BeanDefinition&gt; beanDefinitionMap = new ConcurrentHashMap(256);\n\n组件 spring-beans 提供了对应的配置文件的解析类完成容器中的注册过程，这些类都继承了 org.springframework.beans.factory.support.AbstractBeanDefinitionReader。他们通过解析队形格式的配置文件 获取到实例化类过程的定义，并将这些数据包装成 BeanDefine 对象，最终通过方法 registerBeanDefinition 存储到容器的 HashMap中。如下是这些类的清单：\n\n\n\n类\n作用\n\n\n\norg.springframework.beans.factory.xml.XmlBeanDefinitionReader\n解析xml格式的配置\n\n\norg.springframework.beans.factory.groovy.GroovyBeanDefinitionReader\ngroovy格式的配置形式\n\n\norg.springframework.beans.factory.support.PropertiesBeanDefinitionReader\nproperties格式的配置形式\n\n\n1.2 一个简单的容器注入以及获取实例化对象的例子需要实例化的对象\n123456# java/foo/bar/BeanStub.javapackage foo.bar;class BeanStub&#123;    // ...&#125;\n\n实例化过程的配置\n1234# resources/beans.xml&lt;beans&gt;    &lt;bean id=&quot;beanStub&quot; class=&quot;foo.bar.BeanStub&quot; /&gt;&lt;/beans&gt;\n\n注册以及实例化过程\n123456789101112131415161718192021# java/foo/bar/Client.javaimport org.springframework.beans.factory.support.DefaultListableBeanFactory;import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;import org.springframework.core.io.ClassPathResource;import org.springframework.core.io.Resource;public static void main(String[] args) &#123;    // 实例化容器    DefaultListableBeanFactory factory = new DefaultListableBeanFactory();    // 实例化XML格式配置文件解析对象    XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(factory);    // 加载配置文件并解析 最终注册到容器    Resource resource = new ClassPathResource(&quot;beans.xml&quot;);    reader.loadBeanDefinitions(resource);    // 通过id从容器中获取实例化对象    System.out.println(factory.getBean(&quot;beanStub&quot;).getClass().getName());&#125;---------- result ----------foo.bar.BeanStub\n\n1.3 关于配置文件在使用组件 spring-beans 的过程主要就是配置文件的编写，配置文件是用来描述 类被容器实例化的过程，这个过程的重点是类实例化成对象后其属性的值，所以配置文件的描述也是围绕着给对象属性赋值进行的，类实例化后成为对象，同一个类实例化的不同对象之间的区别是他们的属性值。实例化过程的核心就是提供数据给容器，使其实例化的时候将设置的值设置到对象的属性上，配置文件的配置过程也是基于此展开的。\n在面向对象的设计中，构造方法就是提供一个对外的接口给对象的属性进行初始化，其作为一个方法 内部提供了更多的可能对对象进行构造。在设计模式中对象的构造过程是通过 工厂模式来实现的，工厂模式其实是 构造方法的一个变体，其本质还是调用构造方法，工厂模式 给 调用构造方法之前的时机 提供了代码空间 其实可以理解为是对构造方法的一种扩充形式。\n在JAVA中存在 JavaBean 的概念，也就是对象的每一个属性对应一个 getter/setter 方法，对对象属性的操作可以通过这些方法实现，相对于构造方法 这种形式从概念上更明确，函数体中的代码功能是单纯的对对应属性的读写。\n以上，对象的构造过程其实是对对象属性值的复制过程，这个过程有两种形式，一个是通过 JavaBean 定义的 getter/setter 方法实现，一个是通过面相对象中提供的构造方法实现，构造方法又可以衍生出 工厂模式的 构造形式。\n2 对象实例化的配置这里使用XML的形式分析配置，配置的分析过程主要关注点在 功能以及提供的数据，xml形式的配置结构如下:\n123456&lt;beans&gt;    &lt;bean ..../&gt;    &lt;bean ....&gt;        &lt;....&gt;    &lt;/bean&gt;&lt;/beans&gt;\n由于重点在 标签 &lt;bean&gt; 上面，下面的示例中只写标签 &lt;bean&gt; 。\n对容器的操作代，整体的调用形式已在上面的代码例子中给出，下面的示例仅会用到 factory.getBean(&quot;xxxx&quot;) 的形式表示从容器中读取实例化对象，将重点放在验证逻辑上。\n2.1 基本配置形式2.1.1 必须属性 id name class一个简单的配置形式如下:\n1&lt;bean id=&quot;beanName&quot; class=&quot;ClassName&quot;/&gt;\n其中属性 class 表明了要实例化类的类全名(包括包名)，对于一个bean 这个属性是必须的，只有提供了这个属性值 容器才知道要实例化的类是哪个。\n属性 id 和 name 都可以作为一个 bean 的标识 在获取bean的时候使用，他们的区别之处在与下面几条\n\n一个 bean 的 id 必须是唯一的 不可与其他 bean 重复，而 name 在同一个配置文件中也是不可重复的 在不同配置文件中允许重复 但是存在后面的定义覆盖前面的定义的情况\nname 的值中可以使用   : , 字符分割值 并将这些分割后的值作为 bean 的别名，而 id 中不会有这样的处理 它的值只能作为一个整体\nbean中可以不声明 id name 两个属性，这时候 bean 的 BeanName 取值是类全名\n\n举例如下：配置文件\n123456&lt;!-- 通过id定义 --&gt;&lt;bean id=&quot;foo&quot; class=&quot;xxx.xxxx.StubBean0&quot;/&gt;&lt;!-- 通过name定义 --&gt;&lt;bean name=&quot;bar baz&quot; class=&quot;xxx.xxxx.StubBean1&quot;/&gt;&lt;!-- 不定义 默认使用类的包全名 --&gt;&lt;bean class=&quot;xxx.xxxx.StubBean2&quot;/&gt;\n验证代码\n123456789String[] beanNames = new String[]&#123;&quot;foo&quot;, &quot;bar&quot;, &quot;baz&quot;, &quot;xxx.xxxx.StubBean2&quot;&#125;;for(String beanName : beanNames) &#123;    System.out.println(beanName+&quot;\\t&quot;+factory.getBean(beanName).getClass().getName());&#125;---------- result ----------xxx.xxxx.StubBean0xxx.xxxx.StubBean1xxx.xxxx.StubBean1xxx.xxxx.StubBean2\n\n2.1.2 钩子方法 init-method destroy-method注册完成的bean在实例化的时候 组件提供了两个钩子方法，属性 init-method 定义bean完成实例化后要调用的bean方法，属性 destroy-method 定义当 spring-context 中的 context 关闭的时候要调用的bean方法。举例如下:bean类定义\n12345678class StubBean0&#123;    public void initHook() &#123;        System.out.println(&quot;init hook&quot;);    &#125;    public void destroyHook() &#123;        System.out.println(&quot;destroy hook&quot;);    &#125;&#125;\n配置文件\n123&lt;bean id=&quot;myBean&quot; class=&quot;xxx.xxxx.StubBean0&quot;      init-method=&quot;initHook&quot; destroy-method=&quot;destroyHook&quot;/&gt;\n验证代码\n123factory.getBean(&quot;myBean&quot;);---------- result ----------init hook\n\n这里的验证代码没有使用 conext 所以 destory-method 定义的方法并没有执行\n2.1.3 对象构造形式 scopescope 属性定义了 bean 在什么样的范围(生命周期)中需要实例化新的对象并返回，其去值见下表\n\n\n\n值\n作用\n\n\n\nsingleton\n默认值 单例模式\n\n\nprototype\n原型模式 每次返回的都是新对象\n\n\nrequest\n一次http请求周期中返回新对象\n\n\nsession\n\n\n\nglobalSession\n\n\n\napplication\n\n\n\nwebsocket\n\n\n\n举例验证下 singleton prototype 这两个值配置文件 \n12&lt;bean id=&quot;myBean0&quot; class=&quot;com.javastudy.framework.ioc.springbeans.StubBean0&quot; scope=&quot;singleton&quot;/&gt;&lt;bean id=&quot;myBean1&quot; class=&quot;com.javastudy.framework.ioc.springbeans.StubBean0&quot; scope=&quot;prototype&quot;/&gt;\n验证代码\n12345System.out.println(factory.getBean(&quot;myBean0&quot;) == factory.getBean(&quot;myBean0&quot;));System.out.println(factory.getBean(&quot;myBean1&quot;) == factory.getBean(&quot;myBean1&quot;));---------- result ----------truefalse\n2.2 提供构造参数2.2.1 通过getter/setter实例化对于符合JavaBean概念的类，在实例化的时候可以通过其 setter 方法给属性赋值，在配置文件中使用标签 &lt;property&gt;。标签 &lt;property&gt; 作为标签 &lt;bean&gt; 的子元素使用，其属性 name 对应的是类属性的名称, 其属性 value 对应的是属性的值。对于属性的值 也可以在 此标签的子元素 使用标签 &lt;value&gt; 声明，且标签 &lt;value&gt; 提供属性 type 用以说明值的类型， 如下例子是等价的:\n123456789101112&lt;!-- 使用属性 value 声明值 --&gt;&lt;property name=&quot;name&quot; value=&quot;fantasy&quot;/&gt;&lt;!-- 使用标签value声明值 --&gt;&lt;property name=&quot;name&quot;&gt;    &lt;value&gt;fantasy&lt;/value&gt;&lt;/property&gt;&lt;!-- 使用标签value声明值 且使用属性 type 注明值的类型 --&gt;&lt;property name=&quot;name&quot;&gt;    &lt;value type=&quot;java.lang.String&quot;&gt;fantasy&lt;/value&gt;&lt;/property&gt;\n\n以上声明形式只能用与 简单变量类型，如果是集合的类型则不适用，需要使用如下形式\n1234567891011121314151617181920212223242526&lt;!-- HashMap --&gt;&lt;property name=&quot;map&quot;&gt;    &lt;map&gt;        &lt;entry key=&quot;xx&quot; value=&quot;xx&quot;/&gt;        &lt;entry key=&quot;yy&quot; value=&quot;yy&quot;/&gt;        &lt;entry key=&quot;zz&quot; value=&quot;zz&quot;/&gt;    &lt;/map&gt;&lt;/property&gt;&lt;!-- List --&gt;&lt;property name=&quot;list&quot;&gt;    &lt;list&gt;        &lt;value&gt;x&lt;/value&gt;        &lt;value&gt;y&lt;/value&gt;        &lt;value&gt;z&lt;/value&gt;    &lt;/list&gt;&lt;/property&gt;&lt;!-- Set --&gt;&lt;property name=&quot;set&quot;&gt;    &lt;set&gt;        &lt;value&gt;x&lt;/value&gt;        &lt;value&gt;y&lt;/value&gt;        &lt;value&gt;z&lt;/value&gt;    &lt;/set&gt;&lt;/property&gt;\n其中的标签 &lt;map&gt; &lt;entry&gt; 中还可以使用属性 key-type value-type 类声明HashMap对应的 key value 的数据类型，这两个属性也同样可以应用到标签 &lt;list&gt; &lt;set&gt; 中\n还有一些特殊的类型如果你要给属性赋值为 null 应该这么写\n123&lt;property name=&quot;name&quot;&gt;    &lt;null/&gt;&lt;/property&gt;\n如果属性的类型是对象，这个对象就必须是一个bean，并用如下的形式声明\n12345678&lt;bean id=&quot;foo&quot; class=&quot;xxx.xxxx.Foo&quot;/&gt;&lt;bean id=&quot;bar&quot; class=&quot;xxx.xxxx.Bar&quot;&gt;    &lt;property name=&quot;pFoo&quot;&gt;        &lt;ref bean=&quot;foo&quot;/&gt;    &lt;/property&gt;    &lt;!-- 或者写成如下形式 --&gt;    &lt;property name=&quot;pFoo&quot; ref=&quot;foo&quot;/&gt;&lt;/bean&gt;\n关于属性依赖其他bean的情况 下面段落会 集中讲解。\n举例如下bean类定义\n1234567891011121314151617181920212223242526272829303132333435363738class StubBean0&#123;    int id;    String name;    HashMap&lt;String, String&gt; skill;    Set&lt;String&gt; tags;    public int getId() &#123;        return id;    &#125;    public void setId(int id) &#123;        this.id = id;    &#125;    public String getName() &#123;        return name;    &#125;    public void setName(String name) &#123;        this.name = name;    &#125;    public HashMap&lt;String, String&gt; getSkill() &#123;        return skill;    &#125;    public void setSkill(HashMap&lt;String, String&gt; skill) &#123;        this.skill = skill;    &#125;    public Set&lt;String&gt; getTags() &#123;        return tags;    &#125;    public void setTags(Set&lt;String&gt; tags) &#123;        this.tags = tags;    &#125;&#125;\n\n配置文件\n123456789101112131415161718192021&lt;bean id=&quot;myBean0&quot; class=&quot;com.javastudy.framework.ioc.springbeans.StubBean0&quot;&gt;    &lt;property name=&quot;id&quot; value=&quot;10012&quot; /&gt;    &lt;property name=&quot;name&quot; value=&quot;fantasy&quot; /&gt;    &lt;property name=&quot;skill&quot;&gt;        &lt;map&gt;            &lt;entry key=&quot;php&quot; value=&quot;10&quot;/&gt;            &lt;entry key=&quot;clang&quot; value=&quot;8&quot;/&gt;            &lt;entry key=&quot;java&quot; value=&quot;6&quot;/&gt;            &lt;entry key=&quot;golang&quot; value=&quot;2&quot;/&gt;        &lt;/map&gt;    &lt;/property&gt;    &lt;property name=&quot;tags&quot;&gt;        &lt;set&gt;            &lt;value&gt;PMP&lt;/value&gt;            &lt;value&gt;Develop&lt;/value&gt;            &lt;value&gt;Architect&lt;/value&gt;            &lt;value&gt;Expert&lt;/value&gt;        &lt;/set&gt;    &lt;/property&gt;&lt;/bean&gt;\n\n验证代码\n12345678StubBean0 stubBean0 = (StubBean0) factory.getBean(&quot;myBean0&quot;);System.out.println(stubBean0.getId() + &quot;\\t&quot; + stubBean0.getName());System.out.println(stubBean0.getSkill());System.out.println(stubBean0.getTags());---------- result ----------10012   fantasy&#123;php=10, clang=8, java=6, golang=2&#125;[PMP, Develop, Architect, Expert]\n2.2.2 继承属性值在配置文件中定义的是一个个的bean 这些bean中定义了属性的初始值，spring-beans 提供了一种继承这些属性值声明的方法，方便我们在定义bean的时候能够复用一些属性值的定义。可以使用标签 &lt;bean&gt; 中的属性 parent 其值就是需要继承属性定义的bean的name。\n用法举例bean类定义：\n12345678910111213141516171819202122232425262728293031class StubBean1&#123;    int id;    public int getId() &#123;        return id;    &#125;    public void setId(int id) &#123;        this.id = id;    &#125;&#125;class StubBean2&#123;    int id;    String name;    public String getName() &#123;        return name;    &#125;    public void setName(String name) &#123;        this.name = name;    &#125;    public int getId() &#123;        return id;    &#125;    public void setId(int id) &#123;        this.id = id;    &#125;&#125;\n\n配置文件定义：\n1234567&lt;bean id=&quot;parent&quot; class=&quot;xxx.xxxx.StubBean1&quot;&gt;    &lt;property name=&quot;id&quot; value=&quot;20&quot;/&gt;&lt;/bean&gt;&lt;bean id=&quot;children&quot; class=&quot;xxx.xxxx.StubBean2&quot; parent=&quot;parent&quot;&gt;    &lt;property name=&quot;name&quot; value=&quot;fantiq&quot;/&gt;&lt;/bean&gt;\n\n验证代码：\n1234StubBean2 stubBean2 = (StubBean2) factory.getBean(&quot;children&quot;);System.out.println(stubBean2.getName() + &quot;\\t&quot; + stubBean2.getId());---------- result ----------fantiq  20\n以上例子是在 bean children 中的属性的定义 继承了 bean parent 中的属性定义，如果属性有冲突 则会用继承bean的属性值覆盖被继承bean的属性值。这个例子中的父bean对应的是一个实际的类，也可以使用一个不对应类的bean定义 此时这个bean 需要声明成抽象的 abstract=&quot;true&quot; ，不可以通过 getBean实例化这个bean，其配置文件可以写成下面样子:\n1234567&lt;bean id=&quot;parent&quot; abstract=&quot;true&quot;&gt;    &lt;property name=&quot;id&quot; value=&quot;220&quot;/&gt;&lt;/bean&gt;&lt;bean id=&quot;children&quot; class=&quot;xxx.xxxx..StubBean2&quot; parent=&quot;parent&quot;&gt;    &lt;property name=&quot;name&quot; value=&quot;fantiq&quot;/&gt;&lt;/bean&gt;\n抽象的 bean 不能被实例化 自然不用定义class 属性，抽象bean的定义主要就是建立一个 属性初始值定义的模版。\n2.2.3 通过构造方法实例化构造方法创建对象的方式与通过 setter方法创建的形式很相似，只不过构造方法使用标签 &lt;constructor-arg&gt; 声明参数，构造方法的声明形式与属性的声明形式是一样的。构造方法的形式是将定义的这些值传递给构造方法，由构造方法内部代码决定如何处理这些值。\n2.2.4 通过工厂模式实例化工厂模式是构造方法的一个变种，工厂模式又可以分为两种形式一种是基于当前bean的方法创建对象，方法必须是静态的 因为方法要在对象创建前调用。通过属性 factory-method 定义实例化bean使用的静态方法，配置形式如下:\n1&lt;bean id=&quot;main&quot; class=&quot;xxx.xxxx.Stub&quot; factory-method=&quot;selfFactoryMethod&quot;/&gt;\n另一种是调用其他bean中的方法，此时方法没有要求必须是静态，因为其他的bean需要先实例化的。使用属性 factory-bean 定义实例化bean要使用的已经实例化的BeanName，使用属性 factory-method 定义对应 BeanName中的方法名字, 配置形式如下:\n123&lt;bean id=&quot;factory&quot; class=&quot;xxx.xxxx.StubFactory&quot; /&gt;&lt;bean id=&quot;main&quot; class=&quot;xxx.xxxx.Stub&quot; factory-bean=&quot;factory&quot; factory-method=&quot;thirdFactoryMethod&quot;/&gt;\n\n工厂方法不用必须返回指定类型的对象，他可以返回任何类型 但不能是 void。\n也可以给工厂方法传递参数，配置形式如同构造方法的配置形式。\nbean 类定义\n1234567891011121314// bean 内部的静态工厂方法class StubBean1&#123;    public static boolean factory(String name) &#123;        System.out.println(&quot;self static factory method get args: &quot; + name);        return true;    &#125;&#125;// 外部工厂方法class StubBean2&#123;    public boolean factoryThird(String name) &#123;        System.out.println(&quot;third factory method get args:&quot; + name);        return true;    &#125;&#125;\n\n配置文件\n12345678&lt;bean id=&quot;myBeans1&quot; class=&quot;xxx.xxxx.StubBean1&quot; factory-method=&quot;factory&quot;&gt;    &lt;constructor-arg name=&quot;name&quot; value=&quot;foo&quot;/&gt;&lt;/bean&gt;&lt;bean id=&quot;factoryClass&quot; class=&quot;xxx.xxxx.StubBean2&quot;/&gt;        &lt;bean id=&quot;myBeans2&quot; class=&quot;xxx.xxxx.StubBean1&quot; factory-bean=&quot;factoryClass&quot; factory-method=&quot;factoryThird&quot;&gt;    &lt;constructor-arg name=&quot;name&quot; value=&quot;bar&quot;/&gt;&lt;/bean&gt;\n\n验证代码：\n12345factory.getBean(&quot;myBeans1&quot;);factory.getBean(&quot;myBeans2&quot;);---------- result ----------self static factory method get args: foothird factory method get args:bar\n\n2.3 依赖关系2.3.1 依赖的声明形式 ref上面讲了两种主要的给类对象添加属性的方式，一种是通过 getter/setter 方法 一种是通过构造方法。在定义属性值的时候存在多种情况，如果是基本的数据类型的话，比如 Integer String Boolean int double boolean 这些基本类型可以直接通过 标签 &lt;property&gt; 或 &lt;constructor-arg&gt; 的属性 name value 实现值的定义。若是 Map List Set 这种复杂类型的值 则需要通过对应的标签 &lt;map&gt;&lt;entry key=&quot;&quot; value=&quot;&quot;&gt;&lt;....&gt;&lt;/map&gt; &lt;list&gt;&lt;value&gt;xxxxxx&lt;/value&gt;&lt;/list&gt; &lt;set&gt;&lt;value&gt;xxxxxx&lt;/value&gt;&lt;/set&gt; 定义值。\n还有一种值是对象地址，也就是说 类A的属性值的类型是 类B，在组件 spring-beans 中所有的对象都被定义为一个 bean ，那么定义的类构造过程中 属性类型是类的话 也应该是一个bean。对于这样的定义 可以使用属性 ref 其值对应的是要依赖的对象的BeanName。\n举例如下\nbean类定义\n1234567class StubBean1&#123; &#125;class StubBean2&#123;    StubBean1 stubBean1;    StubBean2(StubBean1 depend) &#123;        this.stubBean1 = depend;    &#125;&#125;\n\n配置文件\n1234&lt;bean id=&quot;dependBean&quot; class=&quot;xxx.xxxx.StubBean1&quot;/&gt;&lt;bean id=&quot;myBean&quot; class=&quot;xxx.xxxx.StubBean2&quot;&gt;    &lt;constructor-arg name=&quot;depend&quot; ref=&quot;dependBean&quot; /&gt;&lt;/bean&gt;\n\n验证代码\n1234StubBean2 stubBean2 = (StubBean2) factory.getBean(&quot;myBean&quot;);System.out.println(stubBean2.stubBean1.getClass().getName());---------- result ----------xxx.xxxx.StubBean1\n\n以上的例子是通过构造方法的形式进行依赖的，如果是属性的形式 做法也一样。\n以上属性值类型是类的情况，定义形式由如下两种等价的方式\n12345&lt;constructor-arg name=&quot;depend&quot; ref=&quot;dependBean&quot; /&gt;&lt;constructor-arg name=&quot;depend&quot;&gt;    &lt;ref bean=&quot;dependBean&quot;/&gt;&lt;/constructor-arg&gt;\n\n2.3.2 依赖的声明形式 depends-on上一节说明了属性值是对象(bean) 情况该如何定义，这个在IoC概念中被称作 依赖，其实可以理解为是对属性值的定义。标签 &lt;bean&gt; 中存在属性 depends-on ，用以声明 bean 在被实例化的时候需要将 属性 depends-on 中列出来的 BeanNames 先实例化。\n举例使用如下\nbean类定义：\n12345678910111213141516class StubBean1&#123;    StubBean1() &#123;        System.out.println(&quot;StubBean1&quot;);    &#125;&#125;class StubBean2&#123;    StubBean2() &#123;        System.out.println(&quot;StubBean2&quot;);    &#125;&#125;class StubBean3&#123;    StubBean3() &#123;        System.out.println(&quot;StubBean3&quot;);    &#125;&#125;\n\n配置文件\n123&lt;bean id=&quot;dependBean1&quot; class=&quot;xxx.xxxx.StubBean1&quot;/&gt;&lt;bean id=&quot;dependBean2&quot; class=&quot;xxx.xxxx.StubBean2&quot;/&gt;&lt;bean id=&quot;myBean&quot; class=&quot;xxx.xxxx.StubBean3&quot; depends-on=&quot;dependBean1 dependBean2&quot; /&gt;\n\n验证代码\n12345factory.getBean(&quot;myBean&quot;);---------- result ----------StubBean1StubBean2StubBean3\n\ndepends-on 与 ref 的区别：ref 是用于明确的定义 属性或构造方法参数 对应值要使用的 BeanNamedepends-on 是用于说明 众多的 bean 实例化的先后顺序\n2.3.3 依赖自动判断 autowire对于bean属性值类型是 类 的情况，可以通过属性 ref 显性的配置，还有一种属性 autowire 可以用于自动识别 bean 中属性值对应的应该是 容器中的哪个 bean。autowire 提供的值主要有两个 byName 和 byType，byName 通过要实例化的bean属性名字 与 容器中定义bean的 name id 进行匹配来实现自动的关联，byType 通过要实例化的bean属性定义的类型 与 容器中定义的beans对应类 进行匹配实现自动关联。\n这个功能仅适用 实现了 getter/setter 方法的bean，不适用构造方法的形式。\n举例如下\nbean类定义\n1234567891011121314151617181920212223class StubBean1&#123; &#125;class StubBean2&#123; &#125;class StubBean3&#123;    StubBean1 dependBean1;    StubBean2 dependBean2;    public StubBean1 getDependBean1() &#123;        return dependBean1;    &#125;    public void setDependBean1(StubBean1 dependBean1) &#123;        this.dependBean1 = dependBean1;    &#125;    public StubBean2 getDependBean2() &#123;        return dependBean2;    &#125;    public void setDependBean2(StubBean2 dependBean2) &#123;        this.dependBean2 = dependBean2;    &#125;&#125;\n\n配置文件\n123&lt;bean id=&quot;dependBean1&quot; class=&quot;xxx.xxxx.StubBean1&quot;/&gt;&lt;bean id=&quot;dependBean2&quot; class=&quot;xxx.xxxx.StubBean2&quot;/&gt;&lt;bean id=&quot;myBean&quot; class=&quot;xxx.xxxx.StubBean3&quot; autowire=&quot;byName&quot;/&gt;\n验证代码\n123456StubBean3 stubBean3 = (StubBean3) factory.getBean(&quot;myBean&quot;);System.out.println(stubBean3.dependBean1.getClass().getName());System.out.println(stubBean3.dependBean2.getClass().getName());---------- result ----------xxx.xxxx.StubBean1xxx.xxxx.StubBean2\n以上例子 定义的bean &lt;bean id=&quot;xx&quot; class=&quot;xxx&quot; autowire=&quot;byName&quot;/&gt;，此时 bean定义类中属性变量名称与容器中定义的bean名称进行匹配。使用值 byType 则不必匹配BeanName与属性变量名称 只需要属性类型 与 容器中bean对应类的类型 进行匹配就行，上面例子中的配置文件改成如下形式也是可以的\n123&lt;bean id=&quot;bean1&quot; class=&quot;xxx.xxxx.StubBean1&quot;/&gt;&lt;bean id=&quot;bean2&quot; class=&quot;xxx.xxxx.StubBean2&quot;/&gt;&lt;bean id=&quot;myBean&quot; class=&quot;xxx.xxxx.StubBean3&quot; autowire=&quot;byType&quot;/&gt;\n\n\n\n\n\n\n\n\n参考链接:\n\nSpring IoC容器\n\n","dateCreated":"2019-08-06T16:32:22+08:00","dateModified":"2019-08-09T14:24:16+08:00","datePublished":"2019-08-06T16:32:22+08:00","description":"在spring框架中其核心功能是IoC的实现，Spring实现IoC靠的是组件 spring-beans ，搞清楚 beans 的原理有利于理解 spring 框架的设计思路。Beans是对类如何实例化的定义，这些定义是通过配置的形式提现的，spring目前支持的定义格式有 Properties Groovy XML 以及后来在组件 spring-context 中通过 注解 的实现形式。容器的本质是一个HashMap 用于存储对象实例化后的地址 或者 存储如何实例化对象的数据(配置)。","headline":"spring-beans使用","image":[],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2019/08/06/spring-beans%E4%BD%BF%E7%94%A8/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2019/08/06/spring-beans%E4%BD%BF%E7%94%A8/","keywords":"java, spring, beans"}</script>
+    <meta name="description" content="在spring框架中其核心功能是IoC的实现，Spring实现IoC靠的是组件 spring-beans ，搞清楚 beans 的原理有利于理解 spring 框架的设计思路。Beans是对类如何实例化的定义，这些定义是通过配置的形式提现的，spring目前支持的定义格式有 Properties Groovy XML 以及后来在组件 spring-context 中通过 注解 的实现形式。容器的本">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="spring-beans使用">
+<meta property="og:url" content="https://fantiq.github.io/2019/08/06/spring-beans%E4%BD%BF%E7%94%A8/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="在spring框架中其核心功能是IoC的实现，Spring实现IoC靠的是组件 spring-beans ，搞清楚 beans 的原理有利于理解 spring 框架的设计思路。Beans是对类如何实例化的定义，这些定义是通过配置的形式提现的，spring目前支持的定义格式有 Properties Groovy XML 以及后来在组件 spring-context 中通过 注解 的实现形式。容器的本">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-08-06T08:32:22.000Z">
+<meta property="article:modified_time" content="2019-08-09T06:24:16.756Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="spring">
+<meta property="article:tag" content="beans">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            spring-beans使用
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2019-08-06T16:32:22+08:00">
+	
+		    8月 06, 2019
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/spring/">spring</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>在spring框架中其核心功能是IoC的实现，Spring实现IoC靠的是组件 <code>spring-beans</code> ，搞清楚 beans 的原理有利于理解 spring 框架的设计思路。<br>Beans是对类如何实例化的定义，这些定义是通过配置的形式提现的，spring目前支持的定义格式有 <code>Properties</code> <code>Groovy</code> <code>XML</code> 以及后来在组件 <code>spring-context</code> 中通过 <code>注解</code> 的实现形式。容器的本质是一个HashMap 用于存储对象实例化后的地址 或者 存储如何实例化对象的数据(配置)。</p>
+<span id="more"></span>
+<h2 id="1-spring-beans-整体概览"><a href="#1-spring-beans-整体概览" class="headerlink" title="1 spring-beans 整体概览"></a>1 spring-beans 整体概览</h2><h4 id="1-1-容器的基本信息"><a href="#1-1-容器的基本信息" class="headerlink" title="1.1 容器的基本信息"></a>1.1 容器的基本信息</h4><p>在 <code>spring-beans</code> 组件中作为容器的类是 <code>org.springframework.beans.factory.support.DefaultListableBeanFactory</code>, 其提供方法 <code>public void registerBeanDefinition(String beanName, BeanDefinition beanDefinition) throws BeanDefinitionStoreException</code> 用来注册对象信息到容器，提供方法 <code>public Object getBean(String name) throws BeansException</code> 读取对象（这个方法是其从父类中继承过来的）。</p>
+<p>容器中的HashMap定义如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">private final Map&lt;String, BeanDefinition&gt; beanDefinitionMap = new ConcurrentHashMap(256);</span><br></pre></td></tr></table></figure>
+
+<p>组件 <code>spring-beans</code> 提供了对应的配置文件的解析类完成容器中的注册过程，这些类都继承了 <code>org.springframework.beans.factory.support.AbstractBeanDefinitionReader</code>。他们通过解析队形格式的配置文件 获取到实例化类过程的定义，并将这些数据包装成 <code>BeanDefine</code> 对象，最终通过方法 <code>registerBeanDefinition</code> 存储到容器的 HashMap中。<br>如下是这些类的清单：</p>
+<table>
+<thead>
+<tr>
+<th>类</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>org.springframework.beans.factory.xml.XmlBeanDefinitionReader</td>
+<td>解析xml格式的配置</td>
+</tr>
+<tr>
+<td>org.springframework.beans.factory.groovy.GroovyBeanDefinitionReader</td>
+<td>groovy格式的配置形式</td>
+</tr>
+<tr>
+<td>org.springframework.beans.factory.support.PropertiesBeanDefinitionReader</td>
+<td>properties格式的配置形式</td>
+</tr>
+</tbody></table>
+<h4 id="1-2-一个简单的容器注入以及获取实例化对象的例子"><a href="#1-2-一个简单的容器注入以及获取实例化对象的例子" class="headerlink" title="1.2 一个简单的容器注入以及获取实例化对象的例子"></a>1.2 一个简单的容器注入以及获取实例化对象的例子</h4><p>需要实例化的对象</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># java/foo/bar/BeanStub.java</span><br><span class="line">package foo.bar;</span><br><span class="line"></span><br><span class="line">class BeanStub&#123;</span><br><span class="line">    // ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>实例化过程的配置</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># resources/beans.xml</span><br><span class="line">&lt;beans&gt;</span><br><span class="line">    &lt;bean id=&quot;beanStub&quot; class=&quot;foo.bar.BeanStub&quot; /&gt;</span><br><span class="line">&lt;/beans&gt;</span><br></pre></td></tr></table></figure>
+
+<p>注册以及实例化过程</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"># java/foo/bar/Client.java</span><br><span class="line"></span><br><span class="line">import org.springframework.beans.factory.support.DefaultListableBeanFactory;</span><br><span class="line">import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;</span><br><span class="line">import org.springframework.core.io.ClassPathResource;</span><br><span class="line">import org.springframework.core.io.Resource;</span><br><span class="line"></span><br><span class="line">public static void main(String[] args) &#123;</span><br><span class="line">    // 实例化容器</span><br><span class="line">    DefaultListableBeanFactory factory = new DefaultListableBeanFactory();</span><br><span class="line">    // 实例化XML格式配置文件解析对象</span><br><span class="line">    XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(factory);</span><br><span class="line">    // 加载配置文件并解析 最终注册到容器</span><br><span class="line">    Resource resource = new ClassPathResource(&quot;beans.xml&quot;);</span><br><span class="line">    reader.loadBeanDefinitions(resource);</span><br><span class="line"></span><br><span class="line">    // 通过id从容器中获取实例化对象</span><br><span class="line">    System.out.println(factory.getBean(&quot;beanStub&quot;).getClass().getName());</span><br><span class="line">&#125;</span><br><span class="line">---------- result ----------</span><br><span class="line">foo.bar.BeanStub</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-3-关于配置文件"><a href="#1-3-关于配置文件" class="headerlink" title="1.3 关于配置文件"></a>1.3 关于配置文件</h4><p>在使用组件 <code>spring-beans</code> 的过程主要就是配置文件的编写，配置文件是用来描述 类被容器实例化的过程，这个过程的重点是类实例化成对象后其属性的值，所以配置文件的描述也是围绕着给对象属性赋值进行的，类实例化后成为对象，同一个类实例化的不同对象之间的区别是他们的属性值。<br>实例化过程的核心就是提供数据给容器，使其实例化的时候将设置的值设置到对象的属性上，配置文件的配置过程也是基于此展开的。</p>
+<p>在面向对象的设计中，构造方法就是提供一个对外的接口给对象的属性进行初始化，其作为一个方法 内部提供了更多的可能对对象进行构造。在设计模式中对象的构造过程是通过 工厂模式来实现的，工厂模式其实是 构造方法的一个变体，其本质还是调用构造方法，工厂模式 给 调用构造方法之前的时机 提供了代码空间 其实可以理解为是对构造方法的一种扩充形式。</p>
+<p>在JAVA中存在 JavaBean 的概念，也就是对象的每一个属性对应一个 getter/setter 方法，对对象属性的操作可以通过这些方法实现，相对于构造方法 这种形式从概念上更明确，函数体中的代码功能是单纯的对对应属性的读写。</p>
+<p>以上，对象的构造过程其实是对对象属性值的复制过程，这个过程有两种形式，一个是通过 JavaBean 定义的 getter/setter 方法实现，一个是通过面相对象中提供的构造方法实现，构造方法又可以衍生出 工厂模式的 构造形式。</p>
+<h2 id="2-对象实例化的配置"><a href="#2-对象实例化的配置" class="headerlink" title="2 对象实例化的配置"></a>2 对象实例化的配置</h2><p>这里使用XML的形式分析配置，配置的分析过程主要关注点在 功能以及提供的数据，xml形式的配置结构如下:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&lt;beans&gt;</span><br><span class="line">    &lt;bean ..../&gt;</span><br><span class="line">    &lt;bean ....&gt;</span><br><span class="line">        &lt;....&gt;</span><br><span class="line">    &lt;/bean&gt;</span><br><span class="line">&lt;/beans&gt;</span><br></pre></td></tr></table></figure>
+<p>由于重点在 标签 <code>&lt;bean&gt;</code> 上面，下面的示例中只写标签 <code>&lt;bean&gt;</code> 。</p>
+<p>对容器的操作代，整体的调用形式已在上面的代码例子中给出，下面的示例仅会用到 <code>factory.getBean(&quot;xxxx&quot;)</code> 的形式表示从容器中读取实例化对象，将重点放在验证逻辑上。</p>
+<h4 id="2-1-基本配置形式"><a href="#2-1-基本配置形式" class="headerlink" title="2.1 基本配置形式"></a>2.1 基本配置形式</h4><h6 id="2-1-1-必须属性-id-name-class"><a href="#2-1-1-必须属性-id-name-class" class="headerlink" title="2.1.1 必须属性 id name class"></a>2.1.1 必须属性 id name class</h6><p>一个简单的配置形式如下:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;bean id=&quot;beanName&quot; class=&quot;ClassName&quot;/&gt;</span><br></pre></td></tr></table></figure>
+<p>其中属性 <code>class</code> 表明了要实例化类的类全名(包括包名)，对于一个bean 这个属性是必须的，只有提供了这个属性值 容器才知道要实例化的类是哪个。</p>
+<p>属性 <code>id</code> 和 <code>name</code> 都可以作为一个 bean 的标识 在获取bean的时候使用，他们的区别之处在与下面几条</p>
+<ol>
+<li>一个 bean 的 <code>id</code> 必须是唯一的 不可与其他 bean 重复，而 <code>name</code> 在同一个配置文件中也是不可重复的 在不同配置文件中允许重复 但是存在后面的定义覆盖前面的定义的情况</li>
+<li><code>name</code> 的值中可以使用 <code> </code> <code>:</code> <code>,</code> 字符分割值 并将这些分割后的值作为 bean 的别名，而 <code>id</code> 中不会有这样的处理 它的值只能作为一个整体</li>
+<li>bean中可以不声明 <code>id</code> <code>name</code> 两个属性，这时候 bean 的 BeanName 取值是类全名</li>
+</ol>
+<p>举例如下：<br>配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&lt;!-- 通过id定义 --&gt;</span><br><span class="line">&lt;bean id=&quot;foo&quot; class=&quot;xxx.xxxx.StubBean0&quot;/&gt;</span><br><span class="line">&lt;!-- 通过name定义 --&gt;</span><br><span class="line">&lt;bean name=&quot;bar baz&quot; class=&quot;xxx.xxxx.StubBean1&quot;/&gt;</span><br><span class="line">&lt;!-- 不定义 默认使用类的包全名 --&gt;</span><br><span class="line">&lt;bean class=&quot;xxx.xxxx.StubBean2&quot;/&gt;</span><br></pre></td></tr></table></figure>
+<p>验证代码</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">String[] beanNames = new String[]&#123;&quot;foo&quot;, &quot;bar&quot;, &quot;baz&quot;, &quot;xxx.xxxx.StubBean2&quot;&#125;;</span><br><span class="line">for(String beanName : beanNames) &#123;</span><br><span class="line">    System.out.println(beanName+&quot;\t&quot;+factory.getBean(beanName).getClass().getName());</span><br><span class="line">&#125;</span><br><span class="line">---------- result ----------</span><br><span class="line">xxx.xxxx.StubBean0</span><br><span class="line">xxx.xxxx.StubBean1</span><br><span class="line">xxx.xxxx.StubBean1</span><br><span class="line">xxx.xxxx.StubBean2</span><br></pre></td></tr></table></figure>
+
+<h6 id="2-1-2-钩子方法-init-method-destroy-method"><a href="#2-1-2-钩子方法-init-method-destroy-method" class="headerlink" title="2.1.2 钩子方法 init-method destroy-method"></a>2.1.2 钩子方法 init-method destroy-method</h6><p>注册完成的bean在实例化的时候 组件提供了两个钩子方法，属性 <code>init-method</code> 定义bean完成实例化后要调用的bean方法，属性 <code>destroy-method</code> 定义当 <code>spring-context</code> 中的 context 关闭的时候要调用的bean方法。<br>举例如下:<br>bean类定义</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">class StubBean0&#123;</span><br><span class="line">    public void initHook() &#123;</span><br><span class="line">        System.out.println(&quot;init hook&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">    public void destroyHook() &#123;</span><br><span class="line">        System.out.println(&quot;destroy hook&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&lt;bean id=&quot;myBean&quot; class=&quot;xxx.xxxx.StubBean0&quot;</span><br><span class="line">      init-method=&quot;initHook&quot; destroy-method=&quot;destroyHook&quot;</span><br><span class="line">/&gt;</span><br></pre></td></tr></table></figure>
+<p>验证代码</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">factory.getBean(&quot;myBean&quot;);</span><br><span class="line">---------- result ----------</span><br><span class="line">init hook</span><br></pre></td></tr></table></figure>
+
+<p>这里的验证代码没有使用 conext 所以 destory-method 定义的方法并没有执行</p>
+<h6 id="2-1-3-对象构造形式-scope"><a href="#2-1-3-对象构造形式-scope" class="headerlink" title="2.1.3 对象构造形式 scope"></a>2.1.3 对象构造形式 scope</h6><p>scope 属性定义了 bean 在什么样的范围(生命周期)中需要实例化新的对象并返回，其去值见下表</p>
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>singleton</td>
+<td>默认值 单例模式</td>
+</tr>
+<tr>
+<td>prototype</td>
+<td>原型模式 每次返回的都是新对象</td>
+</tr>
+<tr>
+<td>request</td>
+<td>一次http请求周期中返回新对象</td>
+</tr>
+<tr>
+<td>session</td>
+<td></td>
+</tr>
+<tr>
+<td>globalSession</td>
+<td></td>
+</tr>
+<tr>
+<td>application</td>
+<td></td>
+</tr>
+<tr>
+<td>websocket</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>举例验证下 <code>singleton</code> <code>prototype</code> 这两个值<br>配置文件 </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&lt;bean id=&quot;myBean0&quot; class=&quot;com.javastudy.framework.ioc.springbeans.StubBean0&quot; scope=&quot;singleton&quot;/&gt;</span><br><span class="line">&lt;bean id=&quot;myBean1&quot; class=&quot;com.javastudy.framework.ioc.springbeans.StubBean0&quot; scope=&quot;prototype&quot;/&gt;</span><br></pre></td></tr></table></figure>
+<p>验证代码</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">System.out.println(factory.getBean(&quot;myBean0&quot;) == factory.getBean(&quot;myBean0&quot;));</span><br><span class="line">System.out.println(factory.getBean(&quot;myBean1&quot;) == factory.getBean(&quot;myBean1&quot;));</span><br><span class="line">---------- result ----------</span><br><span class="line">true</span><br><span class="line">false</span><br></pre></td></tr></table></figure>
+<h4 id="2-2-提供构造参数"><a href="#2-2-提供构造参数" class="headerlink" title="2.2 提供构造参数"></a>2.2 提供构造参数</h4><h6 id="2-2-1-通过getter-setter实例化"><a href="#2-2-1-通过getter-setter实例化" class="headerlink" title="2.2.1 通过getter/setter实例化"></a>2.2.1 通过getter/setter实例化</h6><p>对于符合JavaBean概念的类，在实例化的时候可以通过其 setter 方法给属性赋值，在配置文件中使用标签 <code>&lt;property&gt;</code>。标签 <code>&lt;property&gt;</code> 作为标签 <code>&lt;bean&gt;</code> 的子元素使用，其属性 <code>name</code> 对应的是类属性的名称, 其属性 <code>value</code> 对应的是属性的值。对于属性的值 也可以在 此标签的子元素 使用标签 <code>&lt;value&gt;</code> 声明，且标签 <code>&lt;value&gt;</code> 提供属性 <code>type</code> 用以说明值的类型， 如下例子是等价的:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">&lt;!-- 使用属性 value 声明值 --&gt;</span><br><span class="line">&lt;property name=&quot;name&quot; value=&quot;fantasy&quot;/&gt;</span><br><span class="line"></span><br><span class="line">&lt;!-- 使用标签value声明值 --&gt;</span><br><span class="line">&lt;property name=&quot;name&quot;&gt;</span><br><span class="line">    &lt;value&gt;fantasy&lt;/value&gt;</span><br><span class="line">&lt;/property&gt;</span><br><span class="line"></span><br><span class="line">&lt;!-- 使用标签value声明值 且使用属性 type 注明值的类型 --&gt;</span><br><span class="line">&lt;property name=&quot;name&quot;&gt;</span><br><span class="line">    &lt;value type=&quot;java.lang.String&quot;&gt;fantasy&lt;/value&gt;</span><br><span class="line">&lt;/property&gt;</span><br></pre></td></tr></table></figure>
+
+<p>以上声明形式只能用与 简单变量类型，如果是集合的类型则不适用，需要使用如下形式</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">&lt;!-- HashMap --&gt;</span><br><span class="line">&lt;property name=&quot;map&quot;&gt;</span><br><span class="line">    &lt;map&gt;</span><br><span class="line">        &lt;entry key=&quot;xx&quot; value=&quot;xx&quot;/&gt;</span><br><span class="line">        &lt;entry key=&quot;yy&quot; value=&quot;yy&quot;/&gt;</span><br><span class="line">        &lt;entry key=&quot;zz&quot; value=&quot;zz&quot;/&gt;</span><br><span class="line">    &lt;/map&gt;</span><br><span class="line">&lt;/property&gt;</span><br><span class="line"></span><br><span class="line">&lt;!-- List --&gt;</span><br><span class="line">&lt;property name=&quot;list&quot;&gt;</span><br><span class="line">    &lt;list&gt;</span><br><span class="line">        &lt;value&gt;x&lt;/value&gt;</span><br><span class="line">        &lt;value&gt;y&lt;/value&gt;</span><br><span class="line">        &lt;value&gt;z&lt;/value&gt;</span><br><span class="line">    &lt;/list&gt;</span><br><span class="line">&lt;/property&gt;</span><br><span class="line"></span><br><span class="line">&lt;!-- Set --&gt;</span><br><span class="line">&lt;property name=&quot;set&quot;&gt;</span><br><span class="line">    &lt;set&gt;</span><br><span class="line">        &lt;value&gt;x&lt;/value&gt;</span><br><span class="line">        &lt;value&gt;y&lt;/value&gt;</span><br><span class="line">        &lt;value&gt;z&lt;/value&gt;</span><br><span class="line">    &lt;/set&gt;</span><br><span class="line">&lt;/property&gt;</span><br></pre></td></tr></table></figure>
+<p>其中的标签 <code>&lt;map&gt;</code> <code>&lt;entry&gt;</code> 中还可以使用属性 <code>key-type</code> <code>value-type</code> 类声明HashMap对应的 key value 的数据类型，这两个属性也同样可以应用到标签 <code>&lt;list&gt;</code> <code>&lt;set&gt;</code> 中</p>
+<p>还有一些特殊的类型<br>如果你要给属性赋值为 <code>null</code> 应该这么写</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&lt;property name=&quot;name&quot;&gt;</span><br><span class="line">    &lt;null/&gt;</span><br><span class="line">&lt;/property&gt;</span><br></pre></td></tr></table></figure>
+<p>如果属性的类型是对象，这个对象就必须是一个bean，并用如下的形式声明</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&lt;bean id=&quot;foo&quot; class=&quot;xxx.xxxx.Foo&quot;/&gt;</span><br><span class="line">&lt;bean id=&quot;bar&quot; class=&quot;xxx.xxxx.Bar&quot;&gt;</span><br><span class="line">    &lt;property name=&quot;pFoo&quot;&gt;</span><br><span class="line">        &lt;ref bean=&quot;foo&quot;/&gt;</span><br><span class="line">    &lt;/property&gt;</span><br><span class="line">    &lt;!-- 或者写成如下形式 --&gt;</span><br><span class="line">    &lt;property name=&quot;pFoo&quot; ref=&quot;foo&quot;/&gt;</span><br><span class="line">&lt;/bean&gt;</span><br></pre></td></tr></table></figure>
+<p>关于属性依赖其他bean的情况 下面段落会 集中讲解。</p>
+<p>举例如下<br>bean类定义</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">class StubBean0&#123;</span><br><span class="line">    int id;</span><br><span class="line">    String name;</span><br><span class="line">    HashMap&lt;String, String&gt; skill;</span><br><span class="line">    Set&lt;String&gt; tags;</span><br><span class="line"></span><br><span class="line">    public int getId() &#123;</span><br><span class="line">        return id;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void setId(int id) &#123;</span><br><span class="line">        this.id = id;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public String getName() &#123;</span><br><span class="line">        return name;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void setName(String name) &#123;</span><br><span class="line">        this.name = name;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public HashMap&lt;String, String&gt; getSkill() &#123;</span><br><span class="line">        return skill;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void setSkill(HashMap&lt;String, String&gt; skill) &#123;</span><br><span class="line">        this.skill = skill;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public Set&lt;String&gt; getTags() &#123;</span><br><span class="line">        return tags;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void setTags(Set&lt;String&gt; tags) &#123;</span><br><span class="line">        this.tags = tags;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">&lt;bean id=&quot;myBean0&quot; class=&quot;com.javastudy.framework.ioc.springbeans.StubBean0&quot;&gt;</span><br><span class="line">    &lt;property name=&quot;id&quot; value=&quot;10012&quot; /&gt;</span><br><span class="line">    &lt;property name=&quot;name&quot; value=&quot;fantasy&quot; /&gt;</span><br><span class="line">    &lt;property name=&quot;skill&quot;&gt;</span><br><span class="line">        &lt;map&gt;</span><br><span class="line">            &lt;entry key=&quot;php&quot; value=&quot;10&quot;/&gt;</span><br><span class="line">            &lt;entry key=&quot;clang&quot; value=&quot;8&quot;/&gt;</span><br><span class="line">            &lt;entry key=&quot;java&quot; value=&quot;6&quot;/&gt;</span><br><span class="line">            &lt;entry key=&quot;golang&quot; value=&quot;2&quot;/&gt;</span><br><span class="line">        &lt;/map&gt;</span><br><span class="line">    &lt;/property&gt;</span><br><span class="line"></span><br><span class="line">    &lt;property name=&quot;tags&quot;&gt;</span><br><span class="line">        &lt;set&gt;</span><br><span class="line">            &lt;value&gt;PMP&lt;/value&gt;</span><br><span class="line">            &lt;value&gt;Develop&lt;/value&gt;</span><br><span class="line">            &lt;value&gt;Architect&lt;/value&gt;</span><br><span class="line">            &lt;value&gt;Expert&lt;/value&gt;</span><br><span class="line">        &lt;/set&gt;</span><br><span class="line">    &lt;/property&gt;</span><br><span class="line">&lt;/bean&gt;</span><br></pre></td></tr></table></figure>
+
+<p>验证代码</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">StubBean0 stubBean0 = (StubBean0) factory.getBean(&quot;myBean0&quot;);</span><br><span class="line">System.out.println(stubBean0.getId() + &quot;\t&quot; + stubBean0.getName());</span><br><span class="line">System.out.println(stubBean0.getSkill());</span><br><span class="line">System.out.println(stubBean0.getTags());</span><br><span class="line">---------- result ----------</span><br><span class="line">10012   fantasy</span><br><span class="line">&#123;php=10, clang=8, java=6, golang=2&#125;</span><br><span class="line">[PMP, Develop, Architect, Expert]</span><br></pre></td></tr></table></figure>
+<h6 id="2-2-2-继承属性值"><a href="#2-2-2-继承属性值" class="headerlink" title="2.2.2 继承属性值"></a>2.2.2 继承属性值</h6><p>在配置文件中定义的是一个个的bean 这些bean中定义了属性的初始值，<code>spring-beans</code> 提供了一种继承这些属性值声明的方法，方便我们在定义bean的时候能够复用一些属性值的定义。可以使用标签 <code>&lt;bean&gt;</code> 中的属性 <code>parent</code> 其值就是需要继承属性定义的bean的name。</p>
+<p>用法举例<br>bean类定义：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">class StubBean1&#123;</span><br><span class="line">    int id;</span><br><span class="line"></span><br><span class="line">    public int getId() &#123;</span><br><span class="line">        return id;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void setId(int id) &#123;</span><br><span class="line">        this.id = id;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">class StubBean2&#123;</span><br><span class="line">    int id;</span><br><span class="line">    String name;</span><br><span class="line"></span><br><span class="line">    public String getName() &#123;</span><br><span class="line">        return name;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void setName(String name) &#123;</span><br><span class="line">        this.name = name;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public int getId() &#123;</span><br><span class="line">        return id;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void setId(int id) &#123;</span><br><span class="line">        this.id = id;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>配置文件定义：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&lt;bean id=&quot;parent&quot; class=&quot;xxx.xxxx.StubBean1&quot;&gt;</span><br><span class="line">    &lt;property name=&quot;id&quot; value=&quot;20&quot;/&gt;</span><br><span class="line">&lt;/bean&gt;</span><br><span class="line"></span><br><span class="line">&lt;bean id=&quot;children&quot; class=&quot;xxx.xxxx.StubBean2&quot; parent=&quot;parent&quot;&gt;</span><br><span class="line">    &lt;property name=&quot;name&quot; value=&quot;fantiq&quot;/&gt;</span><br><span class="line">&lt;/bean&gt;</span><br></pre></td></tr></table></figure>
+
+<p>验证代码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">StubBean2 stubBean2 = (StubBean2) factory.getBean(&quot;children&quot;);</span><br><span class="line">System.out.println(stubBean2.getName() + &quot;\t&quot; + stubBean2.getId());</span><br><span class="line">---------- result ----------</span><br><span class="line">fantiq  20</span><br></pre></td></tr></table></figure>
+<p>以上例子是在 bean <code>children</code> 中的属性的定义 继承了 bean <code>parent</code> 中的属性定义，如果属性有冲突 则会用继承bean的属性值覆盖被继承bean的属性值。这个例子中的父bean对应的是一个实际的类，也可以使用一个不对应类的bean定义 此时这个bean 需要声明成抽象的 <code>abstract=&quot;true&quot;</code> ，不可以通过 getBean实例化这个bean，其配置文件可以写成下面样子:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&lt;bean id=&quot;parent&quot; abstract=&quot;true&quot;&gt;</span><br><span class="line">    &lt;property name=&quot;id&quot; value=&quot;220&quot;/&gt;</span><br><span class="line">&lt;/bean&gt;</span><br><span class="line"></span><br><span class="line">&lt;bean id=&quot;children&quot; class=&quot;xxx.xxxx..StubBean2&quot; parent=&quot;parent&quot;&gt;</span><br><span class="line">    &lt;property name=&quot;name&quot; value=&quot;fantiq&quot;/&gt;</span><br><span class="line">&lt;/bean&gt;</span><br></pre></td></tr></table></figure>
+<p>抽象的 bean 不能被实例化 自然不用定义<code>class</code> 属性，抽象bean的定义主要就是建立一个 属性初始值定义的模版。</p>
+<h6 id="2-2-3-通过构造方法实例化"><a href="#2-2-3-通过构造方法实例化" class="headerlink" title="2.2.3 通过构造方法实例化"></a>2.2.3 通过构造方法实例化</h6><p>构造方法创建对象的方式与通过 setter方法创建的形式很相似，只不过构造方法使用标签 <code>&lt;constructor-arg&gt;</code> 声明参数，构造方法的声明形式与属性的声明形式是一样的。构造方法的形式是将定义的这些值传递给构造方法，由构造方法内部代码决定如何处理这些值。</p>
+<h6 id="2-2-4-通过工厂模式实例化"><a href="#2-2-4-通过工厂模式实例化" class="headerlink" title="2.2.4 通过工厂模式实例化"></a>2.2.4 通过工厂模式实例化</h6><p>工厂模式是构造方法的一个变种，工厂模式又可以分为两种形式<br>一种是基于当前bean的方法创建对象，方法必须是静态的 因为方法要在对象创建前调用。通过属性 <code>factory-method</code> 定义实例化bean使用的静态方法，配置形式如下:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;bean id=&quot;main&quot; class=&quot;xxx.xxxx.Stub&quot; factory-method=&quot;selfFactoryMethod&quot;/&gt;</span><br></pre></td></tr></table></figure>
+<p>另一种是调用其他bean中的方法，此时方法没有要求必须是静态，因为其他的bean需要先实例化的。使用属性 <code>factory-bean</code> 定义实例化bean要使用的已经实例化的BeanName，使用属性 <code>factory-method</code> 定义对应 BeanName中的方法名字, 配置形式如下:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&lt;bean id=&quot;factory&quot; class=&quot;xxx.xxxx.StubFactory&quot; /&gt;</span><br><span class="line">&lt;bean id=&quot;main&quot; class=&quot;xxx.xxxx.Stub&quot; factory-bean=&quot;factory&quot; factory-method=&quot;thirdFactoryMethod&quot;/&gt;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>工厂方法不用必须返回指定类型的对象，他可以返回任何类型 但不能是 void。</p>
+<p>也可以给工厂方法传递参数，配置形式如同构造方法的配置形式。</p>
+<p>bean 类定义</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">// bean 内部的静态工厂方法</span><br><span class="line">class StubBean1&#123;</span><br><span class="line">    public static boolean factory(String name) &#123;</span><br><span class="line">        System.out.println(&quot;self static factory method get args: &quot; + name);</span><br><span class="line">        return true;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">// 外部工厂方法</span><br><span class="line">class StubBean2&#123;</span><br><span class="line">    public boolean factoryThird(String name) &#123;</span><br><span class="line">        System.out.println(&quot;third factory method get args:&quot; + name);</span><br><span class="line">        return true;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&lt;bean id=&quot;myBeans1&quot; class=&quot;xxx.xxxx.StubBean1&quot; factory-method=&quot;factory&quot;&gt;</span><br><span class="line">    &lt;constructor-arg name=&quot;name&quot; value=&quot;foo&quot;/&gt;</span><br><span class="line">&lt;/bean&gt;</span><br><span class="line"></span><br><span class="line">&lt;bean id=&quot;factoryClass&quot; class=&quot;xxx.xxxx.StubBean2&quot;/&gt;</span><br><span class="line">        &lt;bean id=&quot;myBeans2&quot; class=&quot;xxx.xxxx.StubBean1&quot; factory-bean=&quot;factoryClass&quot; factory-method=&quot;factoryThird&quot;&gt;</span><br><span class="line">    &lt;constructor-arg name=&quot;name&quot; value=&quot;bar&quot;/&gt;</span><br><span class="line">&lt;/bean&gt;</span><br></pre></td></tr></table></figure>
+
+<p>验证代码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">factory.getBean(&quot;myBeans1&quot;);</span><br><span class="line">factory.getBean(&quot;myBeans2&quot;);</span><br><span class="line">---------- result ----------</span><br><span class="line">self static factory method get args: foo</span><br><span class="line">third factory method get args:bar</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-3-依赖关系"><a href="#2-3-依赖关系" class="headerlink" title="2.3 依赖关系"></a>2.3 依赖关系</h4><h6 id="2-3-1-依赖的声明形式-ref"><a href="#2-3-1-依赖的声明形式-ref" class="headerlink" title="2.3.1 依赖的声明形式 ref"></a>2.3.1 依赖的声明形式 ref</h6><p>上面讲了两种主要的给类对象添加属性的方式，一种是通过 getter/setter 方法 一种是通过构造方法。在定义属性值的时候存在多种情况，如果是基本的数据类型的话，比如 <code>Integer</code> <code>String</code> <code>Boolean</code> <code>int</code> <code>double</code> <code>boolean</code> 这些基本类型可以直接通过 标签 <code>&lt;property&gt;</code> 或 <code>&lt;constructor-arg&gt;</code> 的属性 <code>name</code> <code>value</code> 实现值的定义。若是 <code>Map</code> <code>List</code> <code>Set</code> 这种复杂类型的值 则需要通过对应的标签 <code>&lt;map&gt;&lt;entry key=&quot;&quot; value=&quot;&quot;&gt;&lt;....&gt;&lt;/map&gt;</code> <code>&lt;list&gt;&lt;value&gt;xxxxxx&lt;/value&gt;&lt;/list&gt;</code> <code>&lt;set&gt;&lt;value&gt;xxxxxx&lt;/value&gt;&lt;/set&gt;</code> 定义值。</p>
+<p>还有一种值是对象地址，也就是说 类A的属性值的类型是 类B，在组件 <code>spring-beans</code> 中所有的对象都被定义为一个 <code>bean</code> ，那么定义的类构造过程中 属性类型是类的话 也应该是一个bean。对于这样的定义 可以使用属性 <code>ref</code> 其值对应的是要依赖的对象的BeanName。</p>
+<p>举例如下</p>
+<p>bean类定义</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">class StubBean1&#123; &#125;</span><br><span class="line">class StubBean2&#123;</span><br><span class="line">    StubBean1 stubBean1;</span><br><span class="line">    StubBean2(StubBean1 depend) &#123;</span><br><span class="line">        this.stubBean1 = depend;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;bean id=&quot;dependBean&quot; class=&quot;xxx.xxxx.StubBean1&quot;/&gt;</span><br><span class="line">&lt;bean id=&quot;myBean&quot; class=&quot;xxx.xxxx.StubBean2&quot;&gt;</span><br><span class="line">    &lt;constructor-arg name=&quot;depend&quot; ref=&quot;dependBean&quot; /&gt;</span><br><span class="line">&lt;/bean&gt;</span><br></pre></td></tr></table></figure>
+
+<p>验证代码</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">StubBean2 stubBean2 = (StubBean2) factory.getBean(&quot;myBean&quot;);</span><br><span class="line">System.out.println(stubBean2.stubBean1.getClass().getName());</span><br><span class="line">---------- result ----------</span><br><span class="line">xxx.xxxx.StubBean1</span><br></pre></td></tr></table></figure>
+
+<p>以上的例子是通过构造方法的形式进行依赖的，如果是属性的形式 做法也一样。</p>
+<p>以上属性值类型是类的情况，定义形式由如下两种等价的方式</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;constructor-arg name=&quot;depend&quot; ref=&quot;dependBean&quot; /&gt;</span><br><span class="line"></span><br><span class="line">&lt;constructor-arg name=&quot;depend&quot;&gt;</span><br><span class="line">    &lt;ref bean=&quot;dependBean&quot;/&gt;</span><br><span class="line">&lt;/constructor-arg&gt;</span><br></pre></td></tr></table></figure>
+
+<h6 id="2-3-2-依赖的声明形式-depends-on"><a href="#2-3-2-依赖的声明形式-depends-on" class="headerlink" title="2.3.2 依赖的声明形式 depends-on"></a>2.3.2 依赖的声明形式 depends-on</h6><p>上一节说明了属性值是对象(bean) 情况该如何定义，这个在IoC概念中被称作 <code>依赖</code>，其实可以理解为是对属性值的定义。标签 <code>&lt;bean&gt;</code> 中存在属性 <code>depends-on</code> ，用以声明 bean 在被实例化的时候需要将 属性 <code>depends-on</code> 中列出来的 BeanNames 先实例化。</p>
+<p>举例使用如下</p>
+<p>bean类定义：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">class StubBean1&#123;</span><br><span class="line">    StubBean1() &#123;</span><br><span class="line">        System.out.println(&quot;StubBean1&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">class StubBean2&#123;</span><br><span class="line">    StubBean2() &#123;</span><br><span class="line">        System.out.println(&quot;StubBean2&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">class StubBean3&#123;</span><br><span class="line">    StubBean3() &#123;</span><br><span class="line">        System.out.println(&quot;StubBean3&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&lt;bean id=&quot;dependBean1&quot; class=&quot;xxx.xxxx.StubBean1&quot;/&gt;</span><br><span class="line">&lt;bean id=&quot;dependBean2&quot; class=&quot;xxx.xxxx.StubBean2&quot;/&gt;</span><br><span class="line">&lt;bean id=&quot;myBean&quot; class=&quot;xxx.xxxx.StubBean3&quot; depends-on=&quot;dependBean1 dependBean2&quot; /&gt;</span><br></pre></td></tr></table></figure>
+
+<p>验证代码</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">factory.getBean(&quot;myBean&quot;);</span><br><span class="line">---------- result ----------</span><br><span class="line">StubBean1</span><br><span class="line">StubBean2</span><br><span class="line">StubBean3</span><br></pre></td></tr></table></figure>
+
+<p><code>depends-on</code> 与 <code>ref</code> 的区别：<br><code>ref</code> 是用于明确的定义 属性或构造方法参数 对应值要使用的 BeanName<br><code>depends-on</code> 是用于说明 众多的 bean 实例化的先后顺序</p>
+<h6 id="2-3-3-依赖自动判断-autowire"><a href="#2-3-3-依赖自动判断-autowire" class="headerlink" title="2.3.3 依赖自动判断 autowire"></a>2.3.3 依赖自动判断 autowire</h6><p>对于bean属性值类型是 类 的情况，可以通过属性 <code>ref</code> 显性的配置，还有一种属性 <code>autowire</code> 可以用于自动识别 bean 中属性值对应的应该是 容器中的哪个 bean。autowire 提供的值主要有两个 <code>byName</code> 和 <code>byType</code>，<code>byName</code> 通过要实例化的bean属性名字 与 容器中定义bean的 <code>name</code> <code>id</code> 进行匹配来实现自动的关联，<code>byType</code> 通过要实例化的bean属性定义的类型 与 容器中定义的beans对应类 进行匹配实现自动关联。</p>
+<p>这个功能仅适用 实现了 getter/setter 方法的bean，不适用构造方法的形式。</p>
+<p>举例如下</p>
+<p>bean类定义</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">class StubBean1&#123; &#125;</span><br><span class="line">class StubBean2&#123; &#125;</span><br><span class="line"></span><br><span class="line">class StubBean3&#123;</span><br><span class="line">    StubBean1 dependBean1;</span><br><span class="line">    StubBean2 dependBean2;</span><br><span class="line"></span><br><span class="line">    public StubBean1 getDependBean1() &#123;</span><br><span class="line">        return dependBean1;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void setDependBean1(StubBean1 dependBean1) &#123;</span><br><span class="line">        this.dependBean1 = dependBean1;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public StubBean2 getDependBean2() &#123;</span><br><span class="line">        return dependBean2;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void setDependBean2(StubBean2 dependBean2) &#123;</span><br><span class="line">        this.dependBean2 = dependBean2;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&lt;bean id=&quot;dependBean1&quot; class=&quot;xxx.xxxx.StubBean1&quot;/&gt;</span><br><span class="line">&lt;bean id=&quot;dependBean2&quot; class=&quot;xxx.xxxx.StubBean2&quot;/&gt;</span><br><span class="line">&lt;bean id=&quot;myBean&quot; class=&quot;xxx.xxxx.StubBean3&quot; autowire=&quot;byName&quot;/&gt;</span><br></pre></td></tr></table></figure>
+<p>验证代码</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">StubBean3 stubBean3 = (StubBean3) factory.getBean(&quot;myBean&quot;);</span><br><span class="line">System.out.println(stubBean3.dependBean1.getClass().getName());</span><br><span class="line">System.out.println(stubBean3.dependBean2.getClass().getName());</span><br><span class="line">---------- result ----------</span><br><span class="line">xxx.xxxx.StubBean1</span><br><span class="line">xxx.xxxx.StubBean2</span><br></pre></td></tr></table></figure>
+<p>以上例子 定义的bean <code>&lt;bean id=&quot;xx&quot; class=&quot;xxx&quot; autowire=&quot;byName&quot;/&gt;</code>，此时 bean定义类中属性变量名称与容器中定义的bean名称进行匹配。使用值 <code>byType</code> 则不必匹配BeanName与属性变量名称 只需要属性类型 与 容器中bean对应类的类型 进行匹配就行，上面例子中的配置文件改成如下形式也是可以的</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&lt;bean id=&quot;bean1&quot; class=&quot;xxx.xxxx.StubBean1&quot;/&gt;</span><br><span class="line">&lt;bean id=&quot;bean2&quot; class=&quot;xxx.xxxx.StubBean2&quot;/&gt;</span><br><span class="line">&lt;bean id=&quot;myBean&quot; class=&quot;xxx.xxxx.StubBean3&quot; autowire=&quot;byType&quot;/&gt;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+<p>参考链接:</p>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="https://docs4dev.com/docs/zh/spring-framework/4.3.21.RELEASE/reference/beans.html">Spring IoC容器</a></p>
+</blockquote>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/beans/" rel="tag">beans</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/java/" rel="tag">java</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/spring/" rel="tag">spring</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/08/13/java%E5%9F%BA%E7%A1%80-%E7%BC%96%E8%AF%91%E8%BF%90%E8%A1%8C%E5%8E%9F%E7%90%86/"
+                    data-tooltip="java基础-编译运行原理"
+                    aria-label="上一篇: java基础-编译运行原理"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/06/25/Linux%E4%B8%AD%E7%A8%8B%E5%BA%8F%E5%9C%A8shell%E4%B8%AD%E7%9A%84%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B/"
+                    data-tooltip="Linux中程序在shell中的执行过程"
+                    aria-label="下一篇: Linux中程序在shell中的执行过程"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/08/06/spring-beans%E4%BD%BF%E7%94%A8/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/08/06/spring-beans%E4%BD%BF%E7%94%A8/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2019/08/06/spring-beans%E4%BD%BF%E7%94%A8/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/08/13/java%E5%9F%BA%E7%A1%80-%E7%BC%96%E8%AF%91%E8%BF%90%E8%A1%8C%E5%8E%9F%E7%90%86/"
+                    data-tooltip="java基础-编译运行原理"
+                    aria-label="上一篇: java基础-编译运行原理"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/06/25/Linux%E4%B8%AD%E7%A8%8B%E5%BA%8F%E5%9C%A8shell%E4%B8%AD%E7%9A%84%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B/"
+                    data-tooltip="Linux中程序在shell中的执行过程"
+                    aria-label="下一篇: Linux中程序在shell中的执行过程"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/08/06/spring-beans%E4%BD%BF%E7%94%A8/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/08/06/spring-beans%E4%BD%BF%E7%94%A8/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2019/08/06/spring-beans%E4%BD%BF%E7%94%A8/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/08/06/spring-beans%E4%BD%BF%E7%94%A8/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/08/06/spring-beans%E4%BD%BF%E7%94%A8/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2019/08/06/spring-beans%E4%BD%BF%E7%94%A8/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

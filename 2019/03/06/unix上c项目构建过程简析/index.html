@@ -1,0 +1,788 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>unix上c项目构建过程简析 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"对于linux上大多数软件包的编译过程都是 configure make make install 三个步骤来完成，具体分析下这些过程。其中configure 是一个shell脚本，用来生成文件 Makefile，这个文件是下一步make 过程需要用到的配置文件，用来生成源代码文件中的依赖关系，通过文件的修改时间来决定哪些文件有变动需要调用gcc 重新编译到目标文件并最终链接成二进制文件。make install 的过程主要是将编译完成的文件拷贝到指定的文件夹(或者安装目录)，这个安装路径是通过 configure --prefix=[path] 来定义的 默认一般为 /usr/local/bin 。 \n\nconfigure 这个shell文件是要通过源代码机遇一系列工具来生成的，作用是用来检查源代码所在的系统是否用户源代码所依赖的库文件 、头文件、二进制文件 等。其生成过程如下图对这个过程进行分析，我们最终需要获得的文件如下 configure Makefile config.h , 生成这些文件需要的输入文件 configure.ac Makefile.am aclocal.m4,这些文件都有对应的语法方式，需要进行逐个分析。\n工具这里用到的工具有\n\n\n\n命令\n所属命令组\n作用\n\n\n\nautoscan\nautoconf\n扫描文件源代码 生成 conifigure.ac 模版\n\n\nautoheader\nautoconf\n生成头文件\n\n\nautoconf\nautoconf\n生成 configure 脚本\n\n\naclocal\nautomake\n生成m4宏 文件\n\n\nautomake\nautomake\n生成Makefile.in 文件 为下一步生成Makefile 做准备\n\n\nautoscan 会通过分析源代码生成一个 configure.ac 的模版文件 configure.scan，需要基于 configure.scan 的内容进行编辑cp configure.scan configure.ac (这里文件后缀有两种 configure.ac configure.in 这个主要看autoconf工具 默认读取文件的后缀了，目前大部分使用 .ac 作为文件后缀)。 \n1. configure.ac基于空文件生成的configure.scan文件默认模版如下 \n12345678910111213141516171819shell&gt; autoscan ./#                                               -*- Autoconf -*-# Process this file with autoconf to produce a configure script.AC_PREREQ([2.69])AC_INIT([FULL-PACKAGE-NAME], [VERSION], [BUG-REPORT-ADDRESS])# Checks for programs.# Checks for libraries.# Checks for header files.# Checks for typedefs, structures, and compiler characteristics.# Checks for library functions.AC_OUTPUT\n这里面使用的主要是一些类似c语言中的宏，事实上跟宏的原理一样，是被用来替换的，c语言中宏被替换成c代码，这里的宏会被替换成shell脚本代码，我们最后生成的是shell脚本\n这些宏是由 autoconf 工具内部定义的\n所以这个文件中宏之外的内容都是 shell 脚本代码了\n1.1 基本宏AC_PREREQ([VERSION]) 检查autoconf 软件版本是否大于指定版本\n1AC_PREREQ([2.69])\n\nAC_INIT([FULL-PACKAGE-NAME], [VERSION], [BUG-REPORT-ADDRESS]) 定义软件包FULL-PACKAGE-NAME 代码包的完整名称VERSION 代码包的版本BUG-REPORT-ADDRESS 代码bug反馈地址 通常为邮箱\n1AC_INIT([php-src], [7.4.1], [bug@php.net])\n\nAC_MSG_WARN([WRN_MSG]) 显示一个warning 提醒 脚本不会中断执行\n1AC_MSG_WARN(&quot;cannot found lib xxx&quot;)\n\nAC_MSG_ERROR([ERR_MSG], [ExitCode]) 显示一个错误 且 会中断脚本的执行\n1AC_MSG_ERROR([library xxx is need], [500])\n1.2 依赖检查1.2.1 对二进制文件的检查使用 autoconf 内置的宏AC_PROG_CC 检查c编译器AC_PROG_GREP 检查grep工具AC_PROG_LEX 检查文件处理工具 lex\n自定义查找AC_CHECK_PROG(variable, prog-to-check-for, value-if-found, [value-if-not-found], [path = &#39;$PATH&#39;], [reject])\n\n\n\n参数\n作用\n\n\n\nvariable\n变量名称，autoconf 会将当前命令的结果赋值给这个shell变量\n\n\nprog-to-check-for\n软件执行文件名称\n\n\nvalue-if-found\n查找到返回的值 这个值会赋值给 变量 variable\n\n\nvalue-if-not-found\n查找不到返回的值 这个值会赋值给 变量 variable\n\n\npath\n定义查找路径 否则 会通过环境变量 $PATH 查找\n\n\n1.2.2 查找文件检查头文件检查一个头文件AC_CHECK_HEADER (header-file, [action-if-found], [action-if-not-found], [includes])检查多个头文件AC_CHECK_HEADERS (header-file . . ., [action-if-found], [action-if-not-found], [includes])\n\n\n\n参数\n作用\n默认值\n\n\n\nheader-file\n要查找的头文件\nrequired\n\n\naction-if-found\n如果找到 执行此命令\nAC_DEFINE(HAVE_HEADER_FILE_H, 1,[Define to 1 if you have &lt;header-file.h&gt;.]) # 定义头文件 define HAVE_HEADER_FILE_H 1\n\n\naction-if-not-found\n如果没找到执行此命令\nAC_MSG_ERROR([sorry, can’t do anything for you]) # 显示错误\n\n\nincludes\n查找路径\n\n\n\n1AC_CHECK_HEADERS (stdio.h)\n1.3 配置定义定义头文件的输出AC_CONFIG_HEADERS (header . . ., [cmds], [init-cmds])\n定义宏 并 最终输出到 定义的头文件中\n12AC_DEFINE (variable, value, [description])AC_DEFINE (variable)\n\n1AC_SUBST() ... \n宏命令很多 需要的时候还是去看手册吧 比较清晰 虽然是英文的(看文章最后的参考链接)\n2. aclocal.m4m4 宏 相对简单，m4主要就是做宏的替换 最终输出文本acinclude.m4 UserDefineMicro.m4 configure.ac ----- m4 ----&gt; aclocal.m4\n其中的 用户自定义宏 和 acinclude.m4 是可选择的\n\n宏定义\n123define(FOO, Bar)dnlthis is a define word FOO\n以上会输出 this is a define word Bar ，主功能就是一个替换 其中的 dnl 是取消一个空行，默认情况下 m4 会在每行之间插入一个空行\n\n函数m4 也提供一些函数用来处理字符串 如 substr($str, $from, $to) 切割字符串 len($str) 计算字符串长度 等…\n\n\n详细的m4宏的编辑可以参考 GUN 的手册 \n3. Makefile.amMakefile.am 是用来生成最终的 Makefile 文件，他是更高层次的抽象，最终的Makefile 格式会在接下来介绍。 Makefile.am 主要用来配置哪些源代码需要编译成什么目标文件 以及 要安装到哪些目录\n指定文件的编译类型\n\n\n\n命令\n作用\n\n\n\n\nPROGRAMS\n可执行程序\n\n\n\nSOURCES\n源代码\n\n\n\nHEADERS\n头文件\n\n\n\nLIBRARIES\n库文件\n\n\n\nLTLIBRARIES\nlibtool 库文件\n\n\n\nDATA\n不可执行的数据文件\n\n\n\nSCRIPTS\n脚本文件\n\n\n\n4. make 命令以及 Makefile文件Makefile 规则格式 变量 伪目标 包含其他Makefile文件 \nmake 命令 是以文件为输入参数的，可以通过 -f 或 --file 指定文件 ，默认情况在不指定时 make 会在当前文件夹下依次寻找名为 GNUmakefile makefile Makefile 的文件，约定俗成的 以 Makefile 作为文件名。一般情况 make 会将我们的命令作为文本输出 如果不想输出命令文本可以使用 -s 参数\n文件语法规则\n1234target: [prerequisites .. .. ..]&lt;tab&gt;   command;&lt;tab&gt;   command;        ....\n其中target 叫做目标 prerequisites 是一个依赖列表 这些在一般情况下都是文件， 紧接着的一行是shell命令 且要以tab开始才能生效, make 在执行的过程中 先匹配 target 匹配到后检查后面的依赖 如果依赖文件的修改时间晚于 target 文件 则会将这个依赖文件作为 目标 去匹配 所有的都匹配完毕则执行下面的 shell 命令如下一个简单的使用\n默认情况下 在执行 make 的时候不指定 目标 make 从第一个定义的 目标开始执行\n12main.c: foo.o bar.o     gcc  ....\n\n依赖列表可以为空，我们先不考虑依赖列表 把问题简单化 来理解目标的作用。目标在一般情况下是文件，make 会在源代码目录中查询这个文件 如果文件找不到则会将他当作一个伪目标 继续执行，伪目标也可以声明 让make 免去查询步骤, 声明如下\n12345.PHONY: foo barfoo:    echo &quot;foo&quot;;bar:    echo &quot;bar&quot;;\n执行 make -s 输出 foo执行 make -s bar 输出 foo执行 make -s foo 输出 foo\n增加依赖列表进来 理解make 的递归操作 为了便于理解 这里仅使用伪目标\n1234567.PHNOY: foo bar bazfoo: bar    echo &quot;foo&quot;;bar: baz    echo &quot;bar&quot;;baz:    echo &quot;baz&quot;;\n执行make 先执行第一个目标 foo 然后 foo 依赖 bar 则递归的先去匹配执行 目标 bar ，目标 bar 匹配到 但是他又 依赖 baz  则继续递归执行到 baz , 目标 baz 没有依赖 则 执行他的shell 命令 执行完毕 回到 bar ，bar 下面的 biz 目标处理完毕 后面没有 依赖目标 则 执行 bar 的shell 然后回退到  foo所以最终的输出是\n123bazbarfoo\n注意 这里面每个目标都只会执行一次\n如果文件比较多 文件名列表写起来太繁琐  make 提供变量的机制的，如下\n1234567.PHNOY: foo bar bazfoo: baz bar    echo &quot;foo&quot;;bar:    echo &quot;bar&quot;;baz:    echo &quot;baz&quot;;\n可以通过变量的形式简化 将依赖列表 赋值给一个变量 使用的时候 以$&#123;var&#125; 的形式使用 如下\n123456789.PHNOY: foo bar baztargets = baz barfoo: $&#123;targets&#125;    echo &quot;foo&quot;;bar:    echo &quot;bar&quot;;baz:    echo &quot;baz&quot;;\n\nmake 还支持 include 关键字 引入其他的 Makefile 文件如果是文件的话 目标与依赖的比较是根据文件的修改时间 如果目 依赖文件的修改时间晚于标的修改时间 也就是说 依赖的文件更新 则会执行下面的shell命令目标文件不存在也会直接执行下面的shell命令\n参考链接\n  GNU Autotools: a tutorial  autoconf 手册  m4 手册  automake 手册\n\n","dateCreated":"2019-03-06T03:30:30+08:00","dateModified":"2019-03-08T21:35:50+08:00","datePublished":"2019-03-06T03:30:30+08:00","description":"对于linux上大多数软件包的编译过程都是 configure make make install 三个步骤来完成，具体分析下这些过程。其中configure 是一个shell脚本，用来生成文件 Makefile，这个文件是下一步make 过程需要用到的配置文件，用来生成源代码文件中的依赖关系，通过文件的修改时间来决定哪些文件有变动需要调用gcc 重新编译到目标文件并最终链接成二进制文件。make install 的过程主要是将编译完成的文件拷贝到指定的文件夹(或者安装目录)，这个安装路径是通过 configure --prefix=[path] 来定义的 默认一般为 /usr/local/bin 。 ","headline":"unix上c项目构建过程简析","image":[],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2019/03/06/unix%E4%B8%8Ac%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B%E7%AE%80%E6%9E%90/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2019/03/06/unix%E4%B8%8Ac%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B%E7%AE%80%E6%9E%90/","keywords":"c, configure, make"}</script>
+    <meta name="description" content="对于linux上大多数软件包的编译过程都是 configure make make install 三个步骤来完成，具体分析下这些过程。其中configure 是一个shell脚本，用来生成文件 Makefile，这个文件是下一步make 过程需要用到的配置文件，用来生成源代码文件中的依赖关系，通过文件的修改时间来决定哪些文件有变动需要调用gcc 重新编译到目标文件并最终链接成二进制文件。make">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="unix上c项目构建过程简析">
+<meta property="og:url" content="https://fantiq.github.io/2019/03/06/unix%E4%B8%8Ac%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B%E7%AE%80%E6%9E%90/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="对于linux上大多数软件包的编译过程都是 configure make make install 三个步骤来完成，具体分析下这些过程。其中configure 是一个shell脚本，用来生成文件 Makefile，这个文件是下一步make 过程需要用到的配置文件，用来生成源代码文件中的依赖关系，通过文件的修改时间来决定哪些文件有变动需要调用gcc 重新编译到目标文件并最终链接成二进制文件。make">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fantiq.github.io/2019/03/06/unix%E4%B8%8Ac%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B%E7%AE%80%E6%9E%90/WechatIMG123.jpeg">
+<meta property="article:published_time" content="2019-03-05T19:30:30.000Z">
+<meta property="article:modified_time" content="2019-03-08T13:35:50.482Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="c">
+<meta property="article:tag" content="configure">
+<meta property="article:tag" content="make">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fantiq.github.io/2019/03/06/unix%E4%B8%8Ac%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B%E7%AE%80%E6%9E%90/WechatIMG123.jpeg">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            unix上c项目构建过程简析
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2019-03-06T03:30:30+08:00">
+	
+		    3月 06, 2019
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/c/">c</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>对于linux上大多数软件包的编译过程都是 <code>configure</code> <code>make</code> <code>make install</code> 三个步骤来完成，具体分析下这些过程。其中<code>configure</code> 是一个shell脚本，用来生成文件 <code>Makefile</code>，这个文件是下一步<code>make</code> 过程需要用到的配置文件，用来生成源代码文件中的依赖关系，通过文件的修改时间来决定哪些文件有变动需要调用<code>gcc</code> 重新编译到目标文件并最终链接成二进制文件。<code>make install</code> 的过程主要是将编译完成的文件拷贝到指定的文件夹(或者安装目录)，这个安装路径是通过 <code>configure --prefix=[path]</code> 来定义的 默认一般为 <code>/usr/local/bin</code> 。 </p>
+<span id="more"></span>
+<p><code>configure</code> 这个shell文件是要通过源代码机遇一系列工具来生成的，作用是用来检查源代码所在的系统是否用户源代码所依赖的库文件 、头文件、二进制文件 等。<br>其生成过程如下图<br><img src="WechatIMG123.jpeg" alt="构建过程"><br>对这个过程进行分析，我们最终需要获得的文件如下 <code>configure</code> <code>Makefile</code> <code>config.h</code> , 生成这些文件需要的输入文件 <code>configure.ac</code> <code>Makefile.am</code> <code>aclocal.m4</code>,这些文件都有对应的语法方式，需要进行逐个分析。</p>
+<h3 id="工具"><a href="#工具" class="headerlink" title="工具"></a>工具</h3><p>这里用到的工具有</p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>所属命令组</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>autoscan</td>
+<td>autoconf</td>
+<td>扫描文件源代码 生成 conifigure.ac 模版</td>
+</tr>
+<tr>
+<td>autoheader</td>
+<td>autoconf</td>
+<td>生成头文件</td>
+</tr>
+<tr>
+<td>autoconf</td>
+<td>autoconf</td>
+<td>生成 configure 脚本</td>
+</tr>
+<tr>
+<td>aclocal</td>
+<td>automake</td>
+<td>生成m4宏 文件</td>
+</tr>
+<tr>
+<td>automake</td>
+<td>automake</td>
+<td>生成Makefile.in 文件 为下一步生成Makefile 做准备</td>
+</tr>
+</tbody></table>
+<p>autoscan 会通过分析源代码生成一个 <code>configure.ac</code> 的模版文件 <code>configure.scan</code>，需要基于 <code>configure.scan</code> 的内容进行编辑<br><code>cp configure.scan configure.ac</code> (这里文件后缀有两种 configure.ac configure.in 这个主要看autoconf工具 默认读取文件的后缀了，目前大部分使用 .ac 作为文件后缀)。 </p>
+<h3 id="1-configure-ac"><a href="#1-configure-ac" class="headerlink" title="1. configure.ac"></a>1. configure.ac</h3><p>基于空文件生成的<code>configure.scan</code>文件默认模版如下 </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">shell&gt; autoscan ./</span><br><span class="line">#                                               -*- Autoconf -*-</span><br><span class="line"># Process this file with autoconf to produce a configure script.</span><br><span class="line"></span><br><span class="line">AC_PREREQ([2.69])</span><br><span class="line">AC_INIT([FULL-PACKAGE-NAME], [VERSION], [BUG-REPORT-ADDRESS])</span><br><span class="line"></span><br><span class="line"># Checks for programs.</span><br><span class="line"></span><br><span class="line"># Checks for libraries.</span><br><span class="line"></span><br><span class="line"># Checks for header files.</span><br><span class="line"></span><br><span class="line"># Checks for typedefs, structures, and compiler characteristics.</span><br><span class="line"></span><br><span class="line"># Checks for library functions.</span><br><span class="line"></span><br><span class="line">AC_OUTPUT</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>这里面使用的主要是一些类似c语言中的宏，事实上跟宏的原理一样，是被用来替换的，c语言中宏被替换成c代码，这里的宏会被替换成shell脚本代码，我们最后生成的是shell脚本</p>
+<p>这些宏是由 <code>autoconf</code> 工具内部定义的</p>
+<p>所以这个文件中宏之外的内容都是 shell 脚本代码了</p>
+<h4 id="1-1-基本宏"><a href="#1-1-基本宏" class="headerlink" title="1.1 基本宏"></a>1.1 基本宏</h4><p><code>AC_PREREQ([VERSION])</code> 检查autoconf 软件版本是否大于指定版本</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">AC_PREREQ([2.69])</span><br></pre></td></tr></table></figure>
+
+<p><code>AC_INIT([FULL-PACKAGE-NAME], [VERSION], [BUG-REPORT-ADDRESS])</code> 定义软件包<br>FULL-PACKAGE-NAME 代码包的完整名称<br>VERSION 代码包的版本<br>BUG-REPORT-ADDRESS 代码bug反馈地址 通常为邮箱</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">AC_INIT([php-src], [7.4.1], [bug@php.net])</span><br></pre></td></tr></table></figure>
+
+<p><code>AC_MSG_WARN([WRN_MSG])</code> 显示一个<code>warning</code> 提醒 脚本不会中断执行</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">AC_MSG_WARN(&quot;cannot found lib xxx&quot;)</span><br></pre></td></tr></table></figure>
+
+<p><code>AC_MSG_ERROR([ERR_MSG], [ExitCode])</code> 显示一个错误 且 会中断脚本的执行</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">AC_MSG_ERROR([library xxx is need], [500])</span><br></pre></td></tr></table></figure>
+<h4 id="1-2-依赖检查"><a href="#1-2-依赖检查" class="headerlink" title="1.2 依赖检查"></a>1.2 依赖检查</h4><h5 id="1-2-1-对二进制文件的检查"><a href="#1-2-1-对二进制文件的检查" class="headerlink" title="1.2.1 对二进制文件的检查"></a>1.2.1 对二进制文件的检查</h5><h6 id="使用-autoconf-内置的宏"><a href="#使用-autoconf-内置的宏" class="headerlink" title="使用 autoconf 内置的宏"></a>使用 <code>autoconf</code> 内置的宏</h6><p><code>AC_PROG_CC</code> 检查c编译器<br><code>AC_PROG_GREP</code> 检查grep工具<br><code>AC_PROG_LEX</code> 检查文件处理工具 lex</p>
+<h6 id="自定义查找"><a href="#自定义查找" class="headerlink" title="自定义查找"></a>自定义查找</h6><p><code>AC_CHECK_PROG(variable, prog-to-check-for, value-if-found, [value-if-not-found], [path = &#39;$PATH&#39;], [reject])</code></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>variable</td>
+<td>变量名称，autoconf 会将当前命令的结果赋值给这个shell变量</td>
+</tr>
+<tr>
+<td>prog-to-check-for</td>
+<td>软件执行文件名称</td>
+</tr>
+<tr>
+<td>value-if-found</td>
+<td>查找到返回的值 这个值会赋值给 变量 variable</td>
+</tr>
+<tr>
+<td>value-if-not-found</td>
+<td>查找不到返回的值 这个值会赋值给 变量 variable</td>
+</tr>
+<tr>
+<td>path</td>
+<td>定义查找路径 否则 会通过环境变量 $PATH 查找</td>
+</tr>
+</tbody></table>
+<h5 id="1-2-2-查找文件"><a href="#1-2-2-查找文件" class="headerlink" title="1.2.2 查找文件"></a>1.2.2 查找文件</h5><h6 id="检查头文件"><a href="#检查头文件" class="headerlink" title="检查头文件"></a>检查头文件</h6><p>检查一个头文件<br><code>AC_CHECK_HEADER (header-file, [action-if-found], [action-if-not-found], [includes])</code><br>检查多个头文件<br><code>AC_CHECK_HEADERS (header-file . . ., [action-if-found], [action-if-not-found], [includes])</code></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>默认值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>header-file</td>
+<td>要查找的头文件</td>
+<td>required</td>
+</tr>
+<tr>
+<td>action-if-found</td>
+<td>如果找到 执行此命令</td>
+<td>AC_DEFINE(HAVE_HEADER_FILE_H, 1,[Define to 1 if you have &lt;header-file.h&gt;.]) # 定义头文件 define HAVE_HEADER_FILE_H 1</td>
+</tr>
+<tr>
+<td>action-if-not-found</td>
+<td>如果没找到执行此命令</td>
+<td>AC_MSG_ERROR([sorry, can’t do anything for you]) # 显示错误</td>
+</tr>
+<tr>
+<td>includes</td>
+<td>查找路径</td>
+<td></td>
+</tr>
+</tbody></table>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">AC_CHECK_HEADERS (stdio.h)</span><br></pre></td></tr></table></figure>
+<h4 id="1-3-配置定义"><a href="#1-3-配置定义" class="headerlink" title="1.3 配置定义"></a>1.3 配置定义</h4><p>定义头文件的输出<br><code>AC_CONFIG_HEADERS (header . . ., [cmds], [init-cmds])</code></p>
+<p>定义宏 并 最终输出到 定义的头文件中</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">AC_DEFINE (variable, value, [description])</span><br><span class="line">AC_DEFINE (variable)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">AC_SUBST() ... </span><br></pre></td></tr></table></figure>
+<p>宏命令很多 需要的时候还是去看手册吧 比较清晰 虽然是英文的(看文章最后的参考链接)</p>
+<h3 id="2-aclocal-m4"><a href="#2-aclocal-m4" class="headerlink" title="2. aclocal.m4"></a>2. aclocal.m4</h3><p>m4 宏 相对简单，m4主要就是做宏的替换 最终输出文本<br><code>acinclude.m4 UserDefineMicro.m4 configure.ac ----- m4 ----&gt; aclocal.m4</code></p>
+<p>其中的 用户自定义宏 和 acinclude.m4 是可选择的</p>
+<ol>
+<li><p>宏定义</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">define(FOO, Bar)dnl</span><br><span class="line">this is a define word FOO</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>以上会输出 <code>this is a define word Bar</code> ，主功能就是一个替换 其中的 <code>dnl</code> 是取消一个空行，默认情况下 <code>m4</code> 会在每行之间插入一个空行</p>
+</li>
+<li><p>函数<br>m4 也提供一些函数用来处理字符串 如 <code>substr($str, $from, $to)</code> 切割字符串 <code>len($str)</code> 计算字符串长度 等…</p>
+</li>
+</ol>
+<p>详细的m4宏的编辑可以参考 GUN 的手册 </p>
+<h3 id="3-Makefile-am"><a href="#3-Makefile-am" class="headerlink" title="3. Makefile.am"></a>3. Makefile.am</h3><p><code>Makefile.am</code> 是用来生成最终的 <code>Makefile</code> 文件，他是更高层次的抽象，最终的<code>Makefile</code> 格式会在接下来介绍。 <code>Makefile.am</code> 主要用来配置哪些源代码需要编译成什么目标文件 以及 要安装到哪些目录</p>
+<p>指定文件的编译类型</p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PROGRAMS</td>
+<td>可执行程序</td>
+<td></td>
+</tr>
+<tr>
+<td>SOURCES</td>
+<td>源代码</td>
+<td></td>
+</tr>
+<tr>
+<td>HEADERS</td>
+<td>头文件</td>
+<td></td>
+</tr>
+<tr>
+<td>LIBRARIES</td>
+<td>库文件</td>
+<td></td>
+</tr>
+<tr>
+<td>LTLIBRARIES</td>
+<td>libtool 库文件</td>
+<td></td>
+</tr>
+<tr>
+<td>DATA</td>
+<td>不可执行的数据文件</td>
+<td></td>
+</tr>
+<tr>
+<td>SCRIPTS</td>
+<td>脚本文件</td>
+<td></td>
+</tr>
+</tbody></table>
+<h3 id="4-make-命令以及-Makefile文件"><a href="#4-make-命令以及-Makefile文件" class="headerlink" title="4. make 命令以及 Makefile文件"></a>4. make 命令以及 Makefile文件</h3><p>Makefile 规则格式 变量 伪目标 包含其他Makefile文件 </p>
+<p><code>make</code> 命令 是以文件为输入参数的，可以通过 <code>-f</code> 或 <code>--file</code> 指定文件 ，默认情况在不指定时 <code>make</code> 会在当前文件夹下依次寻找名为 <code>GNUmakefile</code> <code>makefile</code> <code>Makefile</code> 的文件，约定俗成的 以 <code>Makefile</code> 作为文件名。一般情况 <code>make</code> 会将我们的命令作为文本输出 如果不想输出命令文本可以使用 <code>-s</code> 参数</p>
+<p>文件语法规则</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">target: [prerequisites .. .. ..]</span><br><span class="line">&lt;tab&gt;   command;</span><br><span class="line">&lt;tab&gt;   command;</span><br><span class="line">        ....</span><br></pre></td></tr></table></figure>
+<p>其中<code>target</code> 叫做目标 <code>prerequisites</code> 是一个依赖列表 这些在一般情况下都是文件， 紧接着的一行是shell命令 且要以<code>tab</code>开始才能生效, <code>make</code> 在执行的过程中 先匹配 <code>target</code> 匹配到后检查后面的依赖 如果依赖文件的修改时间晚于 <code>target</code> 文件 则会将这个依赖文件作为 目标 去匹配 所有的都匹配完毕则执行下面的 shell 命令<br>如下一个简单的使用</p>
+<p>默认情况下 在执行 <code>make</code> 的时候不指定 目标 <code>make</code> 从第一个定义的 目标开始执行</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">main.c: foo.o bar.o </span><br><span class="line">    gcc  ....</span><br></pre></td></tr></table></figure>
+
+<p>依赖列表可以为空，我们先不考虑依赖列表 把问题简单化 来理解目标的作用。目标在一般情况下是文件，<code>make</code> 会在源代码目录中查询这个文件 如果文件找不到则会将他当作一个伪目标 继续执行，伪目标也可以声明 让<code>make</code> 免去查询步骤, 声明如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">.PHONY: foo bar</span><br><span class="line">foo:</span><br><span class="line">    echo &quot;foo&quot;;</span><br><span class="line">bar:</span><br><span class="line">    echo &quot;bar&quot;;</span><br></pre></td></tr></table></figure>
+<p>执行 <code>make -s</code> 输出 <code>foo</code><br>执行 <code>make -s bar</code> 输出 <code>foo</code><br>执行 <code>make -s foo</code> 输出 <code>foo</code></p>
+<p>增加依赖列表进来 理解<code>make</code> 的递归操作 为了便于理解 这里仅使用伪目标</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">.PHNOY: foo bar baz</span><br><span class="line">foo: bar</span><br><span class="line">    echo &quot;foo&quot;;</span><br><span class="line">bar: baz</span><br><span class="line">    echo &quot;bar&quot;;</span><br><span class="line">baz:</span><br><span class="line">    echo &quot;baz&quot;;</span><br></pre></td></tr></table></figure>
+<p>执行<code>make</code> 先执行第一个目标 <code>foo</code> 然后 <code>foo</code> 依赖 <code>bar</code> 则递归的先去匹配执行 目标 <code>bar</code> ，目标 <code>bar</code> 匹配到 但是他又 依赖 <code>baz</code>  则继续递归执行到 <code>baz</code> , 目标 <code>baz</code> 没有依赖 则 执行他的shell 命令 执行完毕 回到 <code>bar</code> ，<code>bar</code> 下面的 <code>biz</code> 目标处理完毕 后面没有 依赖目标 则 执行 <code>bar</code> 的shell 然后回退到  <code>foo</code><br>所以最终的输出是</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">baz</span><br><span class="line">bar</span><br><span class="line">foo</span><br></pre></td></tr></table></figure>
+<p>注意 <strong>这里面每个目标都只会执行一次</strong></p>
+<p>如果文件比较多 文件名列表写起来太繁琐  <code>make</code> 提供变量的机制的，如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">.PHNOY: foo bar baz</span><br><span class="line">foo: baz bar</span><br><span class="line">    echo &quot;foo&quot;;</span><br><span class="line">bar:</span><br><span class="line">    echo &quot;bar&quot;;</span><br><span class="line">baz:</span><br><span class="line">    echo &quot;baz&quot;;</span><br></pre></td></tr></table></figure>
+<p>可以通过变量的形式简化 将依赖列表 赋值给一个变量 使用的时候 以<code>$&#123;var&#125;</code> 的形式使用 如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">.PHNOY: foo bar baz</span><br><span class="line"></span><br><span class="line">targets = baz bar</span><br><span class="line">foo: $&#123;targets&#125;</span><br><span class="line">    echo &quot;foo&quot;;</span><br><span class="line">bar:</span><br><span class="line">    echo &quot;bar&quot;;</span><br><span class="line">baz:</span><br><span class="line">    echo &quot;baz&quot;;</span><br></pre></td></tr></table></figure>
+
+<p><code>make</code> 还支持 <code>include</code> 关键字 引入其他的 <code>Makefile</code> 文件<br>如果是文件的话 目标与依赖的比较是根据文件的修改时间 如果目 <code>依赖文件的修改时间晚于标的修改时间</code> 也就是说 依赖的文件更新 则会执行下面的shell命令<br>目标文件不存在也会直接执行下面的shell命令</p>
+<h4 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a><em>参考链接</em></h4><blockquote>
+<p>  <a target="_blank" rel="noopener" href="https://elinux.org/images/4/43/Petazzoni.pdf">GNU Autotools: a tutorial</a><br>  <a target="_blank" rel="noopener" href="https://www.gnu.org/software/autoconf/manual/autoconf.html">autoconf 手册</a><br>  <a target="_blank" rel="noopener" href="https://www.gnu.org/software/m4/manual/m4.html">m4 手册</a><br>  <a href="">automake 手册</a></p>
+</blockquote>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/c/" rel="tag">c</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/configure/" rel="tag">configure</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/make/" rel="tag">make</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/03/11/gdb%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E5%AF%B9c%E4%BB%A3%E7%A0%81%E7%9A%84%E8%B0%83%E8%AF%95%E7%9A%84/"
+                    data-tooltip="gdb如何实现对c代码的调试的"
+                    aria-label="上一篇: gdb如何实现对c代码的调试的"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/"
+                    data-tooltip="gcc的基本使用简介"
+                    aria-label="下一篇: gcc的基本使用简介"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/03/06/unix%E4%B8%8Ac%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B%E7%AE%80%E6%9E%90/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/03/06/unix%E4%B8%8Ac%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B%E7%AE%80%E6%9E%90/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2019/03/06/unix%E4%B8%8Ac%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B%E7%AE%80%E6%9E%90/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/03/11/gdb%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E5%AF%B9c%E4%BB%A3%E7%A0%81%E7%9A%84%E8%B0%83%E8%AF%95%E7%9A%84/"
+                    data-tooltip="gdb如何实现对c代码的调试的"
+                    aria-label="上一篇: gdb如何实现对c代码的调试的"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/"
+                    data-tooltip="gcc的基本使用简介"
+                    aria-label="下一篇: gcc的基本使用简介"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/03/06/unix%E4%B8%8Ac%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B%E7%AE%80%E6%9E%90/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/03/06/unix%E4%B8%8Ac%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B%E7%AE%80%E6%9E%90/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2019/03/06/unix%E4%B8%8Ac%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B%E7%AE%80%E6%9E%90/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/03/06/unix%E4%B8%8Ac%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B%E7%AE%80%E6%9E%90/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/03/06/unix%E4%B8%8Ac%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B%E7%AE%80%E6%9E%90/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2019/03/06/unix%E4%B8%8Ac%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B%E7%AE%80%E6%9E%90/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

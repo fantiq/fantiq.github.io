@@ -1,0 +1,665 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>virtualbox 搭建LNMP环境 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"lnmp 环境搭建 以及 vagrant box文件打包\n\n\n1. virtualbox centos 6.5 安装virtualbox 下载地址centos 6.5 x64 下载地址安装过程 不再详细记录 记得在启动后读取光盘内容的时候可能需要你手动在设置里面加载下\n2. 安装后的准备网络设置1234567# 开启ip自动分配vi /etc/sysconfig/network-scripts/ifcfg-eth0ONBOOT=yes# 重启网卡服务service network restart# 检查ipip a\n安装wget vim 等常用工具12yum install wgetyum install vim\n更换yum源 epel12rpm -Uvh http://mirrors.kernel.org/fedora-epel/6/i386/epel-release-6-8.noarch.rpmyum repolist\n3. nginx下载源码 并解压12wget https://nginx.org/download/nginx-1.10.1.tar.gztar -zxvf nginx-1.10.1.tar.gz\n安装必备工具12yum -y install gcc autoconf automakeyum -y install zlib zlib-devel openssl openssl-devel pcre-devel\n编译安装1234567891011121314151617181920cd nginx-1.10.1./configure \\--prefix=/usr/local/nginx \\--sbin-path=/usr/local/nginx/sbin/nginx \\--conf-path=/usr/local/nginx/conf/nginx.conf \\--error-log-path=/var/log/nginx/error.log \\--pid-path=/var/run/nginx/nginx.pid \\--user=nginx \\--group=nginx \\--with-http_ssl_module \\--with-http_flv_module \\--with-http_gzip_static_module \\--http-log-path=/var/log/nginx/access.log \\--http-client-body-temp-path=/var/tmp/nginx/client \\--http-proxy-temp-path=/var/tmp/nginx/proxy \\--http-fastcgi-temp-path=/var/tmp/nginx/fcgi \\--with-http_stub_status_modulemake &amp;&amp; make install\n启动nginx12345##### 添加nginx运行用户以及对应用户组groupadd -r nginx useradd -s /sbin/nologin -g nginx -r nginx##### 启动服务/usr/local/nginx/sbin/nginx -c /usr/local/nginx/conf/nginx.conf\n在启动的过程中报错\n1nginx: [emerg] mkdir() &quot;/var/tmp/nginx/client&quot; failed (2: No such file or directory)\n创建对应的文件即可\n1mkdir -p /var/tmp/nginx/client\n检查是否启动成功\n1234ps -ef | grep nginx--------------------root      9422     1  0 13:25 ?        00:00:00 nginx: master process /usr/local/nginx/sbin/nginx -c /usr/local/nginx/conf/nginx.confnginx     9423  9422  0 13:25 ?        00:00:00 nginx: worker process         \n找到nginx进程即启动成功\n4. php下载源码并解压12wget http://cn2.php.net/distributions/php-7.0.9.tar.gztar -zxvf php-7.0.9.tar.gz\n安装依赖包1yum -y install libjpeg libjpeg-devel libpng libpng-devel freetype freetype-devel libxml2 libxml2-devel MySQL pcre-devel curl curl-devel libmcrypt libmcrypt-devel\n编译安装123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051cd php-7.0.9./configure \\--prefix=/usr/local/php7 \\--exec-prefix=/usr/local/php7 \\--bindir=/usr/local/php7/bin \\--sbindir=/usr/local/php7/sbin \\--includedir=/usr/local/php7/include \\--libdir=/usr/local/php7/lib/php \\--mandir=/usr/local/php7/php/man \\--with-config-file-path=/usr/local/php7/etc \\--with-mysql-sock=/var/run/mysql/mysql.sock \\--with-mcrypt=/usr/include \\--with-mhash \\--with-openssl \\--with-mysqli=shared,mysqlnd \\--with-pdo-mysql=shared,mysqlnd \\--with-gd \\--with-iconv \\--with-zlib \\--enable-zip \\--enable-inline-optimization \\--disable-debug \\--disable-rpath \\--enable-shared \\--enable-xml \\--enable-bcmath \\--enable-shmop \\--enable-sysvsem \\--enable-mbregex \\--enable-mbstring \\--enable-ftp \\--enable-gd-native-ttf \\--enable-pcntl \\--enable-sockets \\--with-xmlrpc \\--enable-soap \\--without-pear \\--with-gettext \\--enable-session \\--with-curl \\--with-jpeg-dir \\--with-freetype-dir \\--enable-opcache \\--enable-fpm \\--with-fpm-user=nginx \\--with-fpm-group=nginx \\--without-gdbm \\--enable-fileinfomake &amp;&amp; make install\n添加redis扩展12345678# 下载解压包wget http://pecl.php.net/get/redis-3.0.0.tgztar -zxvf redis-3.0.0.tgz# 生成configure 文件cd redis-3.0.0/usr/local/php7/bin/phpize./configure --with-php-config=/usr/local/php7/bin/php-configmake &amp;&amp; make install\n参考链接\n开启 opcache redis pdo_mysql 必备扩展12345#file : etc/php.iniextension=redis.soextension=pdo_mysql.sozend_extension=opcache.so\nopcache 配置参数参考\n启动fpm服务如果在 etc 目录找不到 php.ini 文件 可以去源代码里面 cp 一份php-fpm 配置文件需要准备\n1/usr/local/php7/sbin/php-fpm\n检查是否启动1234567ps -ef | grep php-fpm-----------------------root     13900     1  0 16:57 ?        00:00:00 php-fpm: master process (/usr/local/php7/etc/php-fpm.conf)nginx    13901 13900  0 16:57 ?        00:00:00 php-fpm: pool www           nginx    13902 13900  0 16:57 ?        00:00:00 php-fpm: pool www           root     13904  1479  0 16:58 pts/0    00:00:00 grep php-fpm\n将php添加到系统路径1ln -s /usr/local/php7/bin/php /usr/local/bin\n5. nginx + php-fpm首先通过ip访问 如果访问不通 查看防火墙\n1service iptables status\n如果防火墙开启 请先关闭\n1service iptables stop\nphp配置文件开启真实文件路径的支持12# file : etc/php.inicgi.fix_pathinfo=1\nnginx 配置文件123456789101112131415161718192021server &#123;    listen 80;    service_name localhost;    # 绑定路径 这个要定义在server下    root /root/dev;    index index.html index.htm;    location / &#123;&#125;    error_page  500 502 503 504 /50x.html;    location = /50x.html &#123;        root html;    &#125;    location ~ \\.php$ &#123;        # 代理地址 以及转发 端口        fastcgi_pass 127.0.0.1:9000;        fastcgi_index index.php;        # 这个要设置正确 不然 会报 file not found        # 配合php.ini 的 cgi.fix_pathinfo=1 使用        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;        include fastcgi_params;    &#125;&#125;\n6. mysql下载解压源码123wget http://dev.mysql.com/get/Downloads/MySQL-5.7/mysql-5.7.14.tar.gztar -zxvf mysql-5.7.14.tar.gzcd mysql-5.7.14\n安装依赖工具mysql 5.7 必须的三个依赖ncurses 字符终端处理库cmake 跨平台的编译工具 类似(automake)boost c++ 的一个标准库bison GNU的一个语法分析器\n12345678# 可以通过 rpm -q 查看软件包是否安装yum -y install gcc gcc-c++ ncurses-devel cmake bison# 下载 boostwget https://sourceforge.net/projects/boost/files/boost/1.59.0/boost_1_59_0.tar.gztar -zxvf boost_1_59_0.tar.gzmv boost_1_59_0 /usr/local/boost# 创建mysql用户 以及用户组useradd mysql\n编译安装123456789101112131415161718cmake . \\-DCMAKE_INSTALL_PREFIX=/usr/local/mysql \\-DMYSQL_DATADIR=/usr/local/mysql/data \\-DDEFAULT_CHARSET=utf8 \\-DDEFAULT_COLLATION=utf8_general_ci \\-DMYSQL_TCP_PORT=3306 \\-DMYSQL_USER=mysql \\-DWITH_MYISAM_STORAGE_ENGINE=1 \\-DWITH_INNOBASE_STORAGE_ENGINE=1 \\-DWITH_ARCHIVE_STORAGE_ENGINE=1 \\-DWITH_BLACKHOLE_STORAGE_ENGINE=1 \\-DWITH_MEMORY_STORAGE_ENGINE=1 \\-DDOWNLOAD_BOOST=1 \\-DWITH_BOOST=/usr/local/boost# 编译出错需要清除缓存rm -f CMakeCache.txtmake clean\n\n\n顺便一提: php nginx 都是用纯c写的 mysql用的是c++ 在cmkae mysql的时候竟然发现没装gcc-c++ \n\n编译安装的时候出现如下错误\n1mysql Fatal error: can&#x27;t close CMakeFiles/innobase.dir/sync/sync0rw.cc.o: No space left on device\n这是因为mysql需要写文件到 /tmp 目录 , 但是在linux上面 /tmp 目录是一个固定大小(十几KB)的目录解决办法就是将系统的临时文件夹换掉(通过修改系统变量来实现)\n123mkdir /home/tmp# 只在本次登录有效export TMPDIR=/home/tmp\n\n最后换掉还是不行 是因为虚拟机分配的硬盘容量太小通过增加容量解决编译问题 如何给virtualbox硬盘扩容\n启动服务安装后需要先初始化下mysql\n123456# --initialize 初始化mysql  会给root生成默认随机密码# --initialize-insecure 初始化mysql 但 不会给root生成随机密码# --user 指定mysql执行的用户# --basedir mysql的安装路径# --datadir 指定数据存储路径 这个路径必须是空文件夹 当然也要有读写权限/usr/local/mysql/bin/mysqld --initialize-insecure --user=mysql --basedir=/usr/local/mysql --datadir=/var/lib/mysql/data\n将mysql安装成服务\n1234567cp /usr/local/mysql/support-files/mysql.server /etc/init.d/mysqldchkconfig --add mysqldchkconfig mysqld onservice mysqld status# 启动mysql的方式service mysqld start/etc/init.d/mysqld start\nmysql启动时候默认的配置文件是 /etc/my.cnf\n123456789101112# 客户端配置[client]port=3306socket=/var/lib/mysql/mysql.sock#服务端配置[mysqld]port=3306socket=/var/lib/mysql/mysql.sock# 文件目录datadir=/var/lib/mysql/data# 服务启动用户user=mysql\n\n参考链接\n官方安装参考链接\n7. 其他相关软件node composer git nfs samba supervisor\n123456789101112131415161718# composer 先将php加入系统路径curl -sS https://getcomposer.org/installer | phpmv composer.phar /usr/local/bin/composercomposer -v# gityum -y install git# redisyum -y install redis# nfsyum -y install nfs-utils[使用参考链接](http://fantiq.github.io/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/)# sambayum -y install samba[使用参考链接](http://fantiq.github.io/2016/06/07/linux-centos-samba-%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/)# supervisoryum -y install supervisor[使用参考链接](http://fantiq.github.io/2016/06/07/linux-centos-supervisor%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E6%80%BB%E7%BB%93/)\n\n8. virtualbox 增强工具挂载增强工具光盘12设备 -&gt; 安装增强工具 -&gt; VBoxGuestAdditions.iso(文件在virtualbox 安装目录 这个iso盘会被自动挂载)mount /dev/cdrom /mnt/cdrom\n遇到错误提示mount: block device /dev/sr0 is write-protected, mounting read-only是正常的 因为光盘就是 read only 的可以加参数 避免 错误提醒 : \n12umount /mnt/cdrommount -t auto -o ro /dev/cdrom /mnt/cdrom\nmount 命令具体参考\n安装123456# 安装依赖yum -y install bzip2 make automake gcc gcc-c++ kernel-devel kernel-headers# 更新linux 内核源码 并重启服务器 [参考](https://srobb.net/rhkerndev.html)yum update# 执行sh脚本./VBoxLinuxAdditions.run\n如果后面有如下错误提示 : \n1Building the OpenGL support module                         [失败]\n这个问题可以不解决 不想看到这个提示可以在编译的时候忽略这个错误\n1export MAKE=&#x27;/usr/bin/gmake -i&#x27;\nvirtualbox 增强包安装 参考\n如何使用先设置虚拟机的共享 设置&gt;共享文件夹&gt;固定分配 自动挂载 启动机器 挂载硬盘\n1mount -t vboxsf 共享目录名称 服务器要挂载的目录\n9. 打包成 box文件1 创建vagrant用户并添加到sudo1234567useradd vagrantpasswd vagrantvagrant# 添加行visudovagrant ALL=(ALL) NOPASSWD:ALL\n\nsudoer 文件格式\n12345678user host=(run_as) command# user 定义用户或者用户组 用户组以 % 开始 如 %vagrant# host 主机名# run_as 作为哪个用户执行 不写(run_as) 默认是 root# command 可执行的命令 这个命令要写全路径 相对路径存在安全问题(用户可以创建同名脚本 以root用户执行脚本 脚本里的命令就可以按照root用户的权限执行了)# command 前可以通过 NOPASSWD: 来修饰 表示sudo执行命令的时候不用密码%vagrant ALL=(root) NOPASSWD:/usr/sbin/useradd# 上面命令定义 vagrant组的用户可以在所有主机以root身份执行 /usr/sbin/useradd 命令且不需要密码\n参考链接\n12#### 2 设置ssh创建文件夹 \n写入 vagrant 中提供的公钥 到用户.ssh 文件夹的 authorized_keys文件中cd /home/vagrant/.sshwget https://raw.githubusercontent.com/mitchellh/vagrant/master/keys/vagrant.pub -O authorized_keys\nchmod 600 /home/vagrant/.ssh/authorized_keys\n12345678910111213141516#### 打包box# 首先通过virtualbox命令查询要打包的虚拟机名称VBoxManage list vms# 打包vagrant package --base VBoxName --output dev.box# 设置vagrant box存储位置 设置环境变量VAGRANT_HOME# 添加boxvagrant add box centos65 /foo/bar/dev.box# 用box初始化环境 vagrant init centos56# 修改配置文件Vagrantfileconfig.ssh.insert_key = false# 启动vagrant up","dateCreated":"2016-08-01T10:20:11+08:00","dateModified":"2017-02-20T16:23:08+08:00","datePublished":"2016-08-01T10:20:11+08:00","description":"lnmp 环境搭建 以及 vagrant box文件打包","headline":"virtualbox 搭建LNMP环境","image":["lnmpa.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2016/08/01/virtualbox-%E6%90%AD%E5%BB%BALNMP%E7%8E%AF%E5%A2%83/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2016/08/01/virtualbox-%E6%90%AD%E5%BB%BALNMP%E7%8E%AF%E5%A2%83/","keywords":"virtualbox, lnmp","thumbnailUrl":"lnmpa.jpg"}</script>
+    <meta name="description" content="lnmp 环境搭建 以及 vagrant box文件打包">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="virtualbox 搭建LNMP环境">
+<meta property="og:url" content="https://fantiq.github.io/2016/08/01/virtualbox-%E6%90%AD%E5%BB%BALNMP%E7%8E%AF%E5%A2%83/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="lnmp 环境搭建 以及 vagrant box文件打包">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-08-01T02:20:11.000Z">
+<meta property="article:modified_time" content="2017-02-20T08:23:08.000Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="virtualbox">
+<meta property="article:tag" content="lnmp">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/2016/08/01/virtualbox-%E6%90%AD%E5%BB%BALNMP%E7%8E%AF%E5%A2%83/lnmpa.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="https://fantiq.github.io/2016/08/01/virtualbox-%E6%90%AD%E5%BB%BALNMP%E7%8E%AF%E5%A2%83/lnmpa.jpg"/>
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            virtualbox 搭建LNMP环境
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2016-08-01T10:20:11+08:00">
+	
+		    8月 01, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/%E8%BF%90%E7%BB%B4/">运维</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>lnmp 环境搭建 以及 vagrant box文件打包</p>
+<span id="more"></span>
+
+<h2 id="1-virtualbox-centos-6-5-安装"><a href="#1-virtualbox-centos-6-5-安装" class="headerlink" title="1. virtualbox centos 6.5 安装"></a>1. virtualbox centos 6.5 安装</h2><p><a target="_blank" rel="noopener" href="https://www.virtualbox.org/wiki/Downloads">virtualbox 下载地址</a><br><a target="_blank" rel="noopener" href="http://www.centoscn.com/CentosSoft/iso/2013/1205/2196.html">centos 6.5 x64 下载地址</a><br>安装过程 不再详细记录 记得在启动后读取光盘内容的时候可能需要你手动在设置里面加载下</p>
+<h2 id="2-安装后的准备"><a href="#2-安装后的准备" class="headerlink" title="2. 安装后的准备"></a>2. 安装后的准备</h2><h4 id="网络设置"><a href="#网络设置" class="headerlink" title="网络设置"></a>网络设置</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># 开启ip自动分配</span><br><span class="line">vi /etc/sysconfig/network-scripts/ifcfg-eth0</span><br><span class="line">ONBOOT=yes</span><br><span class="line"># 重启网卡服务</span><br><span class="line">service network restart</span><br><span class="line"># 检查ip</span><br><span class="line">ip a</span><br></pre></td></tr></table></figure>
+<h4 id="安装wget-vim-等常用工具"><a href="#安装wget-vim-等常用工具" class="headerlink" title="安装wget vim 等常用工具"></a>安装wget vim 等常用工具</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">yum install wget</span><br><span class="line">yum install vim</span><br></pre></td></tr></table></figure>
+<h4 id="更换yum源-epel"><a href="#更换yum源-epel" class="headerlink" title="更换yum源 epel"></a>更换yum源 epel</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">rpm -Uvh http://mirrors.kernel.org/fedora-epel/6/i386/epel-release-6-8.noarch.rpm</span><br><span class="line">yum repolist</span><br></pre></td></tr></table></figure>
+<h2 id="3-nginx"><a href="#3-nginx" class="headerlink" title="3. nginx"></a>3. nginx</h2><h4 id="下载源码-并解压"><a href="#下载源码-并解压" class="headerlink" title="下载源码 并解压"></a>下载源码 并解压</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">wget https://nginx.org/download/nginx-1.10.1.tar.gz</span><br><span class="line">tar -zxvf nginx-1.10.1.tar.gz</span><br></pre></td></tr></table></figure>
+<h4 id="安装必备工具"><a href="#安装必备工具" class="headerlink" title="安装必备工具"></a>安装必备工具</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">yum -y install gcc autoconf automake</span><br><span class="line">yum -y install zlib zlib-devel openssl openssl-devel pcre-devel</span><br></pre></td></tr></table></figure>
+<h4 id="编译安装"><a href="#编译安装" class="headerlink" title="编译安装"></a>编译安装</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">cd nginx-1.10.1</span><br><span class="line"></span><br><span class="line">./configure \</span><br><span class="line">--prefix=/usr/local/nginx \</span><br><span class="line">--sbin-path=/usr/local/nginx/sbin/nginx \</span><br><span class="line">--conf-path=/usr/local/nginx/conf/nginx.conf \</span><br><span class="line">--error-log-path=/var/log/nginx/error.log \</span><br><span class="line">--pid-path=/var/run/nginx/nginx.pid \</span><br><span class="line">--user=nginx \</span><br><span class="line">--group=nginx \</span><br><span class="line">--with-http_ssl_module \</span><br><span class="line">--with-http_flv_module \</span><br><span class="line">--with-http_gzip_static_module \</span><br><span class="line">--http-log-path=/var/log/nginx/access.log \</span><br><span class="line">--http-client-body-temp-path=/var/tmp/nginx/client \</span><br><span class="line">--http-proxy-temp-path=/var/tmp/nginx/proxy \</span><br><span class="line">--http-fastcgi-temp-path=/var/tmp/nginx/fcgi \</span><br><span class="line">--with-http_stub_status_module</span><br><span class="line"></span><br><span class="line">make &amp;&amp; make install</span><br></pre></td></tr></table></figure>
+<h4 id="启动nginx"><a href="#启动nginx" class="headerlink" title="启动nginx"></a>启动nginx</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">##### 添加nginx运行用户以及对应用户组</span><br><span class="line">groupadd -r nginx </span><br><span class="line">useradd -s /sbin/nologin -g nginx -r nginx</span><br><span class="line">##### 启动服务</span><br><span class="line">/usr/local/nginx/sbin/nginx -c /usr/local/nginx/conf/nginx.conf</span><br></pre></td></tr></table></figure>
+<p>在启动的过程中报错</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nginx: [emerg] mkdir() &quot;/var/tmp/nginx/client&quot; failed (2: No such file or directory)</span><br></pre></td></tr></table></figure>
+<p>创建对应的文件即可</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkdir -p /var/tmp/nginx/client</span><br></pre></td></tr></table></figure>
+<p>检查是否启动成功</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ps -ef | grep nginx</span><br><span class="line">--------------------</span><br><span class="line">root      9422     1  0 13:25 ?        00:00:00 nginx: master process /usr/local/nginx/sbin/nginx -c /usr/local/nginx/conf/nginx.conf</span><br><span class="line">nginx     9423  9422  0 13:25 ?        00:00:00 nginx: worker process         </span><br></pre></td></tr></table></figure>
+<p>找到nginx进程即启动成功</p>
+<h2 id="4-php"><a href="#4-php" class="headerlink" title="4. php"></a>4. php</h2><h4 id="下载源码并解压"><a href="#下载源码并解压" class="headerlink" title="下载源码并解压"></a>下载源码并解压</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">wget http://cn2.php.net/distributions/php-7.0.9.tar.gz</span><br><span class="line">tar -zxvf php-7.0.9.tar.gz</span><br></pre></td></tr></table></figure>
+<h4 id="安装依赖包"><a href="#安装依赖包" class="headerlink" title="安装依赖包"></a>安装依赖包</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum -y install libjpeg libjpeg-devel libpng libpng-devel freetype freetype-devel libxml2 libxml2-devel MySQL pcre-devel curl curl-devel libmcrypt libmcrypt-devel</span><br></pre></td></tr></table></figure>
+<h4 id="编译安装-1"><a href="#编译安装-1" class="headerlink" title="编译安装"></a>编译安装</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">cd php-7.0.9</span><br><span class="line"></span><br><span class="line">./configure \</span><br><span class="line">--prefix=/usr/local/php7 \</span><br><span class="line">--exec-prefix=/usr/local/php7 \</span><br><span class="line">--bindir=/usr/local/php7/bin \</span><br><span class="line">--sbindir=/usr/local/php7/sbin \</span><br><span class="line">--includedir=/usr/local/php7/include \</span><br><span class="line">--libdir=/usr/local/php7/lib/php \</span><br><span class="line">--mandir=/usr/local/php7/php/man \</span><br><span class="line">--with-config-file-path=/usr/local/php7/etc \</span><br><span class="line">--with-mysql-sock=/var/run/mysql/mysql.sock \</span><br><span class="line">--with-mcrypt=/usr/include \</span><br><span class="line">--with-mhash \</span><br><span class="line">--with-openssl \</span><br><span class="line">--with-mysqli=shared,mysqlnd \</span><br><span class="line">--with-pdo-mysql=shared,mysqlnd \</span><br><span class="line">--with-gd \</span><br><span class="line">--with-iconv \</span><br><span class="line">--with-zlib \</span><br><span class="line">--enable-zip \</span><br><span class="line">--enable-inline-optimization \</span><br><span class="line">--disable-debug \</span><br><span class="line">--disable-rpath \</span><br><span class="line">--enable-shared \</span><br><span class="line">--enable-xml \</span><br><span class="line">--enable-bcmath \</span><br><span class="line">--enable-shmop \</span><br><span class="line">--enable-sysvsem \</span><br><span class="line">--enable-mbregex \</span><br><span class="line">--enable-mbstring \</span><br><span class="line">--enable-ftp \</span><br><span class="line">--enable-gd-native-ttf \</span><br><span class="line">--enable-pcntl \</span><br><span class="line">--enable-sockets \</span><br><span class="line">--with-xmlrpc \</span><br><span class="line">--enable-soap \</span><br><span class="line">--without-pear \</span><br><span class="line">--with-gettext \</span><br><span class="line">--enable-session \</span><br><span class="line">--with-curl \</span><br><span class="line">--with-jpeg-dir \</span><br><span class="line">--with-freetype-dir \</span><br><span class="line">--enable-opcache \</span><br><span class="line">--enable-fpm \</span><br><span class="line">--with-fpm-user=nginx \</span><br><span class="line">--with-fpm-group=nginx \</span><br><span class="line">--without-gdbm \</span><br><span class="line">--enable-fileinfo</span><br><span class="line"></span><br><span class="line">make &amp;&amp; make install</span><br></pre></td></tr></table></figure>
+<h4 id="添加redis扩展"><a href="#添加redis扩展" class="headerlink" title="添加redis扩展"></a>添加redis扩展</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># 下载解压包</span><br><span class="line">wget http://pecl.php.net/get/redis-3.0.0.tgz</span><br><span class="line">tar -zxvf redis-3.0.0.tgz</span><br><span class="line"># 生成configure 文件</span><br><span class="line">cd redis-3.0.0</span><br><span class="line">/usr/local/php7/bin/phpize</span><br><span class="line">./configure --with-php-config=/usr/local/php7/bin/php-config</span><br><span class="line">make &amp;&amp; make install</span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="http://my.oschina.net/u/1156660/blog/365451">参考链接</a></p>
+<h4 id="开启-opcache-redis-pdo-mysql-必备扩展"><a href="#开启-opcache-redis-pdo-mysql-必备扩展" class="headerlink" title="开启 opcache redis pdo_mysql 必备扩展"></a>开启 <code>opcache</code> <code>redis</code> <code>pdo_mysql</code> 必备扩展</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">#file : etc/php.ini</span><br><span class="line"></span><br><span class="line">extension=redis.so</span><br><span class="line">extension=pdo_mysql.so</span><br><span class="line">zend_extension=opcache.so</span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/HD/p/4554455.html">opcache 配置参数参考</a></p>
+<h4 id="启动fpm服务"><a href="#启动fpm服务" class="headerlink" title="启动fpm服务"></a>启动fpm服务</h4><p>如果在 <code>etc</code> 目录找不到 <code>php.ini</code> 文件 可以去源代码里面 <code>cp</code> 一份<br><code>php-fpm</code> 配置文件需要准备</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/usr/local/php7/sbin/php-fpm</span><br></pre></td></tr></table></figure>
+<h4 id="检查是否启动"><a href="#检查是否启动" class="headerlink" title="检查是否启动"></a>检查是否启动</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">ps -ef | grep php-fpm</span><br><span class="line">-----------------------</span><br><span class="line">root     13900     1  0 16:57 ?        00:00:00 php-fpm: master process (/usr/local/php7/etc/php-fpm.conf)</span><br><span class="line">nginx    13901 13900  0 16:57 ?        00:00:00 php-fpm: pool www           </span><br><span class="line">nginx    13902 13900  0 16:57 ?        00:00:00 php-fpm: pool www           </span><br><span class="line">root     13904  1479  0 16:58 pts/0    00:00:00 grep php-fpm</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h4 id="将php添加到系统路径"><a href="#将php添加到系统路径" class="headerlink" title="将php添加到系统路径"></a>将php添加到系统路径</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ln -s /usr/local/php7/bin/php /usr/local/bin</span><br></pre></td></tr></table></figure>
+<h2 id="5-nginx-php-fpm"><a href="#5-nginx-php-fpm" class="headerlink" title="5. nginx + php-fpm"></a>5. nginx + php-fpm</h2><p>首先通过ip访问 如果访问不通 查看防火墙</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">service iptables status</span><br></pre></td></tr></table></figure>
+<p>如果防火墙开启 请先关闭</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">service iptables stop</span><br></pre></td></tr></table></figure>
+<h4 id="php配置文件开启真实文件路径的支持"><a href="#php配置文件开启真实文件路径的支持" class="headerlink" title="php配置文件开启真实文件路径的支持"></a>php配置文件开启真实文件路径的支持</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># file : etc/php.ini</span><br><span class="line">cgi.fix_pathinfo=1</span><br></pre></td></tr></table></figure>
+<h4 id="nginx-配置文件"><a href="#nginx-配置文件" class="headerlink" title="nginx 配置文件"></a>nginx 配置文件</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">server &#123;</span><br><span class="line">    listen 80;</span><br><span class="line">    service_name localhost;</span><br><span class="line">    # 绑定路径 这个要定义在server下</span><br><span class="line">    root /root/dev;</span><br><span class="line">    index index.html index.htm;</span><br><span class="line">    location / &#123;&#125;</span><br><span class="line">    error_page  500 502 503 504 /50x.html;</span><br><span class="line">    location = /50x.html &#123;</span><br><span class="line">        root html;</span><br><span class="line">    &#125;</span><br><span class="line">    location ~ \.php$ &#123;</span><br><span class="line">        # 代理地址 以及转发 端口</span><br><span class="line">        fastcgi_pass 127.0.0.1:9000;</span><br><span class="line">        fastcgi_index index.php;</span><br><span class="line">        # 这个要设置正确 不然 会报 file not found</span><br><span class="line">        # 配合php.ini 的 cgi.fix_pathinfo=1 使用</span><br><span class="line">        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;</span><br><span class="line">        include fastcgi_params;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="6-mysql"><a href="#6-mysql" class="headerlink" title="6. mysql"></a>6. mysql</h2><h4 id="下载解压源码"><a href="#下载解压源码" class="headerlink" title="下载解压源码"></a>下载解压源码</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">wget http://dev.mysql.com/get/Downloads/MySQL-5.7/mysql-5.7.14.tar.gz</span><br><span class="line">tar -zxvf mysql-5.7.14.tar.gz</span><br><span class="line">cd mysql-5.7.14</span><br></pre></td></tr></table></figure>
+<h4 id="安装依赖工具"><a href="#安装依赖工具" class="headerlink" title="安装依赖工具"></a>安装依赖工具</h4><p>mysql 5.7 必须的三个依赖<br>ncurses 字符终端处理库<br>cmake 跨平台的编译工具 类似(automake)<br>boost c++ 的一个标准库<br>bison GNU的一个语法分析器</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># 可以通过 rpm -q 查看软件包是否安装</span><br><span class="line">yum -y install gcc gcc-c++ ncurses-devel cmake bison</span><br><span class="line"># 下载 boost</span><br><span class="line">wget https://sourceforge.net/projects/boost/files/boost/1.59.0/boost_1_59_0.tar.gz</span><br><span class="line">tar -zxvf boost_1_59_0.tar.gz</span><br><span class="line">mv boost_1_59_0 /usr/local/boost</span><br><span class="line"># 创建mysql用户 以及用户组</span><br><span class="line">useradd mysql</span><br></pre></td></tr></table></figure>
+<h4 id="编译安装-2"><a href="#编译安装-2" class="headerlink" title="编译安装"></a>编译安装</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">cmake . \</span><br><span class="line">-DCMAKE_INSTALL_PREFIX=/usr/local/mysql \</span><br><span class="line">-DMYSQL_DATADIR=/usr/local/mysql/data \</span><br><span class="line">-DDEFAULT_CHARSET=utf8 \</span><br><span class="line">-DDEFAULT_COLLATION=utf8_general_ci \</span><br><span class="line">-DMYSQL_TCP_PORT=3306 \</span><br><span class="line">-DMYSQL_USER=mysql \</span><br><span class="line">-DWITH_MYISAM_STORAGE_ENGINE=1 \</span><br><span class="line">-DWITH_INNOBASE_STORAGE_ENGINE=1 \</span><br><span class="line">-DWITH_ARCHIVE_STORAGE_ENGINE=1 \</span><br><span class="line">-DWITH_BLACKHOLE_STORAGE_ENGINE=1 \</span><br><span class="line">-DWITH_MEMORY_STORAGE_ENGINE=1 \</span><br><span class="line">-DDOWNLOAD_BOOST=1 \</span><br><span class="line">-DWITH_BOOST=/usr/local/boost</span><br><span class="line"></span><br><span class="line"># 编译出错需要清除缓存</span><br><span class="line">rm -f CMakeCache.txt</span><br><span class="line">make clean</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>顺便一提: php nginx 都是用纯c写的 mysql用的是c++ 在cmkae mysql的时候<br>竟然发现没装gcc-c++ </p>
+</blockquote>
+<p>编译安装的时候出现如下错误</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql Fatal error: can&#x27;t close CMakeFiles/innobase.dir/sync/sync0rw.cc.o: No space left on device</span><br></pre></td></tr></table></figure>
+<p>这是因为mysql需要写文件到 <code>/tmp</code> 目录 , 但是在linux上面 <code>/tmp</code> 目录是一个固定大小(十几KB)的目录<br>解决办法就是将系统的临时文件夹换掉(通过修改系统变量来实现)</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mkdir /home/tmp</span><br><span class="line"># 只在本次登录有效</span><br><span class="line">export TMPDIR=/home/tmp</span><br></pre></td></tr></table></figure>
+
+<p>最后换掉还是不行 是因为虚拟机分配的硬盘容量太小<br>通过增加容量解决编译问题 <a href="">如何给virtualbox硬盘扩容</a></p>
+<h4 id="启动服务"><a href="#启动服务" class="headerlink" title="启动服务"></a>启动服务</h4><p>安装后需要先初始化下mysql</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># --initialize 初始化mysql  会给root生成默认随机密码</span><br><span class="line"># --initialize-insecure 初始化mysql 但 不会给root生成随机密码</span><br><span class="line"># --user 指定mysql执行的用户</span><br><span class="line"># --basedir mysql的安装路径</span><br><span class="line"># --datadir 指定数据存储路径 这个路径必须是空文件夹 当然也要有读写权限</span><br><span class="line">/usr/local/mysql/bin/mysqld --initialize-insecure --user=mysql --basedir=/usr/local/mysql --datadir=/var/lib/mysql/data</span><br></pre></td></tr></table></figure>
+<p>将mysql安装成服务</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">cp /usr/local/mysql/support-files/mysql.server /etc/init.d/mysqld</span><br><span class="line">chkconfig --add mysqld</span><br><span class="line">chkconfig mysqld on</span><br><span class="line">service mysqld status</span><br><span class="line"># 启动mysql的方式</span><br><span class="line">service mysqld start</span><br><span class="line">/etc/init.d/mysqld start</span><br></pre></td></tr></table></figure>
+<p>mysql启动时候默认的配置文件是 <code>/etc/my.cnf</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"># 客户端配置</span><br><span class="line">[client]</span><br><span class="line">port=3306</span><br><span class="line">socket=/var/lib/mysql/mysql.sock</span><br><span class="line">#服务端配置</span><br><span class="line">[mysqld]</span><br><span class="line">port=3306</span><br><span class="line">socket=/var/lib/mysql/mysql.sock</span><br><span class="line"># 文件目录</span><br><span class="line">datadir=/var/lib/mysql/data</span><br><span class="line"># 服务启动用户</span><br><span class="line">user=mysql</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="http://www.2cto.com/database/201510/447675.html">参考链接</a></p>
+<p><a target="_blank" rel="noopener" href="http://dev.mysql.com/doc/refman/5.7/en/source-installation.html">官方安装参考链接</a></p>
+<h2 id="7-其他相关软件"><a href="#7-其他相关软件" class="headerlink" title="7. 其他相关软件"></a>7. 其他相关软件</h2><p>node composer git nfs samba supervisor</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"># composer 先将php加入系统路径</span><br><span class="line">curl -sS https://getcomposer.org/installer | php</span><br><span class="line">mv composer.phar /usr/local/bin/composer</span><br><span class="line">composer -v</span><br><span class="line"></span><br><span class="line"># git</span><br><span class="line">yum -y install git</span><br><span class="line"># redis</span><br><span class="line">yum -y install redis</span><br><span class="line"># nfs</span><br><span class="line">yum -y install nfs-utils</span><br><span class="line">[使用参考链接](http://fantiq.github.io/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/)</span><br><span class="line"># samba</span><br><span class="line">yum -y install samba</span><br><span class="line">[使用参考链接](http://fantiq.github.io/2016/06/07/linux-centos-samba-%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/)</span><br><span class="line"># supervisor</span><br><span class="line">yum -y install supervisor</span><br><span class="line">[使用参考链接](http://fantiq.github.io/2016/06/07/linux-centos-supervisor%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E6%80%BB%E7%BB%93/)</span><br></pre></td></tr></table></figure>
+
+<h2 id="8-virtualbox-增强工具"><a href="#8-virtualbox-增强工具" class="headerlink" title="8. virtualbox 增强工具"></a>8. virtualbox 增强工具</h2><h4 id="挂载增强工具光盘"><a href="#挂载增强工具光盘" class="headerlink" title="挂载增强工具光盘"></a>挂载增强工具光盘</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">设备 -&gt; 安装增强工具 -&gt; VBoxGuestAdditions.iso(文件在virtualbox 安装目录 这个iso盘会被自动挂载)</span><br><span class="line">mount /dev/cdrom /mnt/cdrom</span><br></pre></td></tr></table></figure>
+<p>遇到错误提示<br>mount: block device /dev/sr0 is write-protected, mounting read-only<br>是正常的 因为光盘就是 read only 的<br>可以加参数 避免 错误提醒 : </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">umount /mnt/cdrom</span><br><span class="line">mount -t auto -o ro /dev/cdrom /mnt/cdrom</span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="http://blog.chinaunix.net/uid-8810763-id-2453890.html">mount 命令具体参考</a></p>
+<h4 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># 安装依赖</span><br><span class="line">yum -y install bzip2 make automake gcc gcc-c++ kernel-devel kernel-headers</span><br><span class="line"># 更新linux 内核源码 并重启服务器 [参考](https://srobb.net/rhkerndev.html)</span><br><span class="line">yum update</span><br><span class="line"># 执行sh脚本</span><br><span class="line">./VBoxLinuxAdditions.run</span><br></pre></td></tr></table></figure>
+<p>如果后面有如下错误提示 : </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Building the OpenGL support module                         [失败]</span><br></pre></td></tr></table></figure>
+<p>这个问题可以不解决 不想看到这个提示可以在编译的时候忽略这个错误</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">export MAKE=&#x27;/usr/bin/gmake -i&#x27;</span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="http://my.oschina.net/tashi/blog/190060">virtualbox 增强包安装 参考</a></p>
+<h4 id="如何使用"><a href="#如何使用" class="headerlink" title="如何使用"></a>如何使用</h4><p>先设置虚拟机的共享 <code>设置&gt;共享文件夹&gt;固定分配</code> 自动挂载 启动机器 挂载硬盘</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mount -t vboxsf 共享目录名称 服务器要挂载的目录</span><br></pre></td></tr></table></figure>
+<h2 id="9-打包成-box文件"><a href="#9-打包成-box文件" class="headerlink" title="9. 打包成 box文件"></a>9. 打包成 box文件</h2><h4 id="1-创建vagrant用户并添加到sudo"><a href="#1-创建vagrant用户并添加到sudo" class="headerlink" title="1 创建vagrant用户并添加到sudo"></a>1 创建vagrant用户并添加到sudo</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">useradd vagrant</span><br><span class="line">passwd vagrant</span><br><span class="line">vagrant</span><br><span class="line"></span><br><span class="line"># 添加行</span><br><span class="line">visudo</span><br><span class="line">vagrant ALL=(ALL) NOPASSWD:ALL</span><br></pre></td></tr></table></figure>
+
+<p>sudoer 文件格式</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">user host=(run_as) command</span><br><span class="line"># user 定义用户或者用户组 用户组以 % 开始 如 %vagrant</span><br><span class="line"># host 主机名</span><br><span class="line"># run_as 作为哪个用户执行 不写(run_as) 默认是 root</span><br><span class="line"># command 可执行的命令 这个命令要写全路径 相对路径存在安全问题(用户可以创建同名脚本 以root用户执行脚本 脚本里的命令就可以按照root用户的权限执行了)</span><br><span class="line"># command 前可以通过 NOPASSWD: 来修饰 表示sudo执行命令的时候不用密码</span><br><span class="line">%vagrant ALL=(root) NOPASSWD:/usr/sbin/useradd</span><br><span class="line"># 上面命令定义 vagrant组的用户可以在所有主机以root身份执行 /usr/sbin/useradd 命令且不需要密码</span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="http://my.oschina.net/aiguozhe/blog/38706">参考链接</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">#### 2 设置ssh</span><br><span class="line">创建文件夹 </span><br></pre></td></tr></table></figure>
+<h1 id="写入-vagrant-中提供的公钥-到用户-ssh-文件夹的-authorized-keys文件中"><a href="#写入-vagrant-中提供的公钥-到用户-ssh-文件夹的-authorized-keys文件中" class="headerlink" title="写入 vagrant 中提供的公钥 到用户.ssh 文件夹的 authorized_keys文件中"></a>写入 vagrant 中提供的公钥 到用户.ssh 文件夹的 authorized_keys文件中</h1><p>cd /home/vagrant/.ssh<br>wget <a target="_blank" rel="noopener" href="https://raw.githubusercontent.com/mitchellh/vagrant/master/keys/vagrant.pub">https://raw.githubusercontent.com/mitchellh/vagrant/master/keys/vagrant.pub</a> -O authorized_keys</p>
+<p>chmod 600 /home/vagrant/.ssh/authorized_keys</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">#### 打包box</span><br><span class="line"># 首先通过virtualbox命令查询要打包的虚拟机名称</span><br><span class="line">VBoxManage list vms</span><br><span class="line"># 打包</span><br><span class="line">vagrant package --base VBoxName --output dev.box</span><br><span class="line"># 设置vagrant box存储位置 设置环境变量</span><br><span class="line">VAGRANT_HOME</span><br><span class="line"># 添加box</span><br><span class="line">vagrant add box centos65 /foo/bar/dev.box</span><br><span class="line"># 用box初始化环境 </span><br><span class="line">vagrant init centos56</span><br><span class="line"># 修改配置文件</span><br><span class="line">Vagrantfile</span><br><span class="line">config.ssh.insert_key = false</span><br><span class="line"># 启动</span><br><span class="line">vagrant up</span><br></pre></td></tr></table></figure>
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/lnmp/" rel="tag">lnmp</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/virtualbox/" rel="tag">virtualbox</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/08/09/linux%E7%A1%AC%E7%9B%98%E6%89%A9%E5%AE%B9/"
+                    data-tooltip="linux硬盘扩容"
+                    aria-label="上一篇: linux硬盘扩容"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/07/26/vagrant%E7%9A%84%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8/"
+                    data-tooltip="vagrant的安装与使用"
+                    aria-label="下一篇: vagrant的安装与使用"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/08/01/virtualbox-%E6%90%AD%E5%BB%BALNMP%E7%8E%AF%E5%A2%83/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/08/01/virtualbox-%E6%90%AD%E5%BB%BALNMP%E7%8E%AF%E5%A2%83/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/08/01/virtualbox-%E6%90%AD%E5%BB%BALNMP%E7%8E%AF%E5%A2%83/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/08/09/linux%E7%A1%AC%E7%9B%98%E6%89%A9%E5%AE%B9/"
+                    data-tooltip="linux硬盘扩容"
+                    aria-label="上一篇: linux硬盘扩容"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/07/26/vagrant%E7%9A%84%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8/"
+                    data-tooltip="vagrant的安装与使用"
+                    aria-label="下一篇: vagrant的安装与使用"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/08/01/virtualbox-%E6%90%AD%E5%BB%BALNMP%E7%8E%AF%E5%A2%83/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/08/01/virtualbox-%E6%90%AD%E5%BB%BALNMP%E7%8E%AF%E5%A2%83/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/08/01/virtualbox-%E6%90%AD%E5%BB%BALNMP%E7%8E%AF%E5%A2%83/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/08/01/virtualbox-%E6%90%AD%E5%BB%BALNMP%E7%8E%AF%E5%A2%83/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/08/01/virtualbox-%E6%90%AD%E5%BB%BALNMP%E7%8E%AF%E5%A2%83/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2016/08/01/virtualbox-%E6%90%AD%E5%BB%BALNMP%E7%8E%AF%E5%A2%83/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

@@ -1,0 +1,658 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>JAVA基础语法特性 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"总结下JAVA语法方面的特点，JAVA在强类型的前提下实现了较为丰富的语法表达能力，这两点给软件开发提供了强大的工程能力。\n\n\n基本数据类型接口 / 注解接口的定义1234interface MyInterface &#123;    int attr = 0; // 接口里定义的属性 默认是 public static    void method();&#125;\n\n接口中定义的属性默认是 public static\n接口定义的方法只能是 抽象 非静态 方法\n接口中不能定义静态代码块\n注解定义123@interface MyAnno &#123;    int attr() default 0;&#125;\n\n注解是一种特殊的接口，注解在编译后其实其本质还是接口，注解是对定义类信息的增强，具体使用方式下面总结\n类 / 抽象类类的定义如下1234class MyClass &#123;    public final static int id = 0;    public static void method(int code) &#123;&#125;&#125;\n\n类的主要组成部分有 属性 和 方法，他们共有的有 类型 修饰 以及方法有的参数列表，其中修饰部分包括 访问权限 以及性质`。\n对于其中的修饰 static 与 final ，static 代表静态，被static 修饰的 类、属性、方法 其性质会发生变化，他会脱离定义的类，不依赖类而存在的，可以参考c语言中的static，编译后运行的二进制文件中这些被静态修饰的数据会放在初始化区域的。对于final 就是最终的意思，也就是不能被改变了，对于属性就是其中的值是不能被改变的，包括饮用的对象，对于类和方法，其涉及到的改变可能是类的继承以及方法的覆盖，final 修饰后这些也是不能改变的了。\n抽象类相对简单，类中存在一个抽象方法（没有方法题）这个类就是抽象类 需要用 abstract来修饰\n内部类内部类就是在类的内部再次定义类，如果用static修饰的话就是静态内部类 。内部类需要依赖宿主类而存在，若要实例化内部类，需要先实例化宿主类，内部类可以访问宿主类中的所有属性和方法，宿主类却不行。访问类中的内容是需要实例化的，内部类访问宿主类却可以是因为内部类实例化需要依赖宿主类的实例化，也就是说当内部类实例化了宿主类一定实例化了。对于静态内部类可以按照静态的思路来看待，声明为静态后他就是一个独立的类定义，与宿主类并无关系。\n枚举12345678910111213enum MyEnum &#123;    FOO(1, &quot;foo&quot;),    BAR(2, &quot;bar&quot;),    ;    private final int code;    private final String desc;    MyEnum(int code, String desc) &#123;        this.code = code;        this.desc = desc;        // MyEnum.values() 遍历枚举        // MyEnum.valueOf(&quot;&quot;) 通过枚举字符串查询枚举    &#125;&#125;\n\n面向对象特性访问权限访问权限表格如下\n\n\n\n–\n类内部\n继承子类\n同包名类\n其他\n\n\n\npublic\nY\nY\nY\nY\n\n\ndefault\nY\nY\nY\nN\n\n\nprotected\nY\nY\nN\nN\n\n\nprivate\nY\nN\nN\nN\n\n\n方法的重载与重写重写 @Override 是子类可以重写父类的方法，完全将父类的方法覆盖调\n12345678910111213class Parent &#123;   void method() &#123;       return 1;   &#125;&#125;class Child extends Parent &#123;    // 子类重写父类的方法    @Override    void method() &#123;        super.method(); // 子类调用父类方法        return 2;    &#125;&#125;\n\n重载 @Overload 是指可以定义同名不同参的方法，返回类型可相同可不同，不同参数列表可以是数量不同也可以是参数类型不同，距离如下：\n1234567class MyClass &#123;    void method(int id) &#123;&#125;    // 参数类型不同    id method(String id) &#123;&#125;    // 参数数量不同    String method(String id, int other) &#123;&#125;&#125;\n\n\n\n泛型泛型是将类型定义后推，泛型可以用在 接口 类 和 方法上面\n1234567891011// 接口定义interface MyInterface&lt;T&gt; &#123;    T method();&#125;// 类定义class MyClass&lt;T&gt; &#123;    T method();    // 方法中定义    public&lt;D&gt; void run(D arg) &#123;&#125;&#125;\n\n泛型中的类型擦除是指代码被编译成字节的时候泛型中指定的类型会被擦除（删除），这带来的问题是在反射的时候无法得到这个类型，当然这样做是为了增加一定的自由，比如如下的泛型使用：\n1List list = new ArrayList&lt;Integer&gt;();\n\n\n\n注解与反射注解注解的使用分为三个部分 定义 使用 读取\n注解定义12345@Target(ElementType.METHOD)@Retention(RetentionPolicy.RUNTIME)@interface MyAnnotation &#123;    String[] value() default &#123;&#125;;&#125;\n\n其中的 @Target(ElementType.METHOD) 指定了注解可以使用的范围 ，这里定义是指定了只能用在方法上\n其中的 @Retention(RetentionPolicy.RUNTIME) 指定了注解信息保留的阶段，可选值有 SOURCE CLASS RUNTIME。SOURCE指定注解信息只保留在源代码中，编译期就会丢弃注解信息。CLASS指定注解信息保留到编译生成的字节码，但是不会被加载到JVM中，这些注解信息在编译过程中是能够被读取到的。RUNTIME是将注解信息保留到在JVM中运行，这样代码里是能够通过反射读取到了。\n注解的使用1234567891011class MyClass &#123;    @MyAnnotation(value = &#123;&quot;a&quot;, &quot;b&quot;, &quot;c&quot;&#125;)    void method() &#123;&#125;        public static void main(String[] args) &#123;        // 通过反射获取方法中的注解信息        MyAnnotation myAnnotation = MyClassclass.getMethod(&quot;method&quot;).getAnnotation(MyAnnotation.class);        // 读取注解中的信息        myAnnotation.value();    &#125;&#125;\n\n反射反射其实就是对字节码信息的封装，方便通过api读取信息，获取反射的方法可以通过类的全名字符串的形式Class.forName(&quot;类的全名包括包名&quot;)，也可以通过类名称的形式 foo.bar.MyClass.class，也可以从一个实例化对象中获取 instance.getClass()\n动态代理JDKcglibJVM类加载内存分配GC回收算法JVM系列\n","dateCreated":"2021-05-31T20:45:22+08:00","dateModified":"2021-06-01T17:07:40+08:00","datePublished":"2021-05-31T20:45:22+08:00","description":"总结下JAVA语法方面的特点，JAVA在强类型的前提下实现了较为丰富的语法表达能力，这两点给软件开发提供了强大的工程能力。","headline":"JAVA基础语法特性","image":[],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2021/05/31/JAVA%E5%9F%BA%E7%A1%80%E8%AF%AD%E6%B3%95%E7%89%B9%E6%80%A7/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2021/05/31/JAVA%E5%9F%BA%E7%A1%80%E8%AF%AD%E6%B3%95%E7%89%B9%E6%80%A7/","keywords":"JAVA"}</script>
+    <meta name="description" content="总结下JAVA语法方面的特点，JAVA在强类型的前提下实现了较为丰富的语法表达能力，这两点给软件开发提供了强大的工程能力。">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="JAVA基础语法特性">
+<meta property="og:url" content="https://fantiq.github.io/2021/05/31/JAVA%E5%9F%BA%E7%A1%80%E8%AF%AD%E6%B3%95%E7%89%B9%E6%80%A7/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="总结下JAVA语法方面的特点，JAVA在强类型的前提下实现了较为丰富的语法表达能力，这两点给软件开发提供了强大的工程能力。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-05-31T12:45:22.000Z">
+<meta property="article:modified_time" content="2021-06-01T09:07:40.392Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="JAVA">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            JAVA基础语法特性
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2021-05-31T20:45:22+08:00">
+	
+		    5月 31, 2021
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/JAVA/">JAVA</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>总结下JAVA语法方面的特点，JAVA在强类型的前提下实现了较为丰富的语法表达能力，这两点给软件开发提供了强大的工程能力。</p>
+<span id="more"></span>
+
+<h2 id="基本数据类型"><a href="#基本数据类型" class="headerlink" title="基本数据类型"></a>基本数据类型</h2><h4 id="接口-注解"><a href="#接口-注解" class="headerlink" title="接口 / 注解"></a>接口 / 注解</h4><h6 id="接口的定义"><a href="#接口的定义" class="headerlink" title="接口的定义"></a>接口的定义</h6><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">interface MyInterface &#123;</span><br><span class="line">    int attr = 0; // 接口里定义的属性 默认是 public static</span><br><span class="line">    void method();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>接口中定义的属性默认是 <strong>public static</strong></p>
+<p>接口定义的方法只能是 <strong>抽象</strong> <strong>非静态</strong> 方法</p>
+<p>接口中不能定义静态代码块</p>
+<h6 id="注解定义"><a href="#注解定义" class="headerlink" title="注解定义"></a>注解定义</h6><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">@interface MyAnno &#123;</span><br><span class="line">    int attr() default 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注解是一种特殊的接口，注解在编译后其实其本质还是接口，注解是对定义类信息的增强，具体使用方式下面总结</p>
+<h4 id="类-抽象类"><a href="#类-抽象类" class="headerlink" title="类 / 抽象类"></a>类 / 抽象类</h4><h6 id="类的定义如下"><a href="#类的定义如下" class="headerlink" title="类的定义如下"></a>类的定义如下</h6><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">class MyClass &#123;</span><br><span class="line">    public final static int id = 0;</span><br><span class="line">    public static void method(int code) &#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>类的主要组成部分有 <strong>属性</strong> 和 <strong>方法</strong>，他们共有的有 <code>类型</code> <code>修饰</code> 以及方法有的<code>参数列表</code>，其中修饰部分包括 <code>访问权限</code> <code>以及</code>性质`。</p>
+<p>对于其中的修饰 <code>static</code> 与 <code>final</code> ，<code>static</code> 代表静态，被<code>static</code> 修饰的 类、属性、方法 其性质会发生变化，他会脱离定义的类，不依赖类而存在的，可以参考c语言中的<code>static</code>，编译后运行的二进制文件中这些被静态修饰的数据会放在初始化区域的。对于<code>final</code> 就是<strong>最终</strong>的意思，也就是不能被改变了，对于属性就是其中的值是不能被改变的，包括饮用的对象，对于类和方法，其涉及到的改变可能是类的继承以及方法的覆盖，<code>final</code> 修饰后这些也是不能改变的了。</p>
+<p>抽象类相对简单，类中存在一个抽象方法（没有方法题）这个类就是抽象类 需要用 <code>abstract</code>来修饰</p>
+<h6 id="内部类"><a href="#内部类" class="headerlink" title="内部类"></a>内部类</h6><p>内部类就是在类的内部再次定义类，如果用<code>static</code>修饰的话就是<code>静态内部类</code> 。内部类需要依赖宿主类而存在，若要实例化内部类，需要先实例化宿主类，内部类可以访问宿主类中的所有属性和方法，宿主类却不行。访问类中的内容是需要实例化的，内部类访问宿主类却可以是因为内部类实例化需要依赖宿主类的实例化，也就是说当内部类实例化了宿主类一定实例化了。对于静态内部类可以按照静态的思路来看待，声明为静态后他就是一个独立的类定义，与宿主类并无关系。</p>
+<h4 id="枚举"><a href="#枚举" class="headerlink" title="枚举"></a>枚举</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">enum MyEnum &#123;</span><br><span class="line">    FOO(1, &quot;foo&quot;),</span><br><span class="line">    BAR(2, &quot;bar&quot;),</span><br><span class="line">    ;</span><br><span class="line">    private final int code;</span><br><span class="line">    private final String desc;</span><br><span class="line">    MyEnum(int code, String desc) &#123;</span><br><span class="line">        this.code = code;</span><br><span class="line">        this.desc = desc;</span><br><span class="line">        // MyEnum.values() 遍历枚举</span><br><span class="line">        // MyEnum.valueOf(&quot;&quot;) 通过枚举字符串查询枚举</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="面向对象特性"><a href="#面向对象特性" class="headerlink" title="面向对象特性"></a>面向对象特性</h2><h4 id="访问权限"><a href="#访问权限" class="headerlink" title="访问权限"></a>访问权限</h4><p>访问权限表格如下</p>
+<table>
+<thead>
+<tr>
+<th>–</th>
+<th>类内部</th>
+<th>继承子类</th>
+<th>同包名类</th>
+<th>其他</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>public</td>
+<td>Y</td>
+<td>Y</td>
+<td>Y</td>
+<td>Y</td>
+</tr>
+<tr>
+<td>default</td>
+<td>Y</td>
+<td>Y</td>
+<td>Y</td>
+<td>N</td>
+</tr>
+<tr>
+<td>protected</td>
+<td>Y</td>
+<td>Y</td>
+<td>N</td>
+<td>N</td>
+</tr>
+<tr>
+<td>private</td>
+<td>Y</td>
+<td>N</td>
+<td>N</td>
+<td>N</td>
+</tr>
+</tbody></table>
+<h4 id="方法的重载与重写"><a href="#方法的重载与重写" class="headerlink" title="方法的重载与重写"></a>方法的重载与重写</h4><p>重写 <code>@Override</code> 是子类可以重写父类的方法，完全将父类的方法覆盖调</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">class Parent &#123;</span><br><span class="line">   void method() &#123;</span><br><span class="line">       return 1;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br><span class="line">class Child extends Parent &#123;</span><br><span class="line">    // 子类重写父类的方法</span><br><span class="line">    @Override</span><br><span class="line">    void method() &#123;</span><br><span class="line">        super.method(); // 子类调用父类方法</span><br><span class="line">        return 2;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>重载 <code>@Overload</code> 是指可以定义同名不同参的方法，返回类型可相同可不同，不同参数列表可以是数量不同也可以是参数类型不同，距离如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">class MyClass &#123;</span><br><span class="line">    void method(int id) &#123;&#125;</span><br><span class="line">    // 参数类型不同</span><br><span class="line">    id method(String id) &#123;&#125;</span><br><span class="line">    // 参数数量不同</span><br><span class="line">    String method(String id, int other) &#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="泛型"><a href="#泛型" class="headerlink" title="泛型"></a>泛型</h4><p>泛型是将类型定义后推，泛型可以用在 <code>接口</code> <code>类</code> 和 <code>方法</code>上面</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">// 接口定义</span><br><span class="line">interface MyInterface&lt;T&gt; &#123;</span><br><span class="line">    T method();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 类定义</span><br><span class="line">class MyClass&lt;T&gt; &#123;</span><br><span class="line">    T method();</span><br><span class="line">    // 方法中定义</span><br><span class="line">    public&lt;D&gt; void run(D arg) &#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>泛型中的类型擦除是指代码被编译成字节的时候泛型中指定的类型会被擦除（删除），这带来的问题是在反射的时候无法得到这个类型，当然这样做是为了增加一定的自由，比如如下的泛型使用：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">List list = new ArrayList&lt;Integer&gt;();</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="注解与反射"><a href="#注解与反射" class="headerlink" title="注解与反射"></a>注解与反射</h2><h4 id="注解"><a href="#注解" class="headerlink" title="注解"></a>注解</h4><p>注解的使用分为三个部分 <code>定义</code> <code>使用</code> <code>读取</code></p>
+<h6 id="注解定义-1"><a href="#注解定义-1" class="headerlink" title="注解定义"></a>注解定义</h6><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">@Target(ElementType.METHOD)</span><br><span class="line">@Retention(RetentionPolicy.RUNTIME)</span><br><span class="line">@interface MyAnnotation &#123;</span><br><span class="line">    String[] value() default &#123;&#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中的 <code>@Target(ElementType.METHOD)</code> 指定了注解可以使用的范围 ，这里定义是指定了只能用在方法上</p>
+<p>其中的 <code>@Retention(RetentionPolicy.RUNTIME)</code> 指定了注解信息保留的阶段，可选值有 <code>SOURCE</code> <code>CLASS</code> <code>RUNTIME</code>。<code>SOURCE</code>指定注解信息只保留在源代码中，编译期就会丢弃注解信息。<code>CLASS</code>指定注解信息保留到编译生成的字节码，但是不会被加载到JVM中，这些注解信息在编译过程中是能够被读取到的。<code>RUNTIME</code>是将注解信息保留到在JVM中运行，这样代码里是能够通过反射读取到了。</p>
+<h6 id="注解的使用"><a href="#注解的使用" class="headerlink" title="注解的使用"></a>注解的使用</h6><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">class MyClass &#123;</span><br><span class="line">    @MyAnnotation(value = &#123;&quot;a&quot;, &quot;b&quot;, &quot;c&quot;&#125;)</span><br><span class="line">    void method() &#123;&#125;</span><br><span class="line">    </span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        // 通过反射获取方法中的注解信息</span><br><span class="line">        MyAnnotation myAnnotation = MyClassclass.getMethod(&quot;method&quot;).getAnnotation(MyAnnotation.class);</span><br><span class="line">        // 读取注解中的信息</span><br><span class="line">        myAnnotation.value();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="反射"><a href="#反射" class="headerlink" title="反射"></a>反射</h4><p>反射其实就是对字节码信息的封装，方便通过api读取信息，获取反射的方法可以通过类的全名字符串的形式<code>Class.forName(&quot;类的全名包括包名&quot;)</code>，也可以通过类名称的形式 <code>foo.bar.MyClass.class</code>，也可以从一个实例化对象中获取 <code>instance.getClass()</code></p>
+<h2 id="动态代理"><a href="#动态代理" class="headerlink" title="动态代理"></a>动态代理</h2><h4 id="JDK"><a href="#JDK" class="headerlink" title="JDK"></a>JDK</h4><h4 id="cglib"><a href="#cglib" class="headerlink" title="cglib"></a>cglib</h4><h2 id="JVM"><a href="#JVM" class="headerlink" title="JVM"></a>JVM</h2><h4 id="类加载"><a href="#类加载" class="headerlink" title="类加载"></a>类加载</h4><h4 id="内存分配"><a href="#内存分配" class="headerlink" title="内存分配"></a>内存分配</h4><h4 id="GC回收算法"><a href="#GC回收算法" class="headerlink" title="GC回收算法"></a>GC回收算法</h4><p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/mp/appmsgalbum?__biz=MzI4NDY5Mjc1Mg==&action=getalbum&album_id=1326602114365276164">JVM系列</a></p>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/JAVA/" rel="tag">JAVA</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a
+                        class="post-action-btn btn btn--disabled"
+                        aria-hidden="true"
+                    >
+                        
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2021/05/27/%E6%B1%87%E7%BC%96%E5%9F%BA%E7%A1%80%E5%85%A5%E9%97%A8/"
+                    data-tooltip="汇编基础入门"
+                    aria-label="下一篇: 汇编基础入门"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2021/05/31/JAVA%E5%9F%BA%E7%A1%80%E8%AF%AD%E6%B3%95%E7%89%B9%E6%80%A7/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2021/05/31/JAVA%E5%9F%BA%E7%A1%80%E8%AF%AD%E6%B3%95%E7%89%B9%E6%80%A7/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2021/05/31/JAVA%E5%9F%BA%E7%A1%80%E8%AF%AD%E6%B3%95%E7%89%B9%E6%80%A7/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a
+                        class="post-action-btn btn btn--disabled"
+                        aria-hidden="true"
+                    >
+                        
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2021/05/27/%E6%B1%87%E7%BC%96%E5%9F%BA%E7%A1%80%E5%85%A5%E9%97%A8/"
+                    data-tooltip="汇编基础入门"
+                    aria-label="下一篇: 汇编基础入门"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2021/05/31/JAVA%E5%9F%BA%E7%A1%80%E8%AF%AD%E6%B3%95%E7%89%B9%E6%80%A7/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2021/05/31/JAVA%E5%9F%BA%E7%A1%80%E8%AF%AD%E6%B3%95%E7%89%B9%E6%80%A7/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2021/05/31/JAVA%E5%9F%BA%E7%A1%80%E8%AF%AD%E6%B3%95%E7%89%B9%E6%80%A7/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2021/05/31/JAVA%E5%9F%BA%E7%A1%80%E8%AF%AD%E6%B3%95%E7%89%B9%E6%80%A7/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2021/05/31/JAVA%E5%9F%BA%E7%A1%80%E8%AF%AD%E6%B3%95%E7%89%B9%E6%80%A7/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2021/05/31/JAVA%E5%9F%BA%E7%A1%80%E8%AF%AD%E6%B3%95%E7%89%B9%E6%80%A7/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

@@ -1,0 +1,606 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>linux centos supervisor守护进程总结 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"有时候我们通过screen 可以让程序不会随着shell的关闭而关闭 ，虽然程序在执行 但是在各种情况下 会有一些问题导致这个程序停止掉。在liunx上一些著名的开源程序提供一个守护进程的方法 通过监听代码是否在执行 如果不再执行就自动重启他 从而保证服务的稳定比如 php-fpm 这样的东西 ， 但是当我们开发一个需要一直执行的脚本 如何能有一个守护进程来保证服务的稳定呢？自己开发守护进程的成本太高 linux有一个提供这个功能的开源程序supervisor 这里就总结下这个软件的使用\n\n\n\n1 安装安装\n1yum install supervisor -y\n查看是否安装成功\n1service supervisord status\n2 配置1234567891011121314151617vim /etc/supervisord.conf# 配置详解[program:任务名称]# 守护执行的命令command=/root/test/shell/test# 是否自动启动autostart=true# 是否自动重启autorestart=truestartsecs=3# 是否捕获错误redirect_stderr=true# 错误日志stdout_logfile=/root/test/shellsupervisor.log# 命令执行的用户 这里设置出错会导致权限问题user=root\n3 启动服务端\n123service supervisord start# 或者supervisord\n用户端\n12345678supervisorctlsupervisor&gt; help # 帮助命令supervisor&gt; status # 查看任务状态supervisor&gt; start # 启动任务supervisor&gt; stop # 停止任务supervisor&gt; restart # 重启任务supervisor&gt; reload # 重新加载配置文件 修改配置文件一定要reload后才会生效\n4 使用比如我们创建一个每10分钟将当前时间写入到一个文件的shell/root/test/shell/time\n12345678#!/bin/bashwhile truedo    sleep 10    echo `date` &gt;&gt; time.logdone给以执行权限\nchmod u+x time\n12345678910给所有人添加执行权限chmod +x filename给所有人添加执行权限chmod a+x filename给所属组添加执行权限chmod g+x filename给其他人添加执行权限chmod o+x filename给文件所属人添加执行权限chmod u+x filename\n测试执行命令./time\n加入到supervisor\n1234vim /etc/supervisord.conf[program:super_test]command=/root/test/shell/time\n执行客户端\n123456# 进入客户端supervisorctl# 重新加载配置文件reload# 这时查看 这个任务已经启动 我们设置了自动启动status\n注意配置里面的command命令要写全路径 suerpvisor有这样一个小bug\n参考链接\n","dateCreated":"2016-06-07T22:35:30+08:00","dateModified":"2016-06-12T17:04:48+08:00","datePublished":"2016-06-07T22:35:30+08:00","description":"有时候我们通过screen 可以让程序不会随着shell的关闭而关闭 ，虽然程序在执行 但是在各种情况下 会有一些问题导致这个程序停止掉。在liunx上一些著名的开源程序提供一个守护进程的方法 通过监听代码是否在执行 如果不再执行就自动重启他 从而保证服务的稳定比如 php-fpm 这样的东西 ， 但是当我们开发一个需要一直执行的脚本 如何能有一个守护进程来保证服务的稳定呢？自己开发守护进程的成本太高 linux有一个提供这个功能的开源程序supervisor 这里就总结下这个软件的使用","headline":"linux centos supervisor守护进程总结","image":[],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2016/06/07/linux-centos-supervisor%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E6%80%BB%E7%BB%93/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2016/06/07/linux-centos-supervisor%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E6%80%BB%E7%BB%93/","keywords":"linux, centos, screen"}</script>
+    <meta name="description" content="有时候我们通过screen 可以让程序不会随着shell的关闭而关闭 ，虽然程序在执行 但是在各种情况下 会有一些问题导致这个程序停止掉。在liunx上一些著名的开源程序提供一个守护进程的方法 通过监听代码是否在执行 如果不再执行就自动重启他 从而保证服务的稳定比如 php-fpm 这样的东西 ， 但是当我们开发一个需要一直执行的脚本 如何能有一个守护进程来保证服务的稳定呢？自己开发守护进程的成本">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="linux centos supervisor守护进程总结">
+<meta property="og:url" content="https://fantiq.github.io/2016/06/07/linux-centos-supervisor%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E6%80%BB%E7%BB%93/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="有时候我们通过screen 可以让程序不会随着shell的关闭而关闭 ，虽然程序在执行 但是在各种情况下 会有一些问题导致这个程序停止掉。在liunx上一些著名的开源程序提供一个守护进程的方法 通过监听代码是否在执行 如果不再执行就自动重启他 从而保证服务的稳定比如 php-fpm 这样的东西 ， 但是当我们开发一个需要一直执行的脚本 如何能有一个守护进程来保证服务的稳定呢？自己开发守护进程的成本">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-06-07T14:35:30.000Z">
+<meta property="article:modified_time" content="2016-06-12T09:04:48.000Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="linux">
+<meta property="article:tag" content="centos">
+<meta property="article:tag" content="screen">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            linux centos supervisor守护进程总结
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2016-06-07T22:35:30+08:00">
+	
+		    6月 07, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/%E8%BF%90%E7%BB%B4/">运维</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>有时候我们通过<code>screen</code> 可以让程序不会随着shell的关闭而关闭 ，虽然程序在执行 但是<br>在各种情况下 会有一些问题导致这个程序停止掉。在liunx上一些著名的开源程序提供一个<br>守护进程的方法 通过监听代码是否在执行 如果不再执行就自动重启他 从而保证服务的稳定<br>比如 <code>php-fpm</code> 这样的东西 ， 但是当我们开发一个需要一直执行的脚本 如何能有一个守护进程<br>来保证服务的稳定呢？自己开发守护进程的成本太高 linux有一个提供这个功能的开源程序<br><code>supervisor</code> 这里就总结下这个软件的使用</p>
+<span id="more"></span>
+
+
+<h2 id="1-安装"><a href="#1-安装" class="headerlink" title="1 安装"></a>1 安装</h2><p>安装</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install supervisor -y</span><br></pre></td></tr></table></figure>
+<p>查看是否安装成功</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">service supervisord status</span><br></pre></td></tr></table></figure>
+<h2 id="2-配置"><a href="#2-配置" class="headerlink" title="2 配置"></a>2 配置</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/supervisord.conf</span><br><span class="line"></span><br><span class="line"># 配置详解</span><br><span class="line">[program:任务名称]</span><br><span class="line"># 守护执行的命令</span><br><span class="line">command=/root/test/shell/test</span><br><span class="line"># 是否自动启动</span><br><span class="line">autostart=true</span><br><span class="line"># 是否自动重启</span><br><span class="line">autorestart=true</span><br><span class="line">startsecs=3</span><br><span class="line"># 是否捕获错误</span><br><span class="line">redirect_stderr=true</span><br><span class="line"># 错误日志</span><br><span class="line">stdout_logfile=/root/test/shellsupervisor.log</span><br><span class="line"># 命令执行的用户 这里设置出错会导致权限问题</span><br><span class="line">user=root</span><br></pre></td></tr></table></figure>
+<h2 id="3-启动"><a href="#3-启动" class="headerlink" title="3 启动"></a>3 启动</h2><p>服务端</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">service supervisord start</span><br><span class="line"># 或者</span><br><span class="line">supervisord</span><br></pre></td></tr></table></figure>
+<p>用户端</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">supervisorctl</span><br><span class="line"></span><br><span class="line">supervisor&gt; help # 帮助命令</span><br><span class="line">supervisor&gt; status # 查看任务状态</span><br><span class="line">supervisor&gt; start # 启动任务</span><br><span class="line">supervisor&gt; stop # 停止任务</span><br><span class="line">supervisor&gt; restart # 重启任务</span><br><span class="line">supervisor&gt; reload # 重新加载配置文件 修改配置文件一定要reload后才会生效</span><br></pre></td></tr></table></figure>
+<h2 id="4-使用"><a href="#4-使用" class="headerlink" title="4 使用"></a>4 使用</h2><p>比如我们创建一个每10分钟将当前时间写入到一个文件的shell<br>/root/test/shell/time</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">#!/bin/bash</span><br><span class="line">while true</span><br><span class="line">do</span><br><span class="line">    sleep 10</span><br><span class="line">    echo `date` &gt;&gt; time.log</span><br><span class="line">done</span><br><span class="line"></span><br><span class="line">给以执行权限</span><br></pre></td></tr></table></figure>
+<p><code>chmod u+x time</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">给所有人添加执行权限</span><br><span class="line">chmod +x filename</span><br><span class="line">给所有人添加执行权限</span><br><span class="line">chmod a+x filename</span><br><span class="line">给所属组添加执行权限</span><br><span class="line">chmod g+x filename</span><br><span class="line">给其他人添加执行权限</span><br><span class="line">chmod o+x filename</span><br><span class="line">给文件所属人添加执行权限</span><br><span class="line">chmod u+x filename</span><br></pre></td></tr></table></figure>
+<p>测试执行命令<br><code>./time</code></p>
+<p>加入到supervisor</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/supervisord.conf</span><br><span class="line"></span><br><span class="line">[program:super_test]</span><br><span class="line">command=/root/test/shell/time</span><br></pre></td></tr></table></figure>
+<p>执行客户端</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># 进入客户端</span><br><span class="line">supervisorctl</span><br><span class="line"># 重新加载配置文件</span><br><span class="line">reload</span><br><span class="line"># 这时查看 这个任务已经启动 我们设置了自动启动</span><br><span class="line">status</span><br></pre></td></tr></table></figure>
+<p><strong>注意</strong><br>配置里面的command命令要写全路径 suerpvisor有这样一个小<a target="_blank" rel="noopener" href="http://www.plope.com/software/collector/215/">bug</a></p>
+<p><a target="_blank" rel="noopener" href="https://fukun.org/archives/07102224.html">参考链接</a></p>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/centos/" rel="tag">centos</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/linux/" rel="tag">linux</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/screen/" rel="tag">screen</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                    data-tooltip="linux centos 硬盘共享nfs使用总结"
+                    aria-label="上一篇: linux centos 硬盘共享nfs使用总结"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/07/linux-centos-screen%E7%9A%84%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                    data-tooltip="linux centos screen的使用总结"
+                    aria-label="下一篇: linux centos screen的使用总结"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/06/07/linux-centos-supervisor%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E6%80%BB%E7%BB%93/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/06/07/linux-centos-supervisor%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E6%80%BB%E7%BB%93/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/06/07/linux-centos-supervisor%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E6%80%BB%E7%BB%93/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                    data-tooltip="linux centos 硬盘共享nfs使用总结"
+                    aria-label="上一篇: linux centos 硬盘共享nfs使用总结"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/07/linux-centos-screen%E7%9A%84%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                    data-tooltip="linux centos screen的使用总结"
+                    aria-label="下一篇: linux centos screen的使用总结"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/06/07/linux-centos-supervisor%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E6%80%BB%E7%BB%93/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/06/07/linux-centos-supervisor%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E6%80%BB%E7%BB%93/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/06/07/linux-centos-supervisor%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E6%80%BB%E7%BB%93/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/06/07/linux-centos-supervisor%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E6%80%BB%E7%BB%93/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/06/07/linux-centos-supervisor%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E6%80%BB%E7%BB%93/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2016/06/07/linux-centos-supervisor%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E6%80%BB%E7%BB%93/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

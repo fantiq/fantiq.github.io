@@ -1,0 +1,628 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>symfony源码分析之框架主流程 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"这是基于 symfony3.3.0版本的源代码分析，主要包含以下部分：\n\n框架主流程\n容器生成及使用\n路由生成\n配置文件加载\n事件委派\n\n在对源代码进行分析的时候，使用phpstrom配合xdebug扩展进行断点调试，对代码分析以及梳理起到了很大的帮助。phpstrom断点的配置可以参考 这里\n\n\n1 调用过程web/app.php12$kernel = new AppKernel(&#x27;prod&#x27;, false);$response = $kernel-&gt;handle($request);\n\nSymfony\\Component\\HttpKernel\\Kernel123456789public function handle(Request $request, $type = HttpKernelInterface::MASTER_REQUEST, $catch = true)&#123;    if (false === $this-&gt;booted) &#123;    \t// 初始化 容器 与 Bundle        $this-&gt;boot();    &#125;    // 这里通过容器的形式获取 Symfony\\Component\\HttpKernel\\HttpKernel 并调用 handle方法     return $this-&gt;getHttpKernel()-&gt;handle($request, $type, $catch);&#125;\nSymfony\\Component\\HttpKernel\\HttpKernel123456789101112131415161718192021222324252627282930313233343536private function handleRaw(Request $request, $type = self::MASTER_REQUEST)&#123;    $this-&gt;requestStack-&gt;push($request);// 匹配路由 查询需要执行的控制器$event = new GetResponseEvent($this, $request, $type);$this-&gt;dispatcher-&gt;dispatch(KernelEvents::REQUEST, $event);// 获取控制器的实例以及要执行的方法if (false === $controller = $this-&gt;resolver-&gt;getController($request)) &#123;    throw new NotFoundHttpException(sprintf(&#x27;Unable to find the controller for path &quot;%s&quot;. The route is wrongly configured.&#x27;, $request-&gt;getPathInfo()));&#125;// 这里的是为了触发事件 可以在事件委派的章节具体查看$event = new FilterControllerEvent($this, $controller, $request, $type);$this-&gt;dispatcher-&gt;dispatch(KernelEvents::CONTROLLER, $event);$controller = $event-&gt;getController();// 对控制器要执行的方法进行反射 获取方法中需要的参数 并通过容器来获取实例化的对象返回$arguments = $this-&gt;argumentResolver-&gt;getArguments($request, $controller);// 这里的是为了触发事件 可以在事件委派的章节具体查看$event = new FilterControllerArgumentsEvent($this, $controller, $arguments, $request, $type);$this-&gt;dispatcher-&gt;dispatch(KernelEvents::CONTROLLER_ARGUMENTS, $event);$controller = $event-&gt;getController();$arguments = $event-&gt;getArguments();// call controller//这里执行控制器$response = call_user_func_array($controller, $arguments);if (!$response instanceof Response) &#123;\t// 当控制器返回的不是Response的话当作view来渲染处理&#125;return $this-&gt;filterResponse($response, $request, $type);&#125;\n\n2 主流程分析对主流程代码进行精简，忽略事件委派的代码，流程如下\n12345678// 1. 匹配路由 查询需要执行的控制器$this-&gt;dispatcher-&gt;dispatch(KernelEvents::REQUEST, $event);// 2. 获取控制器的实例以及要执行的方法$controller = $this-&gt;resolver-&gt;getController($request)// 3. 对控制器要执行的方法进行反射 获取方法中需要的参数 并通过容器来获取实例化的对象返回$arguments = $this-&gt;argumentResolver-&gt;getArguments($request, $controller);// 4. 这里执行控制器$response = call_user_func_array($controller, $arguments);\n\n2.1 匹配路由 查询需要执行的控制器这里主要是触发了一个事件 KernelEvents::REQUEST , 这个事件中的一个handler Symfony\\Component\\HttpKernel\\EventListener\\RouterListener，进行了路由 、控制器的分析查询，如果路由没有生成还会生成路由代码。\n1234567891011121314151617181920212223242526272829# Symfony\\Component\\HttpKernel\\EventListener\\RouterListenerpublic function onKernelRequest(GetResponseEvent $event)&#123;\t// 路由已经解析过的话就直接返回    if ($request-&gt;attributes-&gt;has(&#x27;_controller&#x27;)) &#123;        return;    &#125;    try &#123;        if ($this-&gt;matcher instanceof RequestMatcherInterface) &#123;        \t// 匹配路由 获取信息            $parameters = $this-&gt;matcher-&gt;matchRequest($request);        &#125; else &#123;            $parameters = $this-&gt;matcher-&gt;match($request-&gt;getPathInfo());        &#125;        //将分析出来的参数信息 控制器 方法 路由 添加到 request 的 attributes属性中        // $parameters = [        // \t&#x27;_controller&#x27; =&gt; &quot;控制器::方法&quot;,        // \t&#x27;_route&#x27; =&#x27;&#x27;        // ]        $request-&gt;attributes-&gt;add($parameters);        unset($parameters[&#x27;_route&#x27;], $parameters[&#x27;_controller&#x27;]);        $request-&gt;attributes-&gt;set(&#x27;_route_params&#x27;, $parameters);    &#125; catch (ResourceNotFoundException $e) &#123;    \t// ......    &#125; catch (MethodNotAllowedException $e) &#123;    \t// ......    &#125;&#125;\n路由匹配的代码分析，框架会将路由信息分析出来并存储在 缓存文件 var/prod/appProdProjectContainerUrlMatcher.php 中，具体的路由生成代码可以到 路由代码生成分析 具体查看\n1234567891011121314151617181920212223242526272829303132333435363738394041424344# Symfony\\Bundle\\FrameworkBundle\\Routing\\Routerpublic function getRouteCollection()&#123;    if (null === $this-&gt;collection) &#123;    \t// 通过容器获取 routing.loader 对应的对象并调用方法 load     \t// Symfony\\Bundle\\FrameworkBundle\\Routing\\DelegatingLoader::load     \t// 参数     \t//\t\t$this-&gt;resource -&gt; app/config/routing.yml     \t//\t\t$this-&gt;options[&#x27;resource_type&#x27;] -&gt; null         $this-&gt;collection = $this-&gt;container-&gt;get(&#x27;routing.loader&#x27;)-&gt;load($this-&gt;resource, $this-&gt;options[&#x27;resource_type&#x27;]);        $this-&gt;resolveParameters($this-&gt;collection);        $this-&gt;collection-&gt;addResource(new ContainerParametersResource($this-&gt;collectedParameters));    &#125;    return $this-&gt;collection;&#125;# Syfmony\\Component\\Routing\\Router\\Routerpublic function matchRequest(Request $request)&#123;    $matcher = $this-&gt;getMatcher();    if (!$matcher instanceof RequestMatcherInterface) &#123;        // fallback to the default UrlMatcherInterface        return $matcher-&gt;match($request-&gt;getPathInfo());    &#125;    return $matcher-&gt;matchRequest($request);&#125;public function getMatcher()&#123;    // $this-&gt;getConfigCacheFactory() -&gt; Symfony\\Component\\Config\\ResourceCheckerConfigCacheFactory    // 获取存储路由信息的文件 var/prod/appProdProjectContainerUrlMatcher.php    $cache = $this-&gt;getConfigCacheFactory()-&gt;cache($this-&gt;options[&#x27;cache_dir&#x27;].&#x27;/&#x27;.$this-&gt;options[&#x27;matcher_cache_class&#x27;].&#x27;.php&#x27;,        //当路由文件没有生成的时候 这个匿名方法执行，通过配置文件生成路由关系且存储到缓存文件        function (ConfigCacheInterface $cache) &#123;            // ......        &#125;    );    //这里加载并实例化了缓存的路由信息 var/cache/dev/app[ENV]DebugProjectContainerUrlMatcher.php    require_once $cache-&gt;getPath();    return $this-&gt;matcher = new $this-&gt;options[&#x27;matcher_cache_class&#x27;]($this-&gt;context);&#125;\n\n\n2.2 获取控制器的实例以及要执行的方法此处代码的调用连如下\n123Symfony\\Bundle\\FrameworkBundle\\Controller\\ControllerResolver extends Symfony\\Component\\HttpKernel\\Controller\\ContainerControllerResolver extends Symfony\\Component\\HttpKernel\\Controller\\ControllerResolver\n最终执行的核心代码如下：\n123456789101112131415161718192021222324252627282930313233343536373839404142# Symfony\\Component\\HttpKernel\\Controller\\ControllerResolverpublic function getController(Request $request)&#123;\t// 这里的变量 $controller 就是从$request 的 attributes属性中获取的，这个属性的数据是 事件 KernelEvents::CONTROLLER中的handler RouterListener 设置的\t// 下面的代码逻辑主要是对控制器不同类型的处理 匿名回调 数组 对象 等    if (!$controller = $request-&gt;attributes-&gt;get(&#x27;_controller&#x27;)) &#123;        if (null !== $this-&gt;logger) &#123;            $this-&gt;logger-&gt;warning(&#x27;Unable to look for the controller as the &quot;_controller&quot; parameter is missing.&#x27;);        &#125;        return false;    &#125;    if (is_array($controller)) &#123;        return $controller;    &#125;    if (is_object($controller)) &#123;        if (method_exists($controller, &#x27;__invoke&#x27;)) &#123;            return $controller;        &#125;        throw new \\InvalidArgumentException(sprintf(&#x27;Controller &quot;%s&quot; for URI &quot;%s&quot; is not callable.&#x27;, get_class($controller), $request-&gt;getPathInfo()));    &#125;    if (false === strpos($controller, &#x27;:&#x27;)) &#123;        if (method_exists($controller, &#x27;__invoke&#x27;)) &#123;            return $this-&gt;instantiateController($controller);        &#125; elseif (function_exists($controller)) &#123;            return $controller;        &#125;    &#125;    $callable = $this-&gt;createController($controller);    if (!is_callable($callable)) &#123;        throw new \\InvalidArgumentException(sprintf(&#x27;The controller for URI &quot;%s&quot; is not callable. %s&#x27;, $request-&gt;getPathInfo(), $this-&gt;getControllerError($callable)));    &#125;    return $callable;&#125;\n以上代码的核心片段就是 $controller = $request-&gt;attributes-&gt;get(&#39;_controller&#39;)\n2.3 对控制器要执行的方法进行反射 获取方法中需要的参数 并通过容器来获取实例化的对象返回控制器方法中的参数处理核心代码如下\n1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950# Symfony\\Component\\HttpKernel\\Controller\\ArgumentResolverpublic function getArguments(Request $request, $controller)&#123;    $arguments = array();    //反射获得的控制器方法中的参数，且将参数封装到对象 Symfony\\Component\\HttpKernel\\ControllerMetadata\\ArgumentMetadata    foreach ($this-&gt;argumentMetadataFactory-&gt;createArgumentMetadata($controller) as $metadata) &#123;        //将argument resolver 中的对象逐一进行尝试        foreach ($this-&gt;argumentValueResolvers as $resolver) &#123;            if (!$resolver-&gt;supports($request, $metadata)) &#123;                continue;            &#125;            $resolved = $resolver-&gt;resolve($request, $metadata);            if (!$resolved instanceof \\Generator) &#123;                throw new \\InvalidArgumentException(sprintf(&#x27;%s::resolve() must yield at least one value.&#x27;, get_class($resolver)));            &#125;            //$resolver 返回的是 Generator yield            foreach ($resolved as $append) &#123;                $arguments[] = $append;            &#125;            // continue to the next controller argument            continue 2; // 跳转到上一层循环继续        &#125;        $representative = $controller;        if (is_array($representative)) &#123;            $representative = sprintf(&#x27;%s::%s()&#x27;, get_class($representative[0]), $representative[1]);        &#125; elseif (is_object($representative)) &#123;            $representative = get_class($representative);        &#125;        throw new \\RuntimeException(sprintf(&#x27;Controller &quot;%s&quot; requires that you provide a value for the &quot;$%s&quot; argument. Either the argument is nullable and no null value has been provided, no default value has been provided or because there is a non optional argument after this one.&#x27;, $representative, $metadata-&gt;getName()));    &#125;    return $arguments;&#125;public static function getDefaultArgumentValueResolvers()&#123;    return array(        new RequestAttributeValueResolver(),        new RequestValueResolver(),        new SessionValueResolver(),        new DefaultValueResolver(),        new VariadicValueResolver(),    );&#125;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n","dateCreated":"2017-06-29T14:37:33+08:00","dateModified":"2017-06-29T17:31:02+08:00","datePublished":"2017-06-29T14:37:33+08:00","description":"这是基于 symfony3.3.0版本的源代码分析，主要包含以下部分：\n\n框架主流程\n容器生成及使用\n路由生成\n配置文件加载\n事件委派\n\n在对源代码进行分析的时候，使用phpstrom配合xdebug扩展进行断点调试，对代码分析以及梳理起到了很大的帮助。phpstrom断点的配置可以参考 这里","headline":"symfony源码分析之框架主流程","image":[],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2017/06/29/symfony%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8B%E6%A1%86%E6%9E%B6%E4%B8%BB%E6%B5%81%E7%A8%8B/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2017/06/29/symfony%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8B%E6%A1%86%E6%9E%B6%E4%B8%BB%E6%B5%81%E7%A8%8B/","keywords":"symfony, php框架, 源码分析"}</script>
+    <meta name="description" content="这是基于 symfony3.3.0版本的源代码分析，主要包含以下部分：  框架主流程 容器生成及使用 路由生成 配置文件加载 事件委派  在对源代码进行分析的时候，使用phpstrom配合xdebug扩展进行断点调试，对代码分析以及梳理起到了很大的帮助。phpstrom断点的配置可以参考 这里">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="symfony源码分析之框架主流程">
+<meta property="og:url" content="https://fantiq.github.io/2017/06/29/symfony%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8B%E6%A1%86%E6%9E%B6%E4%B8%BB%E6%B5%81%E7%A8%8B/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="这是基于 symfony3.3.0版本的源代码分析，主要包含以下部分：  框架主流程 容器生成及使用 路由生成 配置文件加载 事件委派  在对源代码进行分析的时候，使用phpstrom配合xdebug扩展进行断点调试，对代码分析以及梳理起到了很大的帮助。phpstrom断点的配置可以参考 这里">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2017-06-29T06:37:33.000Z">
+<meta property="article:modified_time" content="2017-06-29T09:31:02.000Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="symfony">
+<meta property="article:tag" content="php框架">
+<meta property="article:tag" content="源码分析">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            symfony源码分析之框架主流程
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2017-06-29T14:37:33+08:00">
+	
+		    6月 29, 2017
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/symfony%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">symfony源码分析</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>这是基于 symfony3.3.0版本的源代码分析，主要包含以下部分：</p>
+<ol>
+<li>框架主流程</li>
+<li>容器生成及使用</li>
+<li>路由生成</li>
+<li>配置文件加载</li>
+<li>事件委派</li>
+</ol>
+<p>在对源代码进行分析的时候，使用phpstrom配合xdebug扩展进行断点调试，对代码分析以及梳理起到了很大的帮助。phpstrom断点的配置可以参考 <a href="/2017/06/21/%E4%BD%BF%E7%94%A8phpstorm%E8%BF%9B%E8%A1%8C%E6%96%AD%E7%82%B9%E8%B0%83%E8%AF%95/">这里</a></p>
+<span id="more"></span>
+
+<h2 id="1-调用过程"><a href="#1-调用过程" class="headerlink" title="1 调用过程"></a>1 调用过程</h2><h4 id="web-app-php"><a href="#web-app-php" class="headerlink" title="web/app.php"></a>web/app.php</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$kernel = new AppKernel(&#x27;prod&#x27;, false);</span><br><span class="line">$response = $kernel-&gt;handle($request);</span><br></pre></td></tr></table></figure>
+
+<h4 id="Symfony-Component-HttpKernel-Kernel"><a href="#Symfony-Component-HttpKernel-Kernel" class="headerlink" title="Symfony\Component\HttpKernel\Kernel"></a>Symfony\Component\HttpKernel\Kernel</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">public function handle(Request $request, $type = HttpKernelInterface::MASTER_REQUEST, $catch = true)</span><br><span class="line">&#123;</span><br><span class="line">    if (false === $this-&gt;booted) &#123;</span><br><span class="line">    	// 初始化 容器 与 Bundle</span><br><span class="line">        $this-&gt;boot();</span><br><span class="line">    &#125;</span><br><span class="line">    // 这里通过容器的形式获取 Symfony\Component\HttpKernel\HttpKernel 并调用 handle方法 </span><br><span class="line">    return $this-&gt;getHttpKernel()-&gt;handle($request, $type, $catch);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="Symfony-Component-HttpKernel-HttpKernel"><a href="#Symfony-Component-HttpKernel-HttpKernel" class="headerlink" title="Symfony\Component\HttpKernel\HttpKernel"></a>Symfony\Component\HttpKernel\HttpKernel</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">private function handleRaw(Request $request, $type = self::MASTER_REQUEST)</span><br><span class="line">&#123;</span><br><span class="line">    $this-&gt;requestStack-&gt;push($request);</span><br><span class="line"></span><br><span class="line">// 匹配路由 查询需要执行的控制器</span><br><span class="line">$event = new GetResponseEvent($this, $request, $type);</span><br><span class="line">$this-&gt;dispatcher-&gt;dispatch(KernelEvents::REQUEST, $event);</span><br><span class="line"></span><br><span class="line">// 获取控制器的实例以及要执行的方法</span><br><span class="line">if (false === $controller = $this-&gt;resolver-&gt;getController($request)) &#123;</span><br><span class="line">    throw new NotFoundHttpException(sprintf(&#x27;Unable to find the controller for path &quot;%s&quot;. The route is wrongly configured.&#x27;, $request-&gt;getPathInfo()));</span><br><span class="line">&#125;</span><br><span class="line">// 这里的是为了触发事件 可以在事件委派的章节具体查看</span><br><span class="line">$event = new FilterControllerEvent($this, $controller, $request, $type);</span><br><span class="line">$this-&gt;dispatcher-&gt;dispatch(KernelEvents::CONTROLLER, $event);</span><br><span class="line">$controller = $event-&gt;getController();</span><br><span class="line"></span><br><span class="line">// 对控制器要执行的方法进行反射 获取方法中需要的参数 并通过容器来获取实例化的对象返回</span><br><span class="line">$arguments = $this-&gt;argumentResolver-&gt;getArguments($request, $controller);</span><br><span class="line"></span><br><span class="line">// 这里的是为了触发事件 可以在事件委派的章节具体查看</span><br><span class="line">$event = new FilterControllerArgumentsEvent($this, $controller, $arguments, $request, $type);</span><br><span class="line">$this-&gt;dispatcher-&gt;dispatch(KernelEvents::CONTROLLER_ARGUMENTS, $event);</span><br><span class="line">$controller = $event-&gt;getController();</span><br><span class="line">$arguments = $event-&gt;getArguments();</span><br><span class="line"></span><br><span class="line">// call controller</span><br><span class="line">//这里执行控制器</span><br><span class="line">$response = call_user_func_array($controller, $arguments);</span><br><span class="line"></span><br><span class="line">if (!$response instanceof Response) &#123;</span><br><span class="line">	// 当控制器返回的不是Response的话当作view来渲染处理</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">return $this-&gt;filterResponse($response, $request, $type);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-主流程分析"><a href="#2-主流程分析" class="headerlink" title="2 主流程分析"></a>2 主流程分析</h2><p>对主流程代码进行精简，忽略事件委派的代码，流程如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">// 1. 匹配路由 查询需要执行的控制器</span><br><span class="line">$this-&gt;dispatcher-&gt;dispatch(KernelEvents::REQUEST, $event);</span><br><span class="line">// 2. 获取控制器的实例以及要执行的方法</span><br><span class="line">$controller = $this-&gt;resolver-&gt;getController($request)</span><br><span class="line">// 3. 对控制器要执行的方法进行反射 获取方法中需要的参数 并通过容器来获取实例化的对象返回</span><br><span class="line">$arguments = $this-&gt;argumentResolver-&gt;getArguments($request, $controller);</span><br><span class="line">// 4. 这里执行控制器</span><br><span class="line">$response = call_user_func_array($controller, $arguments);</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-1-匹配路由-查询需要执行的控制器"><a href="#2-1-匹配路由-查询需要执行的控制器" class="headerlink" title="2.1 匹配路由 查询需要执行的控制器"></a>2.1 匹配路由 查询需要执行的控制器</h4><p>这里主要是触发了一个事件 <code>KernelEvents::REQUEST</code> , 这个事件中的一个handler <code>Symfony\Component\HttpKernel\EventListener\RouterListener</code>，进行了路由 、控制器的分析查询，如果路由没有生成还会生成路由代码。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"># Symfony\Component\HttpKernel\EventListener\RouterListener</span><br><span class="line">public function onKernelRequest(GetResponseEvent $event)</span><br><span class="line">&#123;</span><br><span class="line">	// 路由已经解析过的话就直接返回</span><br><span class="line">    if ($request-&gt;attributes-&gt;has(&#x27;_controller&#x27;)) &#123;</span><br><span class="line">        return;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    try &#123;</span><br><span class="line">        if ($this-&gt;matcher instanceof RequestMatcherInterface) &#123;</span><br><span class="line">        	// 匹配路由 获取信息</span><br><span class="line">            $parameters = $this-&gt;matcher-&gt;matchRequest($request);</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            $parameters = $this-&gt;matcher-&gt;match($request-&gt;getPathInfo());</span><br><span class="line">        &#125;</span><br><span class="line">        //将分析出来的参数信息 控制器 方法 路由 添加到 request 的 attributes属性中</span><br><span class="line">        // $parameters = [</span><br><span class="line">        // 	&#x27;_controller&#x27; =&gt; &quot;控制器::方法&quot;,</span><br><span class="line">        // 	&#x27;_route&#x27; =&#x27;&#x27;</span><br><span class="line">        // ]</span><br><span class="line">        $request-&gt;attributes-&gt;add($parameters);</span><br><span class="line">        unset($parameters[&#x27;_route&#x27;], $parameters[&#x27;_controller&#x27;]);</span><br><span class="line">        $request-&gt;attributes-&gt;set(&#x27;_route_params&#x27;, $parameters);</span><br><span class="line">    &#125; catch (ResourceNotFoundException $e) &#123;</span><br><span class="line">    	// ......</span><br><span class="line">    &#125; catch (MethodNotAllowedException $e) &#123;</span><br><span class="line">    	// ......</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>路由匹配的代码分析，框架会将路由信息分析出来并存储在 缓存文件 var/prod/appProdProjectContainerUrlMatcher.php 中，具体的路由生成代码可以到 <a href="">路由代码生成分析</a> 具体查看</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"># Symfony\Bundle\FrameworkBundle\Routing\Router</span><br><span class="line">public function getRouteCollection()</span><br><span class="line">&#123;</span><br><span class="line">    if (null === $this-&gt;collection) &#123;</span><br><span class="line">    	// 通过容器获取 routing.loader 对应的对象并调用方法 load </span><br><span class="line">    	// Symfony\Bundle\FrameworkBundle\Routing\DelegatingLoader::load </span><br><span class="line">    	// 参数 </span><br><span class="line">    	//		$this-&gt;resource -&gt; app/config/routing.yml </span><br><span class="line">    	//		$this-&gt;options[&#x27;resource_type&#x27;] -&gt; null </span><br><span class="line">        $this-&gt;collection = $this-&gt;container-&gt;get(&#x27;routing.loader&#x27;)-&gt;load($this-&gt;resource, $this-&gt;options[&#x27;resource_type&#x27;]);</span><br><span class="line">        $this-&gt;resolveParameters($this-&gt;collection);</span><br><span class="line">        $this-&gt;collection-&gt;addResource(new ContainerParametersResource($this-&gt;collectedParameters));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    return $this-&gt;collection;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"># Syfmony\Component\Routing\Router\Router</span><br><span class="line">public function matchRequest(Request $request)</span><br><span class="line">&#123;</span><br><span class="line">    $matcher = $this-&gt;getMatcher();</span><br><span class="line">    if (!$matcher instanceof RequestMatcherInterface) &#123;</span><br><span class="line">        // fallback to the default UrlMatcherInterface</span><br><span class="line">        return $matcher-&gt;match($request-&gt;getPathInfo());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    return $matcher-&gt;matchRequest($request);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">public function getMatcher()</span><br><span class="line">&#123;</span><br><span class="line">    // $this-&gt;getConfigCacheFactory() -&gt; Symfony\Component\Config\ResourceCheckerConfigCacheFactory</span><br><span class="line">    // 获取存储路由信息的文件 var/prod/appProdProjectContainerUrlMatcher.php</span><br><span class="line">    $cache = $this-&gt;getConfigCacheFactory()-&gt;cache($this-&gt;options[&#x27;cache_dir&#x27;].&#x27;/&#x27;.$this-&gt;options[&#x27;matcher_cache_class&#x27;].&#x27;.php&#x27;,</span><br><span class="line">        //当路由文件没有生成的时候 这个匿名方法执行，通过配置文件生成路由关系且存储到缓存文件</span><br><span class="line">        function (ConfigCacheInterface $cache) &#123;</span><br><span class="line">            // ......</span><br><span class="line">        &#125;</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">    //这里加载并实例化了缓存的路由信息 var/cache/dev/app[ENV]DebugProjectContainerUrlMatcher.php</span><br><span class="line">    require_once $cache-&gt;getPath();</span><br><span class="line">    return $this-&gt;matcher = new $this-&gt;options[&#x27;matcher_cache_class&#x27;]($this-&gt;context);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h4 id="2-2-获取控制器的实例以及要执行的方法"><a href="#2-2-获取控制器的实例以及要执行的方法" class="headerlink" title="2.2 获取控制器的实例以及要执行的方法"></a>2.2 获取控制器的实例以及要执行的方法</h4><p>此处代码的调用连如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Symfony\Bundle\FrameworkBundle\Controller\ControllerResolver extends </span><br><span class="line">Symfony\Component\HttpKernel\Controller\ContainerControllerResolver extends </span><br><span class="line">Symfony\Component\HttpKernel\Controller\ControllerResolver</span><br></pre></td></tr></table></figure>
+<p>最终执行的核心代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"># Symfony\Component\HttpKernel\Controller\ControllerResolver</span><br><span class="line">public function getController(Request $request)</span><br><span class="line">&#123;</span><br><span class="line">	// 这里的变量 $controller 就是从$request 的 attributes属性中获取的，这个属性的数据是 事件 KernelEvents::CONTROLLER中的handler RouterListener 设置的</span><br><span class="line">	// 下面的代码逻辑主要是对控制器不同类型的处理 匿名回调 数组 对象 等</span><br><span class="line">    if (!$controller = $request-&gt;attributes-&gt;get(&#x27;_controller&#x27;)) &#123;</span><br><span class="line">        if (null !== $this-&gt;logger) &#123;</span><br><span class="line">            $this-&gt;logger-&gt;warning(&#x27;Unable to look for the controller as the &quot;_controller&quot; parameter is missing.&#x27;);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        return false;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    if (is_array($controller)) &#123;</span><br><span class="line">        return $controller;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    if (is_object($controller)) &#123;</span><br><span class="line">        if (method_exists($controller, &#x27;__invoke&#x27;)) &#123;</span><br><span class="line">            return $controller;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        throw new \InvalidArgumentException(sprintf(&#x27;Controller &quot;%s&quot; for URI &quot;%s&quot; is not callable.&#x27;, get_class($controller), $request-&gt;getPathInfo()));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    if (false === strpos($controller, &#x27;:&#x27;)) &#123;</span><br><span class="line">        if (method_exists($controller, &#x27;__invoke&#x27;)) &#123;</span><br><span class="line">            return $this-&gt;instantiateController($controller);</span><br><span class="line">        &#125; elseif (function_exists($controller)) &#123;</span><br><span class="line">            return $controller;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    $callable = $this-&gt;createController($controller);</span><br><span class="line"></span><br><span class="line">    if (!is_callable($callable)) &#123;</span><br><span class="line">        throw new \InvalidArgumentException(sprintf(&#x27;The controller for URI &quot;%s&quot; is not callable. %s&#x27;, $request-&gt;getPathInfo(), $this-&gt;getControllerError($callable)));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    return $callable;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>以上代码的核心片段就是 <code>$controller = $request-&gt;attributes-&gt;get(&#39;_controller&#39;)</code></p>
+<h4 id="2-3-对控制器要执行的方法进行反射-获取方法中需要的参数-并通过容器来获取实例化的对象返回"><a href="#2-3-对控制器要执行的方法进行反射-获取方法中需要的参数-并通过容器来获取实例化的对象返回" class="headerlink" title="2.3 对控制器要执行的方法进行反射 获取方法中需要的参数 并通过容器来获取实例化的对象返回"></a>2.3 对控制器要执行的方法进行反射 获取方法中需要的参数 并通过容器来获取实例化的对象返回</h4><p>控制器方法中的参数处理核心代码如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"># Symfony\Component\HttpKernel\Controller\ArgumentResolver</span><br><span class="line">public function getArguments(Request $request, $controller)</span><br><span class="line">&#123;</span><br><span class="line">    $arguments = array();</span><br><span class="line">    //反射获得的控制器方法中的参数，且将参数封装到对象 Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata</span><br><span class="line">    foreach ($this-&gt;argumentMetadataFactory-&gt;createArgumentMetadata($controller) as $metadata) &#123;</span><br><span class="line">        //将argument resolver 中的对象逐一进行尝试</span><br><span class="line">        foreach ($this-&gt;argumentValueResolvers as $resolver) &#123;</span><br><span class="line">            if (!$resolver-&gt;supports($request, $metadata)) &#123;</span><br><span class="line">                continue;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            $resolved = $resolver-&gt;resolve($request, $metadata);</span><br><span class="line"></span><br><span class="line">            if (!$resolved instanceof \Generator) &#123;</span><br><span class="line">                throw new \InvalidArgumentException(sprintf(&#x27;%s::resolve() must yield at least one value.&#x27;, get_class($resolver)));</span><br><span class="line">            &#125;</span><br><span class="line">            //$resolver 返回的是 Generator yield</span><br><span class="line">            foreach ($resolved as $append) &#123;</span><br><span class="line">                $arguments[] = $append;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            // continue to the next controller argument</span><br><span class="line">            continue 2; // 跳转到上一层循环继续</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        $representative = $controller;</span><br><span class="line"></span><br><span class="line">        if (is_array($representative)) &#123;</span><br><span class="line">            $representative = sprintf(&#x27;%s::%s()&#x27;, get_class($representative[0]), $representative[1]);</span><br><span class="line">        &#125; elseif (is_object($representative)) &#123;</span><br><span class="line">            $representative = get_class($representative);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        throw new \RuntimeException(sprintf(&#x27;Controller &quot;%s&quot; requires that you provide a value for the &quot;$%s&quot; argument. Either the argument is nullable and no null value has been provided, no default value has been provided or because there is a non optional argument after this one.&#x27;, $representative, $metadata-&gt;getName()));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    return $arguments;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">public static function getDefaultArgumentValueResolvers()</span><br><span class="line">&#123;</span><br><span class="line">    return array(</span><br><span class="line">        new RequestAttributeValueResolver(),</span><br><span class="line">        new RequestValueResolver(),</span><br><span class="line">        new SessionValueResolver(),</span><br><span class="line">        new DefaultValueResolver(),</span><br><span class="line">        new VariadicValueResolver(),</span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/php%E6%A1%86%E6%9E%B6/" rel="tag">php框架</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/symfony/" rel="tag">symfony</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" rel="tag">源码分析</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2017/06/29/symfony%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8B%E5%AE%B9%E5%99%A8%E7%9A%84%E7%94%9F%E6%88%90%E4%B8%8E%E4%BD%BF%E7%94%A8/"
+                    data-tooltip="symfony源码分析之容器的生成与使用"
+                    aria-label="上一篇: symfony源码分析之容器的生成与使用"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2017/06/21/%E4%BD%BF%E7%94%A8phpstorm%E8%BF%9B%E8%A1%8C%E6%96%AD%E7%82%B9%E8%B0%83%E8%AF%95/"
+                    data-tooltip="使用phpstorm进行断点调试"
+                    aria-label="下一篇: 使用phpstorm进行断点调试"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2017/06/29/symfony%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8B%E6%A1%86%E6%9E%B6%E4%B8%BB%E6%B5%81%E7%A8%8B/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2017/06/29/symfony%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8B%E6%A1%86%E6%9E%B6%E4%B8%BB%E6%B5%81%E7%A8%8B/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2017/06/29/symfony%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8B%E6%A1%86%E6%9E%B6%E4%B8%BB%E6%B5%81%E7%A8%8B/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2017/06/29/symfony%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8B%E5%AE%B9%E5%99%A8%E7%9A%84%E7%94%9F%E6%88%90%E4%B8%8E%E4%BD%BF%E7%94%A8/"
+                    data-tooltip="symfony源码分析之容器的生成与使用"
+                    aria-label="上一篇: symfony源码分析之容器的生成与使用"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2017/06/21/%E4%BD%BF%E7%94%A8phpstorm%E8%BF%9B%E8%A1%8C%E6%96%AD%E7%82%B9%E8%B0%83%E8%AF%95/"
+                    data-tooltip="使用phpstorm进行断点调试"
+                    aria-label="下一篇: 使用phpstorm进行断点调试"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2017/06/29/symfony%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8B%E6%A1%86%E6%9E%B6%E4%B8%BB%E6%B5%81%E7%A8%8B/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2017/06/29/symfony%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8B%E6%A1%86%E6%9E%B6%E4%B8%BB%E6%B5%81%E7%A8%8B/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2017/06/29/symfony%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8B%E6%A1%86%E6%9E%B6%E4%B8%BB%E6%B5%81%E7%A8%8B/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2017/06/29/symfony%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8B%E6%A1%86%E6%9E%B6%E4%B8%BB%E6%B5%81%E7%A8%8B/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2017/06/29/symfony%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8B%E6%A1%86%E6%9E%B6%E4%B8%BB%E6%B5%81%E7%A8%8B/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2017/06/29/symfony%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8B%E6%A1%86%E6%9E%B6%E4%B8%BB%E6%B5%81%E7%A8%8B/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

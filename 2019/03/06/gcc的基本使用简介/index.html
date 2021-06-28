@@ -1,0 +1,605 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>gcc的基本使用简介 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"gcc 是*unix系统上常用的c代码编译器，编译器做的事情其实像是在翻译，接下来简单介绍下gcc的简单实用方法\n\n首先我们有一个简单的c源代码文件 main.c\n12345#include &lt;stdio.h&gt;int main(int argc, char const *argv[]) &#123;    printf(&quot;%s\\n&quot;, &quot;hello test&quot;);    return 0;&#125;\ngcc 对源代码的编译过程如下图\n1. gcc常用参数解析1.1 参数 -o 指定生成文件名称简单的编译过程 gcc main.c 此时gcc默认会生成可以直接运行的二进制文件 a.out\n12# ./a.outhello test\n如果想要制定生成的文件名称可以使用参数 -o，使用命令 gcc main.c -o main 此时生成的二进制文件名称则为 main\n1.2 参数 -E 生成预编译文件-E 参数生成预编译文件，预编译文件主要处理的是 include define 等宏的字符串替换gcc -E main.c 这个命令生成的数据会显示在屏幕 不会写文件，需要自己将输出流写入文件 gcc -E main.c &gt; main.i一般惯例会将这个文件后缀定为 .i 文件名 main.i\n1.3 参数 -S 生成汇编代码-S 参数会将文件（源文件 或者 预编译文件）生成为汇编代码 gcc -S main.c 生成文件 main.s\n1.4 参数 -c 生成目标文件-c 参数将文件（汇编代码之前的文件）编译为目标代码，目标代码其实就是二进制代码，只是目标代码缺少对应的依赖库文件以及二进制文件启动需要的代码目标文件都是 源文件单独对应生成的二进制文件，只是这里的二进制文件缺少依赖，在下一步会处理代码间的依赖关系，这个过程叫 链接\n1.5 生成二进制代码gcc main.o -o main 将目标代码进行链接生成可执行的二进制文件，gcc也可以从源文件编译到二进制可执行文件，只是中间会经历 预编译 -&gt; 汇编 -&gt; 目标文件 的过程\n2. 第三方库以上的过程是简单的一个c源文件，正常项目中会有更多的文件，在编译的过程中全部文件进行编译也不是必须的，因为有些模块是没有变动的，以及项目中也会用其他第三方的代码，这个时候就需要通过第三方库的形式进行编译，可选的方式有 静态 动态 两种此时我们需要有两个文件创建主文件 main.c\n12345678#include &lt;stdio.h&gt;#include &quot;func.c&quot;void func();int main(int argc, char const *argv[]) &#123;    func();    return 0;&#125;\n创建依赖文件func.c\n123456#include &lt;stdio.h&gt;void func()&#123;    printf(&quot;%s\\n&quot;, &quot;library func&quot;);&#125;\n2.1 动态库先生成静态库文件 gcc --shared func.c -o libfunc.so ，需要注意输出文件名称 以lib开始 后缀为 .so将动态库编译进代码 gcc main.c -lfunc -L. -o main，其中 -lfunc 是指定的依赖动态库名称func，-L. 是指定动态库的路径 . 当前路径，不然默认会使用ld配置中的路径.\n生成的代码需要与动态库一起使用，不能缺少so文件，如同php的扩展文件一样，好处是减小了代码二进制文件的大小\n2.2 静态库先生成静态库\n1234#生成目标代码gcc -c func.c -o func.o # 打包静态库ar -r libfunc.a func.o\n通过ar工具将目标代码生成静态库 lib[name].a 文件将静态库编译进代码 gcc libfunc.a main.c -L. -o main\n静态编译后得到的二进制可执行文件会大，但好处是这个二进制代码不在依赖文件 libfunc.a \n","dateCreated":"2019-03-06T02:12:02+08:00","dateModified":"2019-03-06T03:27:32+08:00","datePublished":"2019-03-06T02:12:02+08:00","description":"gcc 是*unix系统上常用的c代码编译器，编译器做的事情其实像是在翻译，接下来简单介绍下gcc的简单实用方法","headline":"gcc的基本使用简介","image":[],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/","keywords":"c, gcc"}</script>
+    <meta name="description" content="gcc 是*unix系统上常用的c代码编译器，编译器做的事情其实像是在翻译，接下来简单介绍下gcc的简单实用方法">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="gcc的基本使用简介">
+<meta property="og:url" content="https://fantiq.github.io/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="gcc 是*unix系统上常用的c代码编译器，编译器做的事情其实像是在翻译，接下来简单介绍下gcc的简单实用方法">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fantiq.github.io/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/WX20190306-022845@2x.png">
+<meta property="article:published_time" content="2019-03-05T18:12:02.000Z">
+<meta property="article:modified_time" content="2019-03-05T19:27:32.484Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="c">
+<meta property="article:tag" content="gcc">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fantiq.github.io/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/WX20190306-022845@2x.png">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            gcc的基本使用简介
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2019-03-06T02:12:02+08:00">
+	
+		    3月 06, 2019
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/c/">c</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>gcc 是<code>*unix</code>系统上常用的c代码编译器，编译器做的事情其实像是在<code>翻译</code>，接下来简单介绍下gcc的简单实用方法</p>
+<span id="more"></span>
+<p>首先我们有一个简单的c源代码文件 <code>main.c</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">#include &lt;stdio.h&gt;</span><br><span class="line">int main(int argc, char const *argv[]) &#123;</span><br><span class="line">    printf(&quot;%s\n&quot;, &quot;hello test&quot;);</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>gcc 对源代码的编译过程如下图<br><img src="WX20190306-022845@2x.png" alt="gcc 编译过程"></p>
+<h3 id="1-gcc常用参数解析"><a href="#1-gcc常用参数解析" class="headerlink" title="1. gcc常用参数解析"></a>1. gcc常用参数解析</h3><h4 id="1-1-参数-o-指定生成文件名称"><a href="#1-1-参数-o-指定生成文件名称" class="headerlink" title="1.1 参数 -o 指定生成文件名称"></a>1.1 参数 <code>-o</code> 指定生成文件名称</h4><p>简单的编译过程 <code>gcc main.c</code> 此时gcc默认会生成可以直接运行的二进制文件 <code>a.out</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># ./a.out</span><br><span class="line">hello test</span><br></pre></td></tr></table></figure>
+<p>如果想要制定生成的文件名称可以使用参数 <code>-o</code>，使用命令 <code>gcc main.c -o main</code> 此时生成的二进制文件名称则为 <code>main</code></p>
+<h4 id="1-2-参数-E-生成预编译文件"><a href="#1-2-参数-E-生成预编译文件" class="headerlink" title="1.2 参数 -E 生成预编译文件"></a>1.2 参数 <code>-E</code> 生成预编译文件</h4><p>-E 参数生成预编译文件，预编译文件主要处理的是 <code>include</code> <code>define</code> 等宏的字符串替换<br><code>gcc -E main.c</code> 这个命令生成的数据会显示在屏幕 不会写文件，需要自己将输出流写入文件 <code>gcc -E main.c &gt; main.i</code><br>一般惯例会将这个文件后缀定为 <code>.i</code> 文件名 <code>main.i</code></p>
+<h4 id="1-3-参数-S-生成汇编代码"><a href="#1-3-参数-S-生成汇编代码" class="headerlink" title="1.3 参数 -S 生成汇编代码"></a>1.3 参数 <code>-S</code> 生成汇编代码</h4><p>-S 参数会将文件（源文件 或者 预编译文件）生成为汇编代码 <code>gcc -S main.c</code> 生成文件 <code>main.s</code></p>
+<h4 id="1-4-参数-c-生成目标文件"><a href="#1-4-参数-c-生成目标文件" class="headerlink" title="1.4 参数 -c 生成目标文件"></a>1.4 参数 <code>-c</code> 生成目标文件</h4><p>-c 参数将文件（汇编代码之前的文件）编译为目标代码，目标代码其实就是二进制代码，只是目标代码缺少对应的依赖库文件以及二进制文件启动需要的代码<br>目标文件都是 源文件单独对应生成的二进制文件，只是这里的二进制文件缺少依赖，在下一步会处理代码间的依赖关系，这个过程叫 <code>链接</code></p>
+<h4 id="1-5-生成二进制代码"><a href="#1-5-生成二进制代码" class="headerlink" title="1.5 生成二进制代码"></a>1.5 生成二进制代码</h4><p><code>gcc main.o -o main</code> 将目标代码进行链接生成可执行的二进制文件，gcc也可以从源文件编译到二进制可执行文件，只是中间会经历 <code>预编译 -&gt; 汇编 -&gt; 目标文件</code> 的过程</p>
+<h3 id="2-第三方库"><a href="#2-第三方库" class="headerlink" title="2. 第三方库"></a>2. 第三方库</h3><p>以上的过程是简单的一个c源文件，正常项目中会有更多的文件，在编译的过程中全部文件进行编译也不是必须的，因为有些模块是没有变动的，以及项目中也会用其他第三方的代码，<br>这个时候就需要通过第三方库的形式进行编译，可选的方式有 <code>静态</code> <code>动态</code> 两种<br>此时我们需要有两个文件<br>创建主文件 <code>main.c</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">#include &lt;stdio.h&gt;</span><br><span class="line">#include &quot;func.c&quot;</span><br><span class="line"></span><br><span class="line">void func();</span><br><span class="line">int main(int argc, char const *argv[]) &#123;</span><br><span class="line">    func();</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>创建依赖文件<code>func.c</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">#include &lt;stdio.h&gt;</span><br><span class="line"></span><br><span class="line">void func()</span><br><span class="line">&#123;</span><br><span class="line">    printf(&quot;%s\n&quot;, &quot;library func&quot;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2-1-动态库"><a href="#2-1-动态库" class="headerlink" title="2.1 动态库"></a>2.1 动态库</h3><p>先生成静态库文件 <code>gcc --shared func.c -o libfunc.so</code> ，需要注意输出文件名称 以<code>lib</code>开始 后缀为 <code>.so</code><br>将动态库编译进代码 <code>gcc main.c -lfunc -L. -o main</code>，其中 <code>-lfunc</code> 是指定的依赖动态库名称<code>func</code>，<code>-L.</code> 是指定动态库的路径 <code>.</code> 当前路径，不然默认会使用<code>ld</code>配置中的路径.</p>
+<p>生成的代码需要与动态库一起使用，不能缺少so文件，如同php的扩展文件一样，好处是减小了代码二进制文件的大小</p>
+<h3 id="2-2-静态库"><a href="#2-2-静态库" class="headerlink" title="2.2 静态库"></a>2.2 静态库</h3><p>先生成静态库</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">#生成目标代码</span><br><span class="line">gcc -c func.c -o func.o </span><br><span class="line"># 打包静态库</span><br><span class="line">ar -r libfunc.a func.o</span><br></pre></td></tr></table></figure>
+<p>通过ar工具将目标代码生成静态库 <code>lib[name].a</code> 文件<br>将静态库编译进代码 <code>gcc libfunc.a main.c -L. -o main</code></p>
+<p>静态编译后得到的二进制可执行文件会大，但好处是这个二进制代码不在依赖文件 <code>libfunc.a</code> </p>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/c/" rel="tag">c</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/gcc/" rel="tag">gcc</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/03/06/unix%E4%B8%8Ac%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B%E7%AE%80%E6%9E%90/"
+                    data-tooltip="unix上c项目构建过程简析"
+                    aria-label="上一篇: unix上c项目构建过程简析"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2018/04/17/%E7%94%A8alpine%E7%BC%96%E8%AF%91php%E5%88%B6%E4%BD%9Cdocker%E9%95%9C%E5%83%8F/"
+                    data-tooltip="用alpine编译php制作docker镜像"
+                    aria-label="下一篇: 用alpine编译php制作docker镜像"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/03/06/unix%E4%B8%8Ac%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA%E8%BF%87%E7%A8%8B%E7%AE%80%E6%9E%90/"
+                    data-tooltip="unix上c项目构建过程简析"
+                    aria-label="上一篇: unix上c项目构建过程简析"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2018/04/17/%E7%94%A8alpine%E7%BC%96%E8%AF%91php%E5%88%B6%E4%BD%9Cdocker%E9%95%9C%E5%83%8F/"
+                    data-tooltip="用alpine编译php制作docker镜像"
+                    aria-label="下一篇: 用alpine编译php制作docker镜像"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2019/03/06/gcc%E7%9A%84%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E7%AE%80%E4%BB%8B/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

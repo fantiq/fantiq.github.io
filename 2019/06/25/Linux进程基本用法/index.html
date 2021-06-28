@@ -1,0 +1,993 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>Linux进程基本用法 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"关于进程涉及到的知识点还是很多的，需要全方位理解操作系统才能更好的理解进程。在初步使用了进程相关的glibc函数之后带来了更多的问题需要思考：1. 进程的创建过程fork 主要是对进程结构 struct task_struct 的拷贝，这个结构体中包括 进程调度信息、文件系统、文件读写流、虚拟内存等信息 2. 进程与线程的区别，他们共享系统分配的虚拟内存，具体共享的是虚拟内存的那些部分 3. Linux中代码被编译成机器指令以二进制的文件格式存储在硬盘，这个格式叫做elf 不仅仅有机器指令 还是有头信息、符号表等信息节 4. 多进程在操作系统中是如何被调度的 算法是怎样的 5. 用户态到内核态的转换 依赖的是中断 需要搞清楚中断的实现原理 6. 进程可以接收外部信号 这个外部信号本质又是什么。 搞清楚了这些问题，才能搞清楚进程的本质，同时这些内容也是独立的知识体系需要单独来讲了，这里先写下进程的表面形式。\n\n1. 什么是进程操作系统介于硬件与程序之间，一方面给程序提供一个统一的操作硬件的接口，另一方面保护硬件不被应用程序破坏。为了实现多任务系统，操作系统实现的多任务功能，这每个任务就是一个进程。操作系统会给每个进程创建一个独立的抽象硬件的数据空间，多任务的实现其实就是CPU每次执行一部分的进程机器指令，这可以通过中断系统来控制CPU的执行行为，需要先执行哪个进程的问题就是进程调度，操作系统会实现。进程是被内核调度的最小单元，线程也是可以被内核调度的，这是因为线程在内核态其实也是进程的形式。\n1. 进程创建1.1 fork函数进程的创建可以使用内核方法 fork 或者使用 glibc 的 fork 方法创建，fork方法会返回两次 当返回的 pid 为0时说明代码是在子进程中执行，当返回的 pid 不为0的时候说明代码是在父进程中执行。fork函数\n\n\n\nk\nv\n\n\n\n签名\npid_t fork()\n\n\n头文件\nunistd.h sys/types.h\n\n\n参数\n无\n\n\n返回值\n返回类型 pid_t 定义在头文件 sys/types.h，函数返值 若&lt;0 则创建失败如果实在主进程执行 返回值为子进程pid 如果是在子进程中执行 返回值为0\n\n\n说明\n创建子进程\n\n\nfork函数返回的情况比较特殊，函数只会返回一次，但是fork函数从表象上看却好像返回了两次，其实不然，fork如其他函数一样返回一次，只是在调用fork的过程中内核创建了新的子进程，创建之后 父子进程的代码执行点是一样的，这时候进程调度系统会调度执行 父子两个进程各自的代码，最终父子进程的fork函数都会执行完成 也都会返回一个值，这样总共返回的是两个值。fork在创建子进程的时候会调用 copy_process 方法从父进程中复制进程需要的信息到子进程中，父进程在 fork 方法中会得到 子进程的 pid 这个值会放在 寄存器 eax 最终通过函数调用栈返回，子进程也存在一个 返回值 p-&gt;tss.eax，但是在 copy_process 的过程中这个值被直接赋值为 0 了，这也是为什么在 调度到父进程的时候fork返回值是子进程pid 调度到子进程的时候fork的返回值是0 的原因了。\nfork使用实例\n12345678910111213141516#include &lt;unistd.h&gt;#include &lt;sys/types.h&gt;#include &lt;stdio.h&gt;int main() &#123;    pid_t pid = fork();    if (pid &lt; 0) perror(&quot;create process error&quot;);    if (pid == 0) printf(&quot;child process pid=%d\\n&quot;, getpid());    // 这里的条件还是要写 因为这个条件在父子进程中都会执行    if (pid &gt; 0) printf(&quot;parent process pid=%d,create child process pid=%d\\n&quot;, getpid(), pid);    return 0;&#125;-------- result --------parent process pid=24751,create child process pid=24752child process pid=24752\n\n1.2 进程在内存中的分布对于进程的创建，在刚刚创建完成的时候 父子进程是完全一样的，这个创建过程就是简单的复制过程，但是这两个进程对于系统是平等的，系统会公平调度这两个进程。进程作为一个系统调度执行的基本单元，在启动的时候就会加载到内存中，linux流行的二进制文件格式是 elf 这种格式也定义了内存的布局。\n\n\n\nsection\ndescriptor\n\n\n\n.stack\n用来存储函数多集调用时候的 临时变量、函数参数\n\n\n.head\n程序中动态分配(malloc)的内存区域\n\n\n.bss\n未初始化的全局变量\n\n\n.data\n初始化的全局变量\n\n\n.text\n程序编译后的机器指令\n\n\n这些是一个程序运行需要的数据，进程在创建的时候其本质就是复制了这些信息，elf具体的格式需要单独分析。\n1.3 进程间关系进程的创建都是由父进程创建的，所以进程的信息中存在 进程id pid 、父进程id ppid。在操作系统执行之初就创建了一个进程 idle 其进程id = 0 ，idle 进程创建了进程 init pid=1 这个就是用户空间中所有进程的父进程，每个进程都是由其父进程创建，所以每个进程都有父进程。进程组 pgid，每个进程都有一个进程组的属性，这个属性值是从父进程继承复制过来的，这个值其实是一个进程的pid，这个进程可能已经不存在，系统这里使用进程组这个概念的作用是为了方便对进程的管理，没有分组就只能一个一个进程的处理。会话 sid，会话主要涉及到shell场景，会话id也是从父进程复制过来的值，会话id同样是一个进程的pid，会话id 不会随着进程退出而消失的，会话的目的是为了方便管理shell中执行的进程(作业任务)。会话进程被称作Leader进程，就是进程id等于会话id的进程，只有这个进程才能操作 tty 对应的IO流。可以通过函数 setsid() 修改当前进程的会话id，函数调用成功 当前进程的会话id 等于 当前进程的进程组id 等于 当前进程id，也就是说 sid = pgid = pid\n进程间的关系代码示例\n1234567891011121314151617181920212223242526int main() &#123;    pid_t pid1 = fork();    if (pid1 &lt; 0) perror(&quot;create process failed 1&quot;);    if (pid1 == 0) &#123;        pid_t pid2 = fork();        if (pid2 &lt; 0) perror(&quot;create process failed 2&quot;);        if (pid2 == 0) &#123;            // 孙子进程            printf(&quot;p2 %d,%d,%d,%d\\n&quot;, getpid(), getppid(), getpgid(getpid()), getsid(getpid()));            exit(0);        &#125;        // 子进程        sleep(1);        printf(&quot;p1 %d,%d,%d,%d\\n&quot;, getpid(), getppid(), getpgid(getpid()), getsid(getpid()));        exit(0);    &#125;    // 父进程    sleep(2);    printf(&quot;p0 %d,%d,%d,%d\\n&quot;, getpid(), getppid(), getpgid(getpid()), getsid(getpid()));    return 0;&#125;-------- result --------p2 58165,58164,58163,1p1 58164,58163,58163,1p0 58163,58994,58163,1\n上面代码使用了sleep阻塞进程的目的是为了展示进程间的父子关系，如果没有阻塞等待，子进程可能会成为孤儿进程 其父进程id为1，当然正常是需要函数 wait 来处理的，具体的wait用法放在后面来看。\n通过函数 setsid 修改会话id\n12345678910111213141516int main () &#123;    pid_t pid = fork();    if (pid &lt; 0) perror(&quot;create process failed 1&quot;);    if (pid == 0) &#123;        // 子进程调用 setsid 修改会话id 同时进程组id也会随之改变        setsid();        printf(&quot;p1 %d,%d,%d,%d\\n&quot;, getpid(), getppid(), getpgid(getpid()), getsid(getpid()));        exit(0);    &#125;    sleep(1);    printf(&quot;p0 %d,%d,%d,%d\\n&quot;, getpid(), getppid(), getpgid(getpid()), getsid(getpid()));    return 0;&#125;-------- result --------p1 58358,58357,58358,58358p0 58357,58994,58357,1\n\n1.4 父子进程监控父进程创建子进程后，父子进程作为单独的CPU调度单元运行，两者的执行顺序是独立的，但是父子进程有存在进程父子关系，如果父进程先执行完退出，子进程挂载到 init进程还好，如果子进程先执行完 父进程没执行完毕 则子进程会成为僵尸进程（进程状态 Z ）, 其实此时的子进程资源已经被回收 但是还有一些统计信息存在进程中，需要等待父进程结束的时候才会被系统回收处理这些僵尸进程。僵尸进程是进程的正常状态，是一个已经退出的进程。如果这种状态进程多的话 会占用一些系统资源 比如进程号，虽让僵尸进程不会被进程调度，但是过多的僵尸进会导致进程表太大 程影响调度程序的便利过程。\n父进程需要负责回收子进程，处理函数可以使用 wait\n\n\n\nk\nv\n\n\n\n签名\npid_t wait(int * )\n\n\n头文件\nsys/wait.h\n\n\n参数\n可选 子进程退出的状态值，不需要的话 传 NULL\n\n\n返回值\n失败返回 -1 成功返回子进程的pid\n\n\n说明\n没有子进程 立刻返回，存在子进程 阻塞等待子进程退出\n\n\n更灵活的处理子进程退出函数 waitpid\n\n\n\nk\nv\n\n\n\n签名\npid_t waitpid(pid_t, int * , int)\n\n\n头文件\nsys/wait.h\n\n\n参数1\n需要监听的进程id\n\n\n参数2\n子进程退出的状态 如果不关系可设置为 NULL\n\n\n参数3\n控制参数 不需要刻意设置为0\n\n\n返回值\n失败返回 -1 成功返回子进程的pid\n\n\n说明\n更丰富的功能 将停子进程\n\n\n参数1\n\n\n\n值\n说明\n\n\n\npid&gt;0\n监听进程 进程号为pid 无论是否为当前进程子进程\n\n\npid=-1\n监听当前进程下的任一子进程 功能如同 wait\n\n\npid=0\n监听 与当前进程在一个进程组 的任何进程\n\n\npid&lt;-1\n监听进程组为pid绝对值的任一子进程\n\n\n参数2\n|||||||||\nWIFEXITED(status)   如果子进程正常结束，它就返回真；否则返回假。WEXITSTATUS(status) 如果WIFEXITED(status)为真，则可以用该宏取得子进程exit()返回的结束代码。WIFSIGNALED(status) 如果子进程因为一个未捕获的信号而终止，它就返回真；否则返回假。WTERMSIG(status)    如果WIFSIGNALED(status)为真，则可以用该宏获得导致子进程终止的信号代码。WIFSTOPPED(status)  如果当前子进程被暂停了，则返回真；否则返回假。WSTOPSIG(status)    如果WIFSTOPPED(status)为真，则可以使用该宏获得导致子进程暂停的信号代码。\n参数3\n\n\n\n值\n说明\n\n\n\nWNOHANG\n不阻塞直接返回 如果子进程没有退出返回 0\n\n\nWCONTINUED\n？？？\n\n\nWUNTRACED\n阻塞等待？？？\n\n\nwait waitpid 的实现方式并不是 基于信号 SIGCHLD ，信号是异步通知的，wait waitpid函数默认则是阻塞执行的 应该是轮询实现的吧。\n2. 进程信号进程在执行的过程中是可以与外界交互的，外界可以给进程发信号，这个发信号的实现原理依赖的是 CPU中断机制，常用的终止进程命令 kill -9 &lt;pid&gt; 就是一个给进程发送信号的过程。CPU中集成有处理中断的硬件，发送中断信号其实是发送给CPU，CPU每执行完指令后就会读取中断设备中是否有中断需要处理，发送的信号对应有一个信号值，这个值对应的是IDT(Interrupt Descriptor Table) 表的索引，他的值是命令存储的内存地址，CPU通过这个信号值查找对应的指令存储的内存地址，然后读取指令执行。\n2.1 信号的发送与处理2.1.1 通过 kill 发送信号发送信号可以使用函数 kill 也对应 shell命令中的 kill\n\n\n\nk\nv\n\n\n\n签名\nint kill(pid_t, int)\n\n\n头文件\nsignal.h\n\n\n参数1\n进程id\n\n\n参数2\n信号索引\n\n\n返回值\n成功返回 0 失败返回 -1\n\n\n说明\n发送信号给进程\n\n\n返回值返回值错误码\n\n\n\n错误\n值\n说明\n\n\n\nEPERM\n1\n权限不足\n\n\nEINVAL\n22\n参数信号 不存在\n\n\nESRCH\n3\n参数 进程id或进程组 不存在\n\n\n参数进程id\n\n\n\n值\n说明\n\n\n\npid &gt; 0\n将信号发送给进程pid\n\n\npid = -1\n将信号发送给除init进程之外的所有进程\n\n\npid = 0\n将信号发送给跟当前进程属于一个进程组的所有进程\n\n\npid &lt; -1\n将信号发送给 进程组为 pid 绝对值的所有进程\n\n\n信号对于信号的值 有些信号存在多个值 是因为在不同的架构中 对信号定义的值不同，三个值用逗号隔开，第一个值是 alpha 和 sparc架构使用的，第二个是 x86 arm架构使用，第三个值是mips架构使用。\n进程状态相关的信号\n\n\n\nsignal\nvalue\ndesc\n\n\n\nSIGTSTP\n18,20,24\n暂停进程 这个信号由terminal发出 按键Ctrl-z\n\n\nSIGSTOP\n17,19,23\n暂停进程 通过其他方式发送 这个信号不可被进程捕获处理\n\n\nSIGCONT\n19,18,25\n继续进程执行\n\n\n中止进程的四个信号\n\n\n\nsignal\nvalue\ndesc\n\n\n\nSIGINT\n2\nterminal发送中断 对应按键 Ctrl-c\n\n\nSIGQUIT\n3\ntermian 发送信号 停止进程 对应按键 Ctrl-\\ 与SIGINT 的不同是 这个信号在内核的默认信号处理中会产生 core dump\n\n\nSIGTERM\n15\n停止进程 可以被捕获 这是与 SIGKILL 的区别\n\n\nSIGKILL\n9\n停止进程 不可被捕获 直接停止进程\n\n\nSIGINT SIGQUIT 对应的是 terminal 停止进程 信号都可以被捕获，SIGQUIT 会生成 core dump 文件SIGTERM SIGKILL 不针对 terminal SIGTERM 可以被捕获 SIGKILL 不能被捕获\n生成core dump 需要设置限制条件 ulimit -c unlimited 也可以设置其他值 单位 blocks , 若 设置为 ulimit -c 0 则不会生成 core dumo 文件。启动进程 通过 Ctrl-\\ 停止进程 当前文件夹下就会生成 core dump 文件 core.&lt;pid&gt; ，这个文件的生成是内核的 SIGQUIT 信号处理程序生成的。\n其他用到的信号\n\n\n\nsignal\nvalue\ndesc\n\n\n\nSIGUSR1\n30,10,16\n用户自定义信号\n\n\nSIGUSR2\n31,12,17\n用户自定义信号\n\n\nSIGABRT\n6\n当调用函数 abort() 触发的信号\n\n\nSIGALRM\n14\n当调用函 alarm() 时钟定时时间到的时候触发的信号\n\n\nSIGCHLD\n20,17,18\n子进程退出的时候触发的信号\n\n\nSIGHUP\n1\nterminal 退出的时候触发的信号\n\n\n2.1.2 通过 signal 注册对应信号处理程序信号处理函数 signal\n\n\n\nk\nv\n\n\n\n签名\nvoid (*handler)(int) signal(int, void (*handler)(int))\n\n\n头文件\nsignal.h\n\n\n参数1\n信号值\n\n\n参数2\n信号处理函数内存地址，SIG_IGN 忽略信号， SIG_DFL 使用默认的处理程序\n\n\n返回值\n成功返回 处理函数地址 失败返回 -1\n\n\n说明\n注册信号处理函数\n\n\n现在常用的signal处理程序注册函数是 sigaction，signal存在一定的问题：???\n123456789101112131415161718192021222324void handle(int signo) &#123;    printf(&quot;get sig nr %d\\n&quot;, signo);    exit(0);&#125;int main() &#123;    printf(&quot;parent pid=%d\\n&quot;, getpid());    pid_t pid = fork();    if (pid == 0) &#123;        printf(&quot;child pid=%d\\n&quot;, getpid());        while (1);    &#125;    // 注册子进程退出信号的处理函数    signal(SIGCHLD, handle);    // 发送信号给指定进程    getchar();    // 终止子进程    kill(pid, SIGTERM);    return 0;&#125;-------- result --------parent pid=63154child pid=63155&gt;\\nget sig nr 20\n\n3. 进程状态R 运行 被调度T 暂停S 睡眠Z 僵尸\n\nTODO中断的实现原理 键盘输入输出计算机的启动过程内存文件进程进程调度算法进程与线程IO终端执行shell命令的过程unix二进制可执行文件格式 elf\n\n","dateCreated":"2019-06-25T18:55:55+08:00","dateModified":"2021-02-02T20:31:00+08:00","datePublished":"2019-06-25T18:55:55+08:00","description":"关于进程涉及到的知识点还是很多的，需要全方位理解操作系统才能更好的理解进程。在初步使用了进程相关的glibc函数之后带来了更多的问题需要思考：1. 进程的创建过程fork 主要是对进程结构 struct task_struct 的拷贝，这个结构体中包括 进程调度信息、文件系统、文件读写流、虚拟内存等信息 2. 进程与线程的区别，他们共享系统分配的虚拟内存，具体共享的是虚拟内存的那些部分 3. Linux中代码被编译成机器指令以二进制的文件格式存储在硬盘，这个格式叫做elf 不仅仅有机器指令 还是有头信息、符号表等信息节 4. 多进程在操作系统中是如何被调度的 算法是怎样的 5. 用户态到内核态的转换 依赖的是中断 需要搞清楚中断的实现原理 6. 进程可以接收外部信号 这个外部信号本质又是什么。 搞清楚了这些问题，才能搞清楚进程的本质，同时这些内容也是独立的知识体系需要单独来讲了，这里先写下进程的表面形式。","headline":"Linux进程基本用法","image":[],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2019/06/25/Linux%E8%BF%9B%E7%A8%8B%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2019/06/25/Linux%E8%BF%9B%E7%A8%8B%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95/","keywords":"进程, Linux"}</script>
+    <meta name="description" content="关于进程涉及到的知识点还是很多的，需要全方位理解操作系统才能更好的理解进程。在初步使用了进程相关的glibc函数之后带来了更多的问题需要思考：1. 进程的创建过程fork 主要是对进程结构 struct task_struct 的拷贝，这个结构体中包括 进程调度信息、文件系统、文件读写流、虚拟内存等信息 2. 进程与线程的区别，他们共享系统分配的虚拟内存，具体共享的是虚拟内存的那些部分 3. Li">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="Linux进程基本用法">
+<meta property="og:url" content="https://fantiq.github.io/2019/06/25/Linux%E8%BF%9B%E7%A8%8B%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="关于进程涉及到的知识点还是很多的，需要全方位理解操作系统才能更好的理解进程。在初步使用了进程相关的glibc函数之后带来了更多的问题需要思考：1. 进程的创建过程fork 主要是对进程结构 struct task_struct 的拷贝，这个结构体中包括 进程调度信息、文件系统、文件读写流、虚拟内存等信息 2. 进程与线程的区别，他们共享系统分配的虚拟内存，具体共享的是虚拟内存的那些部分 3. Li">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-06-25T10:55:55.000Z">
+<meta property="article:modified_time" content="2021-02-02T12:31:00.382Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="进程">
+<meta property="article:tag" content="Linux">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            Linux进程基本用法
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2019-06-25T18:55:55+08:00">
+	
+		    6月 25, 2019
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/Linux/">Linux</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>关于进程涉及到的知识点还是很多的，需要全方位理解操作系统才能更好的理解进程。在初步使用了进程相关的glibc函数之后带来了更多的问题需要思考：1. 进程的创建过程fork 主要是对进程结构 <code>struct task_struct</code> 的拷贝，这个结构体中包括 进程调度信息、文件系统、文件读写流、虚拟内存等信息 2. 进程与线程的区别，他们共享系统分配的虚拟内存，具体共享的是虚拟内存的那些部分 3. Linux中代码被编译成机器指令以二进制的文件格式存储在硬盘，这个格式叫做elf 不仅仅有机器指令 还是有头信息、符号表等信息节 4. 多进程在操作系统中是如何被调度的 算法是怎样的 5. 用户态到内核态的转换 依赖的是中断 需要搞清楚中断的实现原理 6. 进程可以接收外部信号 这个外部信号本质又是什么。 搞清楚了这些问题，才能搞清楚进程的本质，同时这些内容也是独立的知识体系需要单独来讲了，这里先写下进程的表面形式。</p>
+<span id="more"></span>
+<h2 id="1-什么是进程"><a href="#1-什么是进程" class="headerlink" title="1. 什么是进程"></a>1. 什么是进程</h2><p>操作系统介于硬件与程序之间，一方面给程序提供一个统一的操作硬件的接口，另一方面保护硬件不被应用程序破坏。为了实现多任务系统，操作系统实现的多任务功能，这每个任务就是一个进程。操作系统会给每个进程创建一个独立的抽象硬件的数据空间，多任务的实现其实就是CPU每次执行一部分的进程机器指令，这可以通过中断系统来控制CPU的执行行为，需要先执行哪个进程的问题就是进程调度，操作系统会实现。<strong>进程是被内核调度的最小单元</strong>，线程也是可以被内核调度的，这是因为线程在内核态其实也是进程的形式。</p>
+<h2 id="1-进程创建"><a href="#1-进程创建" class="headerlink" title="1. 进程创建"></a>1. 进程创建</h2><h4 id="1-1-fork函数"><a href="#1-1-fork函数" class="headerlink" title="1.1 fork函数"></a>1.1 fork函数</h4><p>进程的创建可以使用内核方法 <code>fork</code> 或者使用 glibc 的 <code>fork</code> 方法创建，fork方法会返回两次 当返回的 pid 为0时说明代码是在子进程中执行，当返回的 pid 不为0的时候说明代码是在父进程中执行。<br>fork函数</p>
+<table>
+<thead>
+<tr>
+<th align="left">k</th>
+<th>v</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">签名</td>
+<td>pid_t fork()</td>
+</tr>
+<tr>
+<td align="left">头文件</td>
+<td>unistd.h sys/types.h</td>
+</tr>
+<tr>
+<td align="left">参数</td>
+<td>无</td>
+</tr>
+<tr>
+<td align="left">返回值</td>
+<td>返回类型 pid_t 定义在头文件 sys/types.h，函数返值 若&lt;0 则创建失败<br/>如果实在主进程执行 返回值为子进程pid 如果是在子进程中执行 返回值为0</td>
+</tr>
+<tr>
+<td align="left">说明</td>
+<td>创建子进程</td>
+</tr>
+</tbody></table>
+<p>fork函数返回的情况比较特殊，函数只会返回一次，但是fork函数从表象上看却好像返回了两次，其实不然，fork如其他函数一样返回一次，只是在调用fork的过程中内核创建了新的子进程，创建之后 父子进程的代码执行点是一样的，这时候进程调度系统会调度执行 父子两个进程各自的代码，最终父子进程的fork函数都会执行完成 也都会返回一个值，这样总共返回的是两个值。<br>fork在创建子进程的时候会调用 <code>copy_process</code> 方法从父进程中复制进程需要的信息到子进程中，父进程在 fork 方法中会得到 子进程的 pid 这个值会放在 寄存器 <code>eax</code> 最终通过函数调用栈返回，子进程也存在一个 返回值 <code>p-&gt;tss.eax</code>，但是在 <code>copy_process</code> 的过程中这个值被直接赋值为 <code>0</code> 了，这也是为什么在 调度到父进程的时候fork返回值是子进程pid 调度到子进程的时候fork的返回值是0 的原因了。</p>
+<p>fork使用实例</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">#include &lt;unistd.h&gt;</span><br><span class="line">#include &lt;sys/types.h&gt;</span><br><span class="line">#include &lt;stdio.h&gt;</span><br><span class="line"></span><br><span class="line">int main() &#123;</span><br><span class="line">    pid_t pid = fork();</span><br><span class="line">    if (pid &lt; 0) perror(&quot;create process error&quot;);</span><br><span class="line">    if (pid == 0) printf(&quot;child process pid=%d\n&quot;, getpid());</span><br><span class="line">    // 这里的条件还是要写 因为这个条件在父子进程中都会执行</span><br><span class="line">    if (pid &gt; 0) printf(&quot;parent process pid=%d,create child process pid=%d\n&quot;, getpid(), pid);</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">-------- result --------</span><br><span class="line">parent process pid=24751,create child process pid=24752</span><br><span class="line">child process pid=24752</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-2-进程在内存中的分布"><a href="#1-2-进程在内存中的分布" class="headerlink" title="1.2 进程在内存中的分布"></a>1.2 进程在内存中的分布</h4><p>对于进程的创建，在刚刚创建完成的时候 父子进程是完全一样的，这个创建过程就是简单的复制过程，但是这两个进程对于系统是平等的，系统会公平调度这两个进程。<br>进程作为一个系统调度执行的基本单元，在启动的时候就会加载到内存中，linux流行的二进制文件格式是 <code>elf</code> 这种格式也定义了内存的布局。</p>
+<table>
+<thead>
+<tr>
+<th>section</th>
+<th>descriptor</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>.stack</td>
+<td>用来存储函数多集调用时候的 临时变量、函数参数</td>
+</tr>
+<tr>
+<td>.head</td>
+<td>程序中动态分配(malloc)的内存区域</td>
+</tr>
+<tr>
+<td>.bss</td>
+<td>未初始化的全局变量</td>
+</tr>
+<tr>
+<td>.data</td>
+<td>初始化的全局变量</td>
+</tr>
+<tr>
+<td>.text</td>
+<td>程序编译后的机器指令</td>
+</tr>
+</tbody></table>
+<p>这些是一个程序运行需要的数据，进程在创建的时候其本质就是复制了这些信息，elf具体的格式需要单独分析。</p>
+<h4 id="1-3-进程间关系"><a href="#1-3-进程间关系" class="headerlink" title="1.3 进程间关系"></a>1.3 进程间关系</h4><p>进程的创建都是由父进程创建的，所以进程的信息中存在 进程id pid 、父进程id ppid。在操作系统执行之初就创建了一个进程 <code>idle</code> 其进程id = 0 ，<code>idle</code> 进程创建了进程 <code>init</code> pid=1 这个就是用户空间中所有进程的父进程，每个进程都是由其父进程创建，所以每个进程都有父进程。<br>进程组 pgid，每个进程都有一个进程组的属性，这个属性值是从父进程继承复制过来的，这个值其实是一个进程的pid，这个进程可能已经不存在，系统这里使用进程组这个概念的作用是为了方便对进程的管理，没有分组就只能一个一个进程的处理。<br>会话 sid，会话主要涉及到shell场景，会话id也是从父进程复制过来的值，会话id同样是一个进程的pid，会话id 不会随着进程退出而消失的，会话的目的是为了方便管理shell中执行的进程(作业任务)。会话进程被称作Leader进程，就是进程id等于会话id的进程，只有这个进程才能操作 tty 对应的IO流。可以通过函数 <code>setsid()</code> 修改当前进程的会话id，函数调用成功 当前进程的会话id 等于 当前进程的进程组id 等于 当前进程id，也就是说 <code>sid = pgid = pid</code></p>
+<p>进程间的关系代码示例</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">int main() &#123;</span><br><span class="line">    pid_t pid1 = fork();</span><br><span class="line">    if (pid1 &lt; 0) perror(&quot;create process failed 1&quot;);</span><br><span class="line">    if (pid1 == 0) &#123;</span><br><span class="line">        pid_t pid2 = fork();</span><br><span class="line">        if (pid2 &lt; 0) perror(&quot;create process failed 2&quot;);</span><br><span class="line">        if (pid2 == 0) &#123;</span><br><span class="line">            // 孙子进程</span><br><span class="line">            printf(&quot;p2 %d,%d,%d,%d\n&quot;, getpid(), getppid(), getpgid(getpid()), getsid(getpid()));</span><br><span class="line">            exit(0);</span><br><span class="line">        &#125;</span><br><span class="line">        // 子进程</span><br><span class="line">        sleep(1);</span><br><span class="line">        printf(&quot;p1 %d,%d,%d,%d\n&quot;, getpid(), getppid(), getpgid(getpid()), getsid(getpid()));</span><br><span class="line">        exit(0);</span><br><span class="line">    &#125;</span><br><span class="line">    // 父进程</span><br><span class="line">    sleep(2);</span><br><span class="line">    printf(&quot;p0 %d,%d,%d,%d\n&quot;, getpid(), getppid(), getpgid(getpid()), getsid(getpid()));</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">-------- result --------</span><br><span class="line">p2 58165,58164,58163,1</span><br><span class="line">p1 58164,58163,58163,1</span><br><span class="line">p0 58163,58994,58163,1</span><br></pre></td></tr></table></figure>
+<p>上面代码使用了sleep阻塞进程的目的是为了展示进程间的父子关系，如果没有阻塞等待，子进程可能会成为孤儿进程 其父进程id为1，当然正常是需要函数 <code>wait</code> 来处理的，具体的wait用法放在后面来看。</p>
+<p>通过函数 <code>setsid</code> 修改会话id</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">int main () &#123;</span><br><span class="line">    pid_t pid = fork();</span><br><span class="line">    if (pid &lt; 0) perror(&quot;create process failed 1&quot;);</span><br><span class="line">    if (pid == 0) &#123;</span><br><span class="line">        // 子进程调用 setsid 修改会话id 同时进程组id也会随之改变</span><br><span class="line">        setsid();</span><br><span class="line">        printf(&quot;p1 %d,%d,%d,%d\n&quot;, getpid(), getppid(), getpgid(getpid()), getsid(getpid()));</span><br><span class="line">        exit(0);</span><br><span class="line">    &#125;</span><br><span class="line">    sleep(1);</span><br><span class="line">    printf(&quot;p0 %d,%d,%d,%d\n&quot;, getpid(), getppid(), getpgid(getpid()), getsid(getpid()));</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br><span class="line">-------- result --------</span><br><span class="line">p1 58358,58357,58358,58358</span><br><span class="line">p0 58357,58994,58357,1</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-4-父子进程监控"><a href="#1-4-父子进程监控" class="headerlink" title="1.4 父子进程监控"></a>1.4 父子进程监控</h4><p>父进程创建子进程后，父子进程作为单独的CPU调度单元运行，两者的执行顺序是独立的，但是父子进程有存在进程父子关系，如果父进程先执行完退出，子进程挂载到 init进程还好，如果子进程先执行完 父进程没执行完毕 则子进程会成为<code>僵尸进程</code>（进程状态 Z ）, 其实此时的子进程资源已经被回收 但是还有一些统计信息存在进程中，需要等待父进程结束的时候才会被系统回收处理这些僵尸进程。僵尸进程是进程的正常状态，是一个已经退出的进程。如果这种状态进程多的话 会占用一些系统资源 比如进程号，虽让僵尸进程不会被进程调度，但是过多的僵尸进会导致进程表太大 程影响调度程序的便利过程。</p>
+<p>父进程需要负责回收子进程，处理函数可以使用 <code>wait</code></p>
+<table>
+<thead>
+<tr>
+<th>k</th>
+<th>v</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>签名</td>
+<td>pid_t wait(int * )</td>
+</tr>
+<tr>
+<td>头文件</td>
+<td>sys/wait.h</td>
+</tr>
+<tr>
+<td>参数</td>
+<td>可选 子进程退出的状态值，不需要的话 传 NULL</td>
+</tr>
+<tr>
+<td>返回值</td>
+<td>失败返回 -1 成功返回子进程的pid</td>
+</tr>
+<tr>
+<td>说明</td>
+<td>没有子进程 立刻返回，存在子进程 阻塞等待子进程退出</td>
+</tr>
+</tbody></table>
+<p>更灵活的处理子进程退出函数 <code>waitpid</code></p>
+<table>
+<thead>
+<tr>
+<th>k</th>
+<th>v</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>签名</td>
+<td>pid_t waitpid(pid_t, int * , int)</td>
+</tr>
+<tr>
+<td>头文件</td>
+<td>sys/wait.h</td>
+</tr>
+<tr>
+<td>参数1</td>
+<td>需要监听的进程id</td>
+</tr>
+<tr>
+<td>参数2</td>
+<td>子进程退出的状态 如果不关系可设置为 NULL</td>
+</tr>
+<tr>
+<td>参数3</td>
+<td>控制参数 不需要刻意设置为0</td>
+</tr>
+<tr>
+<td>返回值</td>
+<td>失败返回 -1 成功返回子进程的pid</td>
+</tr>
+<tr>
+<td>说明</td>
+<td>更丰富的功能 将停子进程</td>
+</tr>
+</tbody></table>
+<p>参数1</p>
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>pid&gt;0</td>
+<td>监听进程 进程号为pid 无论是否为当前进程子进程</td>
+</tr>
+<tr>
+<td>pid=-1</td>
+<td>监听当前进程下的任一子进程 功能如同 wait</td>
+</tr>
+<tr>
+<td>pid=0</td>
+<td>监听 与当前进程在一个进程组 的任何进程</td>
+</tr>
+<tr>
+<td>pid&lt;-1</td>
+<td>监听进程组为pid绝对值的任一子进程</td>
+</tr>
+</tbody></table>
+<p>参数2</p>
+<p>|||<br>|||<br>|||</p>
+<p>WIFEXITED(status)   如果子进程正常结束，它就返回真；否则返回假。<br>WEXITSTATUS(status) 如果WIFEXITED(status)为真，则可以用该宏取得子进程exit()返回的结束代码。<br>WIFSIGNALED(status) 如果子进程因为一个未捕获的信号而终止，它就返回真；否则返回假。<br>WTERMSIG(status)    如果WIFSIGNALED(status)为真，则可以用该宏获得导致子进程终止的信号代码。<br>WIFSTOPPED(status)  如果当前子进程被暂停了，则返回真；否则返回假。<br>WSTOPSIG(status)    如果WIFSTOPPED(status)为真，则可以使用该宏获得导致子进程暂停的信号代码。</p>
+<p>参数3</p>
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>WNOHANG</td>
+<td>不阻塞直接返回 如果子进程没有退出返回 0</td>
+</tr>
+<tr>
+<td>WCONTINUED</td>
+<td>？？？</td>
+</tr>
+<tr>
+<td>WUNTRACED</td>
+<td>阻塞等待？？？</td>
+</tr>
+</tbody></table>
+<p><code>wait</code> <code>waitpid</code> 的实现方式并不是 基于信号 <code>SIGCHLD</code> ，信号是异步通知的，<code>wait waitpid</code>函数默认则是阻塞执行的 应该是轮询实现的吧。</p>
+<h2 id="2-进程信号"><a href="#2-进程信号" class="headerlink" title="2. 进程信号"></a>2. 进程信号</h2><p>进程在执行的过程中是可以与外界交互的，外界可以给进程发信号，这个发信号的实现原理依赖的是 CPU中断机制，常用的终止进程命令 <code>kill -9 &lt;pid&gt;</code> 就是一个给进程发送信号的过程。CPU中集成有处理中断的硬件，发送中断信号其实是发送给CPU，CPU每执行完指令后就会读取中断设备中是否有中断需要处理，发送的信号对应有一个信号值，这个值对应的是IDT(Interrupt Descriptor Table) 表的索引，他的值是命令存储的内存地址，CPU通过这个信号值查找对应的指令存储的内存地址，然后读取指令执行。</p>
+<h4 id="2-1-信号的发送与处理"><a href="#2-1-信号的发送与处理" class="headerlink" title="2.1 信号的发送与处理"></a>2.1 信号的发送与处理</h4><h6 id="2-1-1-通过-kill-发送信号"><a href="#2-1-1-通过-kill-发送信号" class="headerlink" title="2.1.1 通过 kill 发送信号"></a>2.1.1 通过 kill 发送信号</h6><p>发送信号可以使用函数 <code>kill</code> 也对应 shell命令中的 <code>kill</code></p>
+<table>
+<thead>
+<tr>
+<th>k</th>
+<th>v</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>签名</td>
+<td>int kill(pid_t, int)</td>
+</tr>
+<tr>
+<td>头文件</td>
+<td>signal.h</td>
+</tr>
+<tr>
+<td>参数1</td>
+<td>进程id</td>
+</tr>
+<tr>
+<td>参数2</td>
+<td>信号索引</td>
+</tr>
+<tr>
+<td>返回值</td>
+<td>成功返回 0 失败返回 -1</td>
+</tr>
+<tr>
+<td>说明</td>
+<td>发送信号给进程</td>
+</tr>
+</tbody></table>
+<p><strong>返回值</strong><br>返回值错误码</p>
+<table>
+<thead>
+<tr>
+<th>错误</th>
+<th>值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>EPERM</td>
+<td>1</td>
+<td>权限不足</td>
+</tr>
+<tr>
+<td>EINVAL</td>
+<td>22</td>
+<td>参数信号 不存在</td>
+</tr>
+<tr>
+<td>ESRCH</td>
+<td>3</td>
+<td>参数 进程id或进程组 不存在</td>
+</tr>
+</tbody></table>
+<p><strong>参数进程id</strong></p>
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>pid &gt; 0</td>
+<td>将信号发送给进程pid</td>
+</tr>
+<tr>
+<td>pid = -1</td>
+<td>将信号发送给除init进程之外的所有进程</td>
+</tr>
+<tr>
+<td>pid = 0</td>
+<td>将信号发送给跟当前进程属于一个进程组的所有进程</td>
+</tr>
+<tr>
+<td>pid &lt; -1</td>
+<td>将信号发送给 进程组为 pid 绝对值的所有进程</td>
+</tr>
+</tbody></table>
+<p><strong>信号</strong><br>对于信号的值 有些信号存在多个值 是因为在不同的架构中 对信号定义的值不同，三个值用逗号隔开，第一个值是 alpha 和 sparc架构使用的，第二个是 x86 arm架构使用，第三个值是mips架构使用。</p>
+<p>进程状态相关的信号</p>
+<table>
+<thead>
+<tr>
+<th>signal</th>
+<th>value</th>
+<th>desc</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SIGTSTP</td>
+<td>18,20,24</td>
+<td>暂停进程 这个信号由terminal发出 按键Ctrl-z</td>
+</tr>
+<tr>
+<td>SIGSTOP</td>
+<td>17,19,23</td>
+<td>暂停进程 通过其他方式发送 这个信号不可被进程捕获处理</td>
+</tr>
+<tr>
+<td>SIGCONT</td>
+<td>19,18,25</td>
+<td>继续进程执行</td>
+</tr>
+</tbody></table>
+<p>中止进程的四个信号</p>
+<table>
+<thead>
+<tr>
+<th>signal</th>
+<th>value</th>
+<th>desc</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SIGINT</td>
+<td>2</td>
+<td>terminal发送中断 对应按键 Ctrl-c</td>
+</tr>
+<tr>
+<td>SIGQUIT</td>
+<td>3</td>
+<td>termian 发送信号 停止进程 对应按键 Ctrl-\ 与SIGINT 的不同是 这个信号在内核的默认信号处理中会产生 core dump</td>
+</tr>
+<tr>
+<td>SIGTERM</td>
+<td>15</td>
+<td>停止进程 可以被捕获 这是与 SIGKILL 的区别</td>
+</tr>
+<tr>
+<td>SIGKILL</td>
+<td>9</td>
+<td>停止进程 不可被捕获 直接停止进程</td>
+</tr>
+</tbody></table>
+<p>SIGINT SIGQUIT 对应的是 terminal 停止进程 信号都可以被捕获，SIGQUIT 会生成 <code>core dump</code> 文件<br>SIGTERM SIGKILL 不针对 terminal SIGTERM 可以被捕获 SIGKILL 不能被捕获</p>
+<p>生成<code>core dump</code> 需要设置限制条件 <code>ulimit -c unlimited</code> 也可以设置其他值 单位 blocks , 若 设置为 <code>ulimit -c 0</code> 则不会生成 <code>core dumo</code> 文件。<br>启动进程 通过 <code>Ctrl-\</code> 停止进程 当前文件夹下就会生成 <code>core dump</code> 文件 <code>core.&lt;pid&gt;</code> ，这个文件的生成是内核的 SIGQUIT 信号处理程序生成的。</p>
+<p>其他用到的信号</p>
+<table>
+<thead>
+<tr>
+<th>signal</th>
+<th>value</th>
+<th>desc</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SIGUSR1</td>
+<td>30,10,16</td>
+<td>用户自定义信号</td>
+</tr>
+<tr>
+<td>SIGUSR2</td>
+<td>31,12,17</td>
+<td>用户自定义信号</td>
+</tr>
+<tr>
+<td>SIGABRT</td>
+<td>6</td>
+<td>当调用函数 abort() 触发的信号</td>
+</tr>
+<tr>
+<td>SIGALRM</td>
+<td>14</td>
+<td>当调用函 alarm() 时钟定时时间到的时候触发的信号</td>
+</tr>
+<tr>
+<td>SIGCHLD</td>
+<td>20,17,18</td>
+<td>子进程退出的时候触发的信号</td>
+</tr>
+<tr>
+<td>SIGHUP</td>
+<td>1</td>
+<td>terminal 退出的时候触发的信号</td>
+</tr>
+</tbody></table>
+<h6 id="2-1-2-通过-signal-注册对应信号处理程序"><a href="#2-1-2-通过-signal-注册对应信号处理程序" class="headerlink" title="2.1.2 通过 signal 注册对应信号处理程序"></a>2.1.2 通过 signal 注册对应信号处理程序</h6><p>信号处理函数 signal</p>
+<table>
+<thead>
+<tr>
+<th>k</th>
+<th>v</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>签名</td>
+<td>void (*handler)(int) signal(int, void (*handler)(int))</td>
+</tr>
+<tr>
+<td>头文件</td>
+<td>signal.h</td>
+</tr>
+<tr>
+<td>参数1</td>
+<td>信号值</td>
+</tr>
+<tr>
+<td>参数2</td>
+<td>信号处理函数内存地址，SIG_IGN 忽略信号， SIG_DFL 使用默认的处理程序</td>
+</tr>
+<tr>
+<td>返回值</td>
+<td>成功返回 处理函数地址 失败返回 -1</td>
+</tr>
+<tr>
+<td>说明</td>
+<td>注册信号处理函数</td>
+</tr>
+</tbody></table>
+<p>现在常用的signal处理程序注册函数是 <code>sigaction</code>，signal存在一定的问题：???</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">void handle(int signo) &#123;</span><br><span class="line">    printf(&quot;get sig nr %d\n&quot;, signo);</span><br><span class="line">    exit(0);</span><br><span class="line">&#125;</span><br><span class="line">int main() &#123;</span><br><span class="line">    printf(&quot;parent pid=%d\n&quot;, getpid());</span><br><span class="line">    pid_t pid = fork();</span><br><span class="line">    if (pid == 0) &#123;</span><br><span class="line">        printf(&quot;child pid=%d\n&quot;, getpid());</span><br><span class="line">        while (1);</span><br><span class="line">    &#125;</span><br><span class="line">    // 注册子进程退出信号的处理函数</span><br><span class="line">    signal(SIGCHLD, handle);</span><br><span class="line">    // 发送信号给指定进程</span><br><span class="line">    getchar();</span><br><span class="line">    // 终止子进程</span><br><span class="line">    kill(pid, SIGTERM);</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br><span class="line">-------- result --------</span><br><span class="line">parent pid=63154</span><br><span class="line">child pid=63155</span><br><span class="line">&gt;\n</span><br><span class="line">get sig nr 20</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-进程状态"><a href="#3-进程状态" class="headerlink" title="3. 进程状态"></a>3. 进程状态</h2><p>R 运行 被调度<br>T 暂停<br>S 睡眠<br>Z 僵尸</p>
+<blockquote>
+<p>TODO<br>中断的实现原理 键盘输入输出<br>计算机的启动过程<br>内存<br>文件<br>进程<br>进程调度算法<br>进程与线程<br>IO<br>终端执行shell命令的过程<br>unix二进制可执行文件格式 elf</p>
+</blockquote>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/Linux/" rel="tag">Linux</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/%E8%BF%9B%E7%A8%8B/" rel="tag">进程</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/06/25/Linux%E8%BF%9B%E7%A8%8B%E9%97%B4%E9%80%9A%E4%BF%A1/"
+                    data-tooltip="Linux进程间通信"
+                    aria-label="上一篇: Linux进程间通信"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/05/26/php%E5%86%85%E6%A0%B8%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8BHashTable/"
+                    data-tooltip="php内核源码分析之HashTable"
+                    aria-label="下一篇: php内核源码分析之HashTable"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/06/25/Linux%E8%BF%9B%E7%A8%8B%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/06/25/Linux%E8%BF%9B%E7%A8%8B%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2019/06/25/Linux%E8%BF%9B%E7%A8%8B%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/06/25/Linux%E8%BF%9B%E7%A8%8B%E9%97%B4%E9%80%9A%E4%BF%A1/"
+                    data-tooltip="Linux进程间通信"
+                    aria-label="上一篇: Linux进程间通信"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/05/26/php%E5%86%85%E6%A0%B8%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8BHashTable/"
+                    data-tooltip="php内核源码分析之HashTable"
+                    aria-label="下一篇: php内核源码分析之HashTable"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/06/25/Linux%E8%BF%9B%E7%A8%8B%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/06/25/Linux%E8%BF%9B%E7%A8%8B%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2019/06/25/Linux%E8%BF%9B%E7%A8%8B%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/06/25/Linux%E8%BF%9B%E7%A8%8B%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/06/25/Linux%E8%BF%9B%E7%A8%8B%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2019/06/25/Linux%E8%BF%9B%E7%A8%8B%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

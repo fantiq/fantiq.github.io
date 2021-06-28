@@ -1,0 +1,857 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>利用apidoc设计文档自动生成方案 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"使用apidoc 可以通过分析代码中的注释生成文档，由于apidoc生成的文档是一个单文件多人开发过程中会导致文件的覆盖，可以通过git 代码分支合并的时候通过钩子(web hook)生成文档到文档服务器文档服务器通过samba 服务 实现代码服务器将生成的文档写入文档服务器。由于是静态文件可以使用node 来跑这样避免多项目的时候 需要在文档服务器绑定不同的域名来实现单台文档服务器跑多个项目的接口文档的麻烦\n\n\n1. 环境安装1.1 node + apidocapidoc 是node的一个工具 需要先安装node才能使用\n1.1.1 安装node下载win64安装文件下载地址 (这里忽略加入PATH的操作 如果需要自行添加)命令行输入 node -v 显示版本号 表示你以成功安装 node\n1.1.2 安装apidoc通过 node 的包管理工具 npm 安装 npm install apidoc -g执行命令apidoc --help 命令识别标识安装成功apidoc命令没有提供查询版本的参数(个人没有发现)\n1.2 samba 服务为了生成文件方便 使用samba服务 具体安装方法 samba 文件共享\n1.3 文档自动生成为了避免 各自生成文档 导致文件覆盖的情况，文档生成的操作不开放给开发者当然开发者可以生成到本地来检查代码文档注释是否ok我们在使用git做版本控制的时候 开发分支是隔离的，一般会有master release dev 三个主分支开发者开发完毕会将代码合并到dev分支跟客户端对接联调，可以在分支合并处 通过钩子生成文档到文档服务器(一般也会在合并分支的时候通过 jenkins 自动构建代码)\n2. apidoc 使用简介apidoc 官网地址 apidoc 官网注释要使用标准的块注释 基本用法举例\n12345678910111213141516171819202122232425/** * @api &#123;get&#125; /login 登录 * @apiGroup User * @apiName getLogin * @apiVersion 1.0.1 * @apiDescription 登录接口 * * @apiExample 作者 * Aimee Aimee@example.com * * @apiParam &#123;String&#125; username 用户名 * @apiParam &#123;String&#125; password 密码 * @apiParamExample http * /login?username=fantiq&amp;passwoed=123456 * @apiSuccess &#123;String&#125; code=0 错误码 * @apiSuccess &#123;String&#125; message=&#x27;ok&#x27; 接口信息 * @apiSuccess &#123;Object&#125; data 数据 * @apiSuccessExample json 返回值 * &#123; *      &quot;code&quot; : 0, *      &quot;message&quot; : &quot;ok&quot;, *      &quot;data&quot; : [] * &#125; * @apiSampleRequest http://www.example.com/ */\n\n文档生成命令\n1apidoc -i [代码路径] -o [生成的接口文档静态文件]\n\n3. apidoc 语法说明3.1 基本定义3.1.1 @api\n@api {method} path name\n\n定义基本的接口请求方式 这个参数必须存在\n\n\n\n参数\n说明\n备注\n\n\n\nmethod\nHttp请求方法 GET POST PUT 等，不区分大小写\n如果支持多种请求方式可以写成&#123;GET POST&#125; 但这会导致 apiSampleRequest 无法使用\n\n\npath\n路由\n\n\n\nname\n接口名称 会显示到文档左侧的导航栏\n\n\n\n使用举例\n12345678# 单个请求方式/** * @api &#123;get&#125; /login 登录 */# 多个请求方式/** * @api &#123;get post&#125; /login 登录 */\n3.1.2 @apiGroup\n@apiGroup name\n\n定义接口的分组 分组定义会显示到文档左侧的主导航栏。但是这个分组的值不支持中文可以通过@apiDefine 的形式来使用中文\n\n\n\n参数\n说明\n备注\n\n\n\nname\n分组名称\n\n\n\n使用举例\n123/** * @apiGroup User */\n通过apiDefine 使用中文\n123456/** * @apiDefine GroupName 中文 *//** * @apiGroup GroupName */\n\n3.1.3 @apiName\n@apiName name\n\n定义接口内部名称。默认情况下apidoc会将 请求方式以及路由进行拼接成值 一般不建议设置这个值一个接口在不同版本中请求方式和路由都不会发生变化的时候尽量用默认值如果同一个接口中请求方式和路由在不同版本发生变化 这个定义就会起到作用\n\n\n\n参数\n说明\n备注\n\n\n\nname\n接口名称 默认是 method+path\n\n\n\n使用举例\n123/** * @apiName GetLogin */\n\n3.1.4 apiVersion\n@apiVersion version\n\n定义接口版本\n\n\n\n参数\n说明\n备注\n\n\n\nversion\n支持版本格式 major.minor.patch\n\n\n\n使用举例\n123/** * @apiVersion 1.0.1 */\n\n3.1.5 apiDescription\n@apiDescription description\n\n\n\n\n参数\n说明\n备注\n\n\n\ndescription\n接口描述\n\n\n\n使用举例\n1234/** * @apiDescription 这是一个登录接口 * 接口调用成功会分发 token */\n\n3.2 参数说明参数说明定义基本分为两个纬度 参数类型 参数形式下面通过一个表格说明\n\n\n\n#\n参数字段说明\n参数举例\n\n\n\n基本参数\n@apiParam\n@apiParamExample\n\n\n请求头\n@apiHeader\n@apiHeaderExample\n\n\n成功\n@apiSuccess\n@apiSuccessExample\n\n\n错误\n@apiError\n@apiErrorExample\n\n\n3.2.1 apiParam\n@apiParam [(group)] [{type{size}}] field descript\n\n定义参数字段 其中 @apiHeader @apiSuccess @apiError 用法也是如此\n\n\n\n参数\n说明\n备注\n\n\n\ntype\n参数类型 支持的参数类型有String Number Boolean Object String[]\n定义参数取值范围 &#123;Number&#123;1-999&#125;&#125;\n\n\nfield\n参数字段名称\n设置默认值 field=defaultValue , 设置为可选项 [field]\n\n\ndescript\n参数字段描述\n\n\n\n使用举例\n123/** * @apiParam &#123;String&#125; name 名称 */\n参数类型取值范围定义\n12345678910# 定义2-5个字符/** * @apiParam &#123;String&#123;2..5&#125;&#125; name 名称 * @apiParam &#123;Number&#123;111-999&#125;&#125; id 编号 */# 定义参数的允许值/** * @apiParam &#123;String=&quot;a&quot;,&quot;b&quot;,&quot;c&quot;&#125; name 名称 * @apiParam &#123;Number=1,2,3,4&#125; id 编号 */\n参数字段\n12345678# 设置参数默认值/** * @apiParam &#123;String&#125; name=&quot;zzz&quot; 名称 */# 设置参数为可选值/** * @apiParam &#123;Number&#125; [id=1] 编号 */\n\n\n3.2.2 apiParamExample\n@apiParamExample [type] titlecontent\n\n定义参数例子 其中 @apiHeaderExample @apiSuccessExample @apiErrorExample 用法也是如此\n\n\n\n参数\n说明\n备注\n\n\n\ntype\n内容类型 json\n\n\n\ntitle\n参数名称\n\n\n\ncontent\n参数例子\n\n\n\n使用举例\n12345678/** * @apiParamExample json 返回成功 * &#123; *      &quot;code&quot; : 0, *      &quot;message&quot; : &quot;ok&quot;, *      &quot;data&quot; : [] * &#125; */\n\n3.3 定义代码块定义代码块 必须 在独立的注释块中定义\n12345678# 定义一个常量/** * @apiDefine NAME 张开发 */# 使用/** * @apiGroup NAME */\n1234567891011# 定义代码片段/** * @apiDefine TEST * @apiSampleRequest http://www.example.com/ */# 使用/** * @api &#123;get&#125; /foo/bar * @apiVersion 1.0.1 * @apiUse TEST */\n3.4 其他3.4.1 权限3.4.2 忽略注释代码注释块中有@apiIgnore 声明的话 这个代码块里面的文档注释将不会生成到文档\n\n建议这个声明写到注释块的头部\n\n3.4.3 接口作者apidoc 的缺点是没有定义接口作者的地方，一个方法就是利用@apiExample 来定义\n1234/** * @apiExample 作者 * 张开发 dev@company.com */\n\n4. 文档服务器建议单独一个服务器跑 文档 ，文档可以通过ip+端口\n\n\n","dateCreated":"2016-09-10T19:11:40+08:00","dateModified":"2016-09-13T13:46:32+08:00","datePublished":"2016-09-10T19:11:40+08:00","description":"使用apidoc 可以通过分析代码中的注释生成文档，由于apidoc生成的文档是一个单文件多人开发过程中会导致文件的覆盖，可以通过git 代码分支合并的时候通过钩子(web hook)生成文档到文档服务器文档服务器通过samba 服务 实现代码服务器将生成的文档写入文档服务器。由于是静态文件可以使用node 来跑这样避免多项目的时候 需要在文档服务器绑定不同的域名来实现单台文档服务器跑多个项目的接口文档的麻烦","headline":"利用apidoc设计文档自动生成方案","image":["logo.png"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2016/09/10/%E5%88%A9%E7%94%A8apidoc%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2016/09/10/%E5%88%A9%E7%94%A8apidoc%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88/","keywords":"apidoc, 架构, 接口文档","thumbnailUrl":"logo.png"}</script>
+    <meta name="description" content="使用apidoc 可以通过分析代码中的注释生成文档，由于apidoc生成的文档是一个单文件多人开发过程中会导致文件的覆盖，可以通过git 代码分支合并的时候通过钩子(web hook)生成文档到文档服务器文档服务器通过samba 服务 实现代码服务器将生成的文档写入文档服务器。由于是静态文件可以使用node 来跑这样避免多项目的时候 需要在文档服务器绑定不同的域名来实现单台文档服务器跑多个项目的接">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="利用apidoc设计文档自动生成方案">
+<meta property="og:url" content="https://fantiq.github.io/2016/09/10/%E5%88%A9%E7%94%A8apidoc%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="使用apidoc 可以通过分析代码中的注释生成文档，由于apidoc生成的文档是一个单文件多人开发过程中会导致文件的覆盖，可以通过git 代码分支合并的时候通过钩子(web hook)生成文档到文档服务器文档服务器通过samba 服务 实现代码服务器将生成的文档写入文档服务器。由于是静态文件可以使用node 来跑这样避免多项目的时候 需要在文档服务器绑定不同的域名来实现单台文档服务器跑多个项目的接">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-09-10T11:11:40.000Z">
+<meta property="article:modified_time" content="2016-09-13T05:46:32.000Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="apidoc">
+<meta property="article:tag" content="架构">
+<meta property="article:tag" content="接口文档">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/2016/09/10/%E5%88%A9%E7%94%A8apidoc%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88/logo.png"/>
+        <meta class="swiftype" name="image" data-type="enum" content="https://fantiq.github.io/2016/09/10/%E5%88%A9%E7%94%A8apidoc%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88/logo.png"/>
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            利用apidoc设计文档自动生成方案
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2016-09-10T19:11:40+08:00">
+	
+		    9月 10, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/%E6%9E%B6%E6%9E%84/">架构</a>, <a class="category-link" href="/categories/%E6%9E%B6%E6%9E%84/api/">api</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>使用<code>apidoc</code> 可以通过分析代码中的注释生成文档，由于<code>apidoc</code>生成的文档是一个单文件<br>多人开发过程中会导致文件的覆盖，可以通过<code>git</code> 代码分支合并的时候通过钩子(web hook)生成文档到文档服务器<br>文档服务器通过<code>samba</code> 服务 实现代码服务器将生成的文档写入文档服务器。由于是静态文件可以使用<code>node</code> 来跑<br>这样避免多项目的时候 需要在文档服务器绑定不同的域名来实现单台文档服务器跑多个项目的接口文档的麻烦</p>
+<span id="more"></span>
+
+<h1 id="1-环境安装"><a href="#1-环境安装" class="headerlink" title="1. 环境安装"></a>1. 环境安装</h1><h4 id="1-1-node-apidoc"><a href="#1-1-node-apidoc" class="headerlink" title="1.1 node + apidoc"></a>1.1 node + apidoc</h4><p>apidoc 是node的一个工具 需要先安装node才能使用</p>
+<h6 id="1-1-1-安装node"><a href="#1-1-1-安装node" class="headerlink" title="1.1.1 安装node"></a>1.1.1 安装node</h6><p>下载win64安装文件<a target="_blank" rel="noopener" href="https://nodejs.org/dist/v4.4.3/node-v4.4.3-x64.msi">下载地址</a> (这里忽略加入PATH的操作 如果需要自行添加)<br>命令行输入 <code>node -v</code> 显示版本号 表示你以成功安装 node</p>
+<h6 id="1-1-2-安装apidoc"><a href="#1-1-2-安装apidoc" class="headerlink" title="1.1.2 安装apidoc"></a>1.1.2 安装apidoc</h6><p>通过 node 的包管理工具 <code>npm</code> 安装 <code>npm install apidoc -g</code><br>执行命令<code>apidoc --help</code> 命令识别标识安装成功<br><strong>apidoc命令没有提供查询版本的参数(个人没有发现)</strong></p>
+<h4 id="1-2-samba-服务"><a href="#1-2-samba-服务" class="headerlink" title="1.2 samba 服务"></a>1.2 samba 服务</h4><p>为了生成文件方便 使用<code>samba</code>服务 具体安装方法 <a href="/2016/06/07/linux-centos-samba-%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/">samba 文件共享</a></p>
+<h4 id="1-3-文档自动生成"><a href="#1-3-文档自动生成" class="headerlink" title="1.3 文档自动生成"></a>1.3 文档自动生成</h4><p>为了避免 各自生成文档 导致文件覆盖的情况，文档生成的操作不开放给开发者<br>当然开发者可以生成到本地来检查代码文档注释是否ok<br>我们在使用<code>git</code>做版本控制的时候 开发分支是隔离的，一般会有<code>master</code> <code>release</code> <code>dev</code> 三个主分支<br>开发者开发完毕会将代码合并到<code>dev</code>分支跟客户端对接联调，可以在分支合并处 通过钩子生成文档到文档服务器(一般也会在合并分支的时候通过 jenkins 自动构建代码)</p>
+<h1 id="2-apidoc-使用简介"><a href="#2-apidoc-使用简介" class="headerlink" title="2. apidoc 使用简介"></a>2. apidoc 使用简介</h1><p>apidoc 官网地址 <a target="_blank" rel="noopener" href="http://apidocjs.com/">apidoc 官网</a><br>注释要使用<strong>标准的块注释</strong> 基本用法举例</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * @api &#123;get&#125; /login 登录</span><br><span class="line"> * @apiGroup User</span><br><span class="line"> * @apiName getLogin</span><br><span class="line"> * @apiVersion 1.0.1</span><br><span class="line"> * @apiDescription 登录接口</span><br><span class="line"> *</span><br><span class="line"> * @apiExample 作者</span><br><span class="line"> * Aimee Aimee@example.com</span><br><span class="line"> *</span><br><span class="line"> * @apiParam &#123;String&#125; username 用户名</span><br><span class="line"> * @apiParam &#123;String&#125; password 密码</span><br><span class="line"> * @apiParamExample http</span><br><span class="line"> * /login?username=fantiq&amp;passwoed=123456</span><br><span class="line"> * @apiSuccess &#123;String&#125; code=0 错误码</span><br><span class="line"> * @apiSuccess &#123;String&#125; message=&#x27;ok&#x27; 接口信息</span><br><span class="line"> * @apiSuccess &#123;Object&#125; data 数据</span><br><span class="line"> * @apiSuccessExample json 返回值</span><br><span class="line"> * &#123;</span><br><span class="line"> *      &quot;code&quot; : 0,</span><br><span class="line"> *      &quot;message&quot; : &quot;ok&quot;,</span><br><span class="line"> *      &quot;data&quot; : []</span><br><span class="line"> * &#125;</span><br><span class="line"> * @apiSampleRequest http://www.example.com/</span><br><span class="line"> */</span><br></pre></td></tr></table></figure>
+
+<p>文档生成命令</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apidoc -i [代码路径] -o [生成的接口文档静态文件]</span><br></pre></td></tr></table></figure>
+
+<h1 id="3-apidoc-语法说明"><a href="#3-apidoc-语法说明" class="headerlink" title="3. apidoc 语法说明"></a>3. apidoc 语法说明</h1><h4 id="3-1-基本定义"><a href="#3-1-基本定义" class="headerlink" title="3.1 基本定义"></a>3.1 基本定义</h4><h6 id="3-1-1-api"><a href="#3-1-1-api" class="headerlink" title="3.1.1 @api"></a>3.1.1 @api</h6><blockquote>
+<p>@api {method} path name</p>
+</blockquote>
+<p>定义基本的接口请求方式 这个参数<strong>必须存在</strong></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>method</td>
+<td>Http请求方法 <code>GET POST PUT</code> 等，不区分大小写</td>
+<td>如果支持多种请求方式可以写成<code>&#123;GET POST&#125;</code> 但这会导致 <code>apiSampleRequest</code> 无法使用</td>
+</tr>
+<tr>
+<td>path</td>
+<td>路由</td>
+<td></td>
+</tr>
+<tr>
+<td>name</td>
+<td>接口名称 会显示到文档左侧的导航栏</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>使用举例</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># 单个请求方式</span><br><span class="line">/**</span><br><span class="line"> * @api &#123;get&#125; /login 登录</span><br><span class="line"> */</span><br><span class="line"># 多个请求方式</span><br><span class="line">/**</span><br><span class="line"> * @api &#123;get post&#125; /login 登录</span><br><span class="line"> */</span><br></pre></td></tr></table></figure>
+<h6 id="3-1-2-apiGroup"><a href="#3-1-2-apiGroup" class="headerlink" title="3.1.2 @apiGroup"></a>3.1.2 @apiGroup</h6><blockquote>
+<p>@apiGroup name</p>
+</blockquote>
+<p>定义接口的分组 分组定义会显示到文档左侧的主导航栏。但是这个分组的值不支持中文<br>可以通过<code>@apiDefine</code> 的形式来使用中文</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>name</td>
+<td>分组名称</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>使用举例</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * @apiGroup User</span><br><span class="line"> */</span><br></pre></td></tr></table></figure>
+<p>通过apiDefine 使用中文</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * @apiDefine GroupName 中文</span><br><span class="line"> */</span><br><span class="line">/**</span><br><span class="line"> * @apiGroup GroupName</span><br><span class="line"> */</span><br></pre></td></tr></table></figure>
+
+<h6 id="3-1-3-apiName"><a href="#3-1-3-apiName" class="headerlink" title="3.1.3 @apiName"></a>3.1.3 @apiName</h6><blockquote>
+<p>@apiName name</p>
+</blockquote>
+<p>定义接口内部名称。<br>默认情况下apidoc会将 请求方式以及路由进行拼接成值 一般不建议设置这个值<br>一个接口在不同版本中<code>请求方式</code>和<code>路由</code>都不会发生变化的时候尽量用默认值<br>如果同一个接口中<code>请求方式</code>和<code>路由</code>在不同版本发生变化 这个定义就会起到作用</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>name</td>
+<td>接口名称 默认是 method+path</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>使用举例</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * @apiName GetLogin</span><br><span class="line"> */</span><br></pre></td></tr></table></figure>
+
+<h6 id="3-1-4-apiVersion"><a href="#3-1-4-apiVersion" class="headerlink" title="3.1.4 apiVersion"></a>3.1.4 apiVersion</h6><blockquote>
+<p>@apiVersion version</p>
+</blockquote>
+<p>定义接口版本</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>version</td>
+<td>支持版本格式 major.minor.patch</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>使用举例</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * @apiVersion 1.0.1</span><br><span class="line"> */</span><br></pre></td></tr></table></figure>
+
+<h6 id="3-1-5-apiDescription"><a href="#3-1-5-apiDescription" class="headerlink" title="3.1.5 apiDescription"></a>3.1.5 apiDescription</h6><blockquote>
+<p>@apiDescription description</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>description</td>
+<td>接口描述</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>使用举例</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * @apiDescription 这是一个登录接口</span><br><span class="line"> * 接口调用成功会分发 token</span><br><span class="line"> */</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-2-参数说明"><a href="#3-2-参数说明" class="headerlink" title="3.2 参数说明"></a>3.2 参数说明</h4><p>参数说明定义基本分为两个纬度 <code>参数类型</code> <code>参数形式</code><br>下面通过一个表格说明</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>参数字段说明</th>
+<th>参数举例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>基本参数</td>
+<td>@apiParam</td>
+<td>@apiParamExample</td>
+</tr>
+<tr>
+<td>请求头</td>
+<td>@apiHeader</td>
+<td>@apiHeaderExample</td>
+</tr>
+<tr>
+<td>成功</td>
+<td>@apiSuccess</td>
+<td>@apiSuccessExample</td>
+</tr>
+<tr>
+<td>错误</td>
+<td>@apiError</td>
+<td>@apiErrorExample</td>
+</tr>
+</tbody></table>
+<h6 id="3-2-1-apiParam"><a href="#3-2-1-apiParam" class="headerlink" title="3.2.1 apiParam"></a>3.2.1 apiParam</h6><blockquote>
+<p>@apiParam [(group)] [{type{size}}] field descript</p>
+</blockquote>
+<p>定义参数字段 其中 <code>@apiHeader</code> <code>@apiSuccess</code> <code>@apiError</code> 用法也是如此</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>type</td>
+<td>参数类型 支持的参数类型有<code>String Number Boolean Object String[]</code></td>
+<td>定义参数取值范围 <code>&#123;Number&#123;1-999&#125;&#125;</code></td>
+</tr>
+<tr>
+<td>field</td>
+<td>参数字段名称</td>
+<td>设置默认值 <code>field=defaultValue</code> , 设置为可选项 <code>[field]</code></td>
+</tr>
+<tr>
+<td>descript</td>
+<td>参数字段描述</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>使用举例</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * @apiParam &#123;String&#125; name 名称</span><br><span class="line"> */</span><br></pre></td></tr></table></figure>
+<p>参数类型取值范围定义</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"># 定义2-5个字符</span><br><span class="line">/**</span><br><span class="line"> * @apiParam &#123;String&#123;2..5&#125;&#125; name 名称</span><br><span class="line"> * @apiParam &#123;Number&#123;111-999&#125;&#125; id 编号</span><br><span class="line"> */</span><br><span class="line"># 定义参数的允许值</span><br><span class="line">/**</span><br><span class="line"> * @apiParam &#123;String=&quot;a&quot;,&quot;b&quot;,&quot;c&quot;&#125; name 名称</span><br><span class="line"> * @apiParam &#123;Number=1,2,3,4&#125; id 编号</span><br><span class="line"> */</span><br></pre></td></tr></table></figure>
+<p>参数字段</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># 设置参数默认值</span><br><span class="line">/**</span><br><span class="line"> * @apiParam &#123;String&#125; name=&quot;zzz&quot; 名称</span><br><span class="line"> */</span><br><span class="line"># 设置参数为可选值</span><br><span class="line">/**</span><br><span class="line"> * @apiParam &#123;Number&#125; [id=1] 编号</span><br><span class="line"> */</span><br></pre></td></tr></table></figure>
+
+
+<h6 id="3-2-2-apiParamExample"><a href="#3-2-2-apiParamExample" class="headerlink" title="3.2.2 apiParamExample"></a>3.2.2 apiParamExample</h6><blockquote>
+<p>@apiParamExample [type] title<br>content</p>
+</blockquote>
+<p>定义参数例子 其中 <code>@apiHeaderExample</code> <code>@apiSuccessExample</code> <code>@apiErrorExample</code> 用法也是如此</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>type</td>
+<td>内容类型 <code>json</code></td>
+<td></td>
+</tr>
+<tr>
+<td>title</td>
+<td>参数名称</td>
+<td></td>
+</tr>
+<tr>
+<td>content</td>
+<td>参数例子</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>使用举例</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * @apiParamExample json 返回成功</span><br><span class="line"> * &#123;</span><br><span class="line"> *      &quot;code&quot; : 0,</span><br><span class="line"> *      &quot;message&quot; : &quot;ok&quot;,</span><br><span class="line"> *      &quot;data&quot; : []</span><br><span class="line"> * &#125;</span><br><span class="line"> */</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-3-定义代码块"><a href="#3-3-定义代码块" class="headerlink" title="3.3 定义代码块"></a>3.3 定义代码块</h4><p>定义代码块 <strong>必须</strong> 在独立的注释块中定义</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># 定义一个常量</span><br><span class="line">/**</span><br><span class="line"> * @apiDefine NAME 张开发</span><br><span class="line"> */</span><br><span class="line"># 使用</span><br><span class="line">/**</span><br><span class="line"> * @apiGroup NAME</span><br><span class="line"> */</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"># 定义代码片段</span><br><span class="line">/**</span><br><span class="line"> * @apiDefine TEST</span><br><span class="line"> * @apiSampleRequest http://www.example.com/</span><br><span class="line"> */</span><br><span class="line"># 使用</span><br><span class="line">/**</span><br><span class="line"> * @api &#123;get&#125; /foo/bar</span><br><span class="line"> * @apiVersion 1.0.1</span><br><span class="line"> * @apiUse TEST</span><br><span class="line"> */</span><br></pre></td></tr></table></figure>
+<h4 id="3-4-其他"><a href="#3-4-其他" class="headerlink" title="3.4 其他"></a>3.4 其他</h4><h6 id="3-4-1-权限"><a href="#3-4-1-权限" class="headerlink" title="3.4.1 权限"></a>3.4.1 权限</h6><h6 id="3-4-2-忽略注释"><a href="#3-4-2-忽略注释" class="headerlink" title="3.4.2 忽略注释"></a>3.4.2 忽略注释</h6><p>代码注释块中有<code>@apiIgnore</code> 声明的话 这个代码块里面的文档注释将不会生成到文档</p>
+<blockquote>
+<p>建议这个声明写到注释块的头部</p>
+</blockquote>
+<h6 id="3-4-3-接口作者"><a href="#3-4-3-接口作者" class="headerlink" title="3.4.3 接口作者"></a>3.4.3 接口作者</h6><p><code>apidoc</code> 的缺点是没有定义接口作者的地方，一个方法就是利用<code>@apiExample</code> 来定义</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * @apiExample 作者</span><br><span class="line"> * 张开发 dev@company.com</span><br><span class="line"> */</span><br></pre></td></tr></table></figure>
+
+<h1 id="4-文档服务器"><a href="#4-文档服务器" class="headerlink" title="4. 文档服务器"></a>4. 文档服务器</h1><p>建议单独一个服务器跑 文档 ，文档可以通过ip+端口</p>
+<!-- 
+
+
+
+
+开发
+    目的：制作产品
+基础架构
+    目的：开发者之间更好的配合 为开发提供便利
+    移动端
+        Android
+        Ios
+        Wap
+    接口
+    运维
+
+    接口之间的开发框架 底层架构
+    App之间的底层架构 底层框架
+    服务器的架构 项目需要准备的服务
+    客户端与后端数据交互标准
+
+运维
+    目的：为产品提供需要的环境支持
+测试
+    目的：发现产品中存在的问题
+项目经理
+    目的：保证开发产品与设计产品 吻合
+    工具：流程图 代码审查
+    进度保证 代码质量保证 产品真实度保证
+产品经理
+    目的：更好的表达请求 产品
+    工具：原型图 交互图 设计图 需求文档
+    原型图之间的关联 产品流程 必要的文字说明
+ -->
+
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/apidoc/" rel="tag">apidoc</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3/" rel="tag">接口文档</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/%E6%9E%B6%E6%9E%84/" rel="tag">架构</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2017/01/01/%E7%B2%BE-LNMP%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/"
+                    data-tooltip="[精]LNMP开发环境搭建"
+                    aria-label="上一篇: [精]LNMP开发环境搭建"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/"
+                    data-tooltip="composer使用指南"
+                    aria-label="下一篇: composer使用指南"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/09/10/%E5%88%A9%E7%94%A8apidoc%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/09/10/%E5%88%A9%E7%94%A8apidoc%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/09/10/%E5%88%A9%E7%94%A8apidoc%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2017/01/01/%E7%B2%BE-LNMP%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/"
+                    data-tooltip="[精]LNMP开发环境搭建"
+                    aria-label="上一篇: [精]LNMP开发环境搭建"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/"
+                    data-tooltip="composer使用指南"
+                    aria-label="下一篇: composer使用指南"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/09/10/%E5%88%A9%E7%94%A8apidoc%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/09/10/%E5%88%A9%E7%94%A8apidoc%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/09/10/%E5%88%A9%E7%94%A8apidoc%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/09/10/%E5%88%A9%E7%94%A8apidoc%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/09/10/%E5%88%A9%E7%94%A8apidoc%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2016/09/10/%E5%88%A9%E7%94%A8apidoc%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

@@ -1,0 +1,723 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>html5中引入的csp防跨域 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"CSP = content security policy 是浏览器的一个安全策略，如同跨域功能通过相应头可以控制 浏览器的行为 比如：内联样式 内联js 引用外部js 图片等文件这个是html5 的新特性 ，用来防止 跨站攻击 很有效 但是要高版本浏览器才会支持这里可以看到兼容性\n\n\n举个例子 在nginx上的一个请求头的配置\n123456add_header &#x27;Content-Security-Policy&#x27; &quot;default-src &#x27;self&#x27; http://cdn.bootcss.com;script-src &#x27;self&#x27; &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; http://*.kuaiqiangche.com;style-src &#x27;self&#x27; &#x27;unsafe-eval&#x27; http://*.bdimg.com;report-uri http://csp.report.kuaiqiangche.com;&quot;;\n\nCSP响应头不同浏览器对http头的识别是不一样的历史原因导致 开发 需要做不同浏览器的兼容下面列出一些浏览器识别的头\n123456# 通用头Content-Security-Policy# firefox 响应头X-Content-Security-Policy# chrome safariX-WebKit-CSP\nkey值的格式不同的csp指令之间用 ; 隔开 一条CSP规则是通过csp指令 值1 值2 .. 的形式 通过空格隔开\n12345指令1 值1 值2;指令2 值1 值2;....default-src &#x27;self&#x27; http://baidu.com;script-src &#x27;self&#x27; http://baidu.com;...\n\nCSP 指令其实csp的指令主要是 在html中src属性浏览器会根据这个src 的属性 发送请求指定地址这也是浏览器安全问题出现的根源所以在csp指令中都是对这个src可以让浏览器发送请求的白名单\n\n\n\n指令\n例子\n描述\n\n\n\ndefault-src\n‘self’ cdn.example.com\n定义所有类型(js img css font ajax iframe 多媒体)可发送请求的白名单\n\n\nscript-src\n‘self’ js.example.com\n定义js可被浏览器加载的白名单域\n\n\nstyle-src\n‘self’ css.example.com\n定义css可被浏览器加载的白名单域\n\n\nimg-src\n‘self’ img.example.com\n定义image可被浏览器加载的白名单域\n\n\nconnect-src\n‘self’\n定义ajax websocket 可请求交互的白名单\n\n\nfont-src\nfont.example.com\nweb font 可加载白名单\n\n\nobject-src\n‘self’\n定义 这些flash java小程序可被请求加载的白名单\n\n\nmedia-src\nmedia.example.com\n定义等多媒体资可加载白名单\n\n\nframe-src\n‘self’\n定义 iframe 可加载白名单\n\n\nsandbox-src\nallow-forms\n对资源启用sandbox(类似iframe的sandbox属性?)\n\n\nreport-uri\nlog.kqc.com\n定义当请求不被策略允许的时候发送报告到的位置\n\n\nCSP 指令值\n\n\n指令值\n指令试列\n说明\n\n\n\n*\nimg-src *\n允许任何内容\n\n\n‘none’\nstyle-src ‘none’\n不允许任何内容\n\n\n‘self’\nimg-src ‘self’\n允许相同源(这里的定义如同跨域定义的相同源概念)\n\n\n‘unsafe-inline’\nscript-src ‘unsafe-inline’\n允许行内资源(如 style属性 onclick时间 inline js css)\n\n\n‘unsafe-eval’\nscript-src ‘unsafe-eval’\n允许加载动态代码 eval方法\n\n\nhttps:\nimg-src https:\n允许加载https: 资源\n\n\ndata\nimg-src data\n允许加载 data: 协议的资源(如base64的图片)\n\n\nwww.example.com\nimg-src www.example.com\n允许加载指定域名的资源\n\n\n*.example.com\nimg-src *.example.com\n允许加载指定域的子域名所有资源\n\n\nhttps://img.com\nimg-src https://img.com\n允许加载指定域的资源 http协议也要匹配\n\n\n在实际项目用常用到的其实并没有这么多前端用到的资源很多 这个维护量很大 全面使用 CSP策略 给开发也会带来很多不便我目前在项目中的使用是这样的\n1234script-src &#x27;self&#x27; &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; http://*.kuaiqiangche.com http://*.kuaiqiangche.cn https://*.kuaiqiangche.com https://*.kuaiqiangche.cn ....\n\n\n参考链接\n","dateCreated":"2016-06-07T22:36:25+08:00","dateModified":"2016-06-13T14:20:20+08:00","datePublished":"2016-06-07T22:36:25+08:00","description":"CSP = content security policy 是浏览器的一个安全策略，如同跨域功能通过相应头可以控制 浏览器的行为 比如：内联样式 内联js 引用外部js 图片等文件这个是html5 的新特性 ，用来防止 跨站攻击 很有效 但是要高版本浏览器才会支持这里可以看到兼容性","headline":"html5中引入的csp防跨域","image":[],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2016/06/07/html5%E4%B8%AD%E5%BC%95%E5%85%A5%E7%9A%84csp%E9%98%B2%E8%B7%A8%E5%9F%9F/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2016/06/07/html5%E4%B8%AD%E5%BC%95%E5%85%A5%E7%9A%84csp%E9%98%B2%E8%B7%A8%E5%9F%9F/","keywords":"csp, 安全, 跨域攻击, http"}</script>
+    <meta name="description" content="CSP &#x3D; content security policy 是浏览器的一个安全策略，如同跨域功能通过相应头可以控制 浏览器的行为 比如：内联样式 内联js 引用外部js 图片等文件这个是html5 的新特性 ，用来防止 跨站攻击 很有效 但是要高版本浏览器才会支持这里可以看到兼容性">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="html5中引入的csp防跨域">
+<meta property="og:url" content="https://fantiq.github.io/2016/06/07/html5%E4%B8%AD%E5%BC%95%E5%85%A5%E7%9A%84csp%E9%98%B2%E8%B7%A8%E5%9F%9F/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="CSP &#x3D; content security policy 是浏览器的一个安全策略，如同跨域功能通过相应头可以控制 浏览器的行为 比如：内联样式 内联js 引用外部js 图片等文件这个是html5 的新特性 ，用来防止 跨站攻击 很有效 但是要高版本浏览器才会支持这里可以看到兼容性">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-06-07T14:36:25.000Z">
+<meta property="article:modified_time" content="2016-06-13T06:20:20.000Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="csp">
+<meta property="article:tag" content="安全">
+<meta property="article:tag" content="跨域攻击">
+<meta property="article:tag" content="http">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            html5中引入的csp防跨域
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2016-06-07T22:36:25+08:00">
+	
+		    6月 07, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/%E8%BF%90%E7%BB%B4/">运维</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>CSP = content security policy 是浏览器的一个安全策略，如同跨域功能<br>通过相应头可以控制 浏览器的行为 比如：内联样式 内联js 引用外部js 图片等文件<br>这个是html5 的新特性 ，用来防止 跨站攻击 很有效 但是要高版本浏览器才会支持<br><a target="_blank" rel="noopener" href="http://caniuse.com/#feat=contentsecuritypolicy">这里可以看到兼容性</a></p>
+<span id="more"></span>
+
+<p>举个例子 在<code>nginx</code>上的一个请求头的配置</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">add_header &#x27;Content-Security-Policy&#x27; &quot;</span><br><span class="line">default-src &#x27;self&#x27; http://cdn.bootcss.com;</span><br><span class="line">script-src &#x27;self&#x27; &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; http://*.kuaiqiangche.com;</span><br><span class="line">style-src &#x27;self&#x27; &#x27;unsafe-eval&#x27; http://*.bdimg.com;</span><br><span class="line">report-uri http://csp.report.kuaiqiangche.com;</span><br><span class="line">&quot;;</span><br></pre></td></tr></table></figure>
+
+<h2 id="CSP响应头"><a href="#CSP响应头" class="headerlink" title="CSP响应头"></a>CSP响应头</h2><p>不同浏览器对http头的识别是不一样的<br>历史原因导致 开发 需要做不同浏览器的兼容<br>下面列出一些浏览器识别的头</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># 通用头</span><br><span class="line">Content-Security-Policy</span><br><span class="line"># firefox 响应头</span><br><span class="line">X-Content-Security-Policy</span><br><span class="line"># chrome safari</span><br><span class="line">X-WebKit-CSP</span><br></pre></td></tr></table></figure>
+<h2 id="key值的格式"><a href="#key值的格式" class="headerlink" title="key值的格式"></a>key值的格式</h2><p>不同的csp指令之间用 <code>;</code> 隔开 一条CSP规则是通过<br>csp指令 值1 值2 .. 的形式 通过空格隔开</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">指令1 值1 值2;指令2 值1 值2;....</span><br><span class="line"></span><br><span class="line">default-src &#x27;self&#x27; http://baidu.com;</span><br><span class="line">script-src &#x27;self&#x27; http://baidu.com;</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<h2 id="CSP-指令"><a href="#CSP-指令" class="headerlink" title="CSP 指令"></a>CSP 指令</h2><p>其实csp的指令主要是 在html中<code>src</code>属性<br>浏览器会根据这个<code>src</code> 的属性 发送请求指定地址<br>这也是浏览器安全问题出现的根源<br>所以在csp指令中都是对这个src可以让浏览器发送请求的<code>白名单</code></p>
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>例子</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>default-src</td>
+<td>‘self’ cdn.example.com</td>
+<td>定义所有类型(js img css font ajax iframe 多媒体)可发送请求的白名单</td>
+</tr>
+<tr>
+<td>script-src</td>
+<td>‘self’ js.example.com</td>
+<td>定义js可被浏览器加载的白名单域</td>
+</tr>
+<tr>
+<td>style-src</td>
+<td>‘self’ css.example.com</td>
+<td>定义css可被浏览器加载的白名单域</td>
+</tr>
+<tr>
+<td>img-src</td>
+<td>‘self’ img.example.com</td>
+<td>定义image可被浏览器加载的白名单域</td>
+</tr>
+<tr>
+<td>connect-src</td>
+<td>‘self’</td>
+<td>定义ajax websocket 可请求交互的白名单</td>
+</tr>
+<tr>
+<td>font-src</td>
+<td>font.example.com</td>
+<td>web font 可加载白名单</td>
+</tr>
+<tr>
+<td>object-src</td>
+<td>‘self’</td>
+<td>定义<object><embad><applet> 这些flash java小程序可被请求加载的白名单</td>
+</tr>
+<tr>
+<td>media-src</td>
+<td>media.example.com</td>
+<td>定义<audio><video>等多媒体资可加载白名单</td>
+</tr>
+<tr>
+<td>frame-src</td>
+<td>‘self’</td>
+<td>定义 iframe 可加载白名单</td>
+</tr>
+<tr>
+<td>sandbox-src</td>
+<td>allow-forms</td>
+<td>对资源启用sandbox(类似iframe的sandbox属性?)</td>
+</tr>
+<tr>
+<td>report-uri</td>
+<td>log.kqc.com</td>
+<td>定义当请求不被策略允许的时候发送报告到的位置</td>
+</tr>
+</tbody></table>
+<h2 id="CSP-指令值"><a href="#CSP-指令值" class="headerlink" title="CSP 指令值"></a>CSP 指令值</h2><table>
+<thead>
+<tr>
+<th>指令值</th>
+<th>指令试列</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>*</td>
+<td>img-src *</td>
+<td>允许任何内容</td>
+</tr>
+<tr>
+<td>‘none’</td>
+<td>style-src ‘none’</td>
+<td>不允许任何内容</td>
+</tr>
+<tr>
+<td>‘self’</td>
+<td>img-src ‘self’</td>
+<td>允许相同源(这里的定义如同跨域定义的相同源概念)</td>
+</tr>
+<tr>
+<td>‘unsafe-inline’</td>
+<td>script-src ‘unsafe-inline’</td>
+<td>允许行内资源(如 style属性 onclick时间 inline js css)</td>
+</tr>
+<tr>
+<td>‘unsafe-eval’</td>
+<td>script-src ‘unsafe-eval’</td>
+<td>允许加载动态代码 eval方法</td>
+</tr>
+<tr>
+<td>https:</td>
+<td>img-src https:</td>
+<td>允许加载https: 资源</td>
+</tr>
+<tr>
+<td>data</td>
+<td>img-src data</td>
+<td>允许加载 data: 协议的资源(如base64的图片)</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="http://www.example.com/">www.example.com</a></td>
+<td>img-src <a target="_blank" rel="noopener" href="http://www.example.com/">www.example.com</a></td>
+<td>允许加载指定域名的资源</td>
+</tr>
+<tr>
+<td>*.example.com</td>
+<td>img-src *.example.com</td>
+<td>允许加载指定域的子域名所有资源</td>
+</tr>
+<tr>
+<td><a target="_blank" rel="noopener" href="https://img.com/">https://img.com</a></td>
+<td>img-src <a target="_blank" rel="noopener" href="https://img.com/">https://img.com</a></td>
+<td>允许加载指定域的资源 http协议也要匹配</td>
+</tr>
+</tbody></table>
+<p>在实际项目用常用到的其实并没有这么多<br>前端用到的资源很多 这个维护量很大 全面使用 CSP策略 给开发也会带来很多不便<br>我目前在项目中的使用是这样的</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">script-src &#x27;self&#x27; &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; </span><br><span class="line">http://*.kuaiqiangche.com http://*.kuaiqiangche.cn </span><br><span class="line">https://*.kuaiqiangche.com https://*.kuaiqiangche.cn </span><br><span class="line">....</span><br></pre></td></tr></table></figure>
+
+
+<p><a target="_blank" rel="noopener" href="http://drops.wooyun.org/tips/1439">参考链接</a></p>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/csp/" rel="tag">csp</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/http/" rel="tag">http</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/%E5%AE%89%E5%85%A8/" rel="tag">安全</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/%E8%B7%A8%E5%9F%9F%E6%94%BB%E5%87%BB/" rel="tag">跨域攻击</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/07/git%E7%9A%84%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                    data-tooltip="git的使用总结"
+                    aria-label="上一篇: git的使用总结"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                    data-tooltip="linux centos 硬盘共享nfs使用总结"
+                    aria-label="下一篇: linux centos 硬盘共享nfs使用总结"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/06/07/html5%E4%B8%AD%E5%BC%95%E5%85%A5%E7%9A%84csp%E9%98%B2%E8%B7%A8%E5%9F%9F/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/06/07/html5%E4%B8%AD%E5%BC%95%E5%85%A5%E7%9A%84csp%E9%98%B2%E8%B7%A8%E5%9F%9F/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/06/07/html5%E4%B8%AD%E5%BC%95%E5%85%A5%E7%9A%84csp%E9%98%B2%E8%B7%A8%E5%9F%9F/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/07/git%E7%9A%84%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                    data-tooltip="git的使用总结"
+                    aria-label="上一篇: git的使用总结"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                    data-tooltip="linux centos 硬盘共享nfs使用总结"
+                    aria-label="下一篇: linux centos 硬盘共享nfs使用总结"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/06/07/html5%E4%B8%AD%E5%BC%95%E5%85%A5%E7%9A%84csp%E9%98%B2%E8%B7%A8%E5%9F%9F/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/06/07/html5%E4%B8%AD%E5%BC%95%E5%85%A5%E7%9A%84csp%E9%98%B2%E8%B7%A8%E5%9F%9F/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/06/07/html5%E4%B8%AD%E5%BC%95%E5%85%A5%E7%9A%84csp%E9%98%B2%E8%B7%A8%E5%9F%9F/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/06/07/html5%E4%B8%AD%E5%BC%95%E5%85%A5%E7%9A%84csp%E9%98%B2%E8%B7%A8%E5%9F%9F/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/06/07/html5%E4%B8%AD%E5%BC%95%E5%85%A5%E7%9A%84csp%E9%98%B2%E8%B7%A8%E5%9F%9F/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2016/06/07/html5%E4%B8%AD%E5%BC%95%E5%85%A5%E7%9A%84csp%E9%98%B2%E8%B7%A8%E5%9F%9F/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

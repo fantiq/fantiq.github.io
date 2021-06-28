@@ -1,0 +1,671 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>使用phpstorm进行断点调试 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"xdebug的断点原理就是，通过php的xdebug对php运行的变量文件等信息进行监听，并通过9000端口以及DBGp协议，将这些信息发送给客户端PHPStrom。PHPStrom 作为IDE对自己内部设置的断点以及接收到的数据进行安排显示，并再次通过9000端口，做出响应到服务端的xdebug。\n\n1. php中xdebug配置安装xdebug扩展并重启服务，这里省略说明，具体罗列解释下xdebug断点相关的配置项\nphp开启扩展的配置\n123#php.ini xdebug.remote_enable=onxdebug.idekey=PHPSTROM\n\nxdebug相关参数使用\n\n\n\nkey\nval\ndefault\nexplain\n\n\n\nxdebug.remote_enable\non\noff\n是否开启远程调试\n\n\nxdebug.idekey\nPHPSTROM\n[HOST_NAME]\n这个值会放在cookie里 XDEBUG_SESSION=PHPSTORM 区分不同的客户端\n\n\nxdebug.remote_host\nlocalhost\nlocalhost\n与客户端(IDE)交互的地址\n\n\nxdebug.remote_port\n9000\n9000\n与客户端(IDE)交互的端口\n\n\nxdebug.remote_handler\ndbgp\ndbgp\n与客户端(IDE)交互的协议\n\n\nxdebug.remote_mode\nreq\nreq\n调试模式模式\n\n\n2. PHPSTORM 的配置在设置中找到如下路径\n1Setting &gt; Languages &amp; Frameworks &gt; PHP &gt; Debug &gt; DBGp Proxy\n按照如下的值进行填写\n\n\n\nkey\nval\n\n\n\nIDE Key\nPHPSTORM\n\n\nHost\nlocalhost\n\n\nPort\n9000\n\n\n3. 触发xdebug以及使用当PHPSTROM需要监听的时候需要先开启开关 Run &gt; Start Listening for PHP Debug Connections\n触发xdebug的方法目前有两种，在请求的时候\n\ncookie 中增加值 XDEBUG_SESSION=PHPSTORM \nqueryString 上带上一些参数，比如 http://localhost/index.php?XDEBUG_SESSION_START=13679\n\n3.1 cookie中增加值可以通过chrome扩展方面实现 cookie值的添加与去除\n扩展的下载地址\n3.2 在PHPStrom 中DebugPHPStrom中点击 Run &gt; Debug ，因为这个debug实例是通过浏览器的，所以要给这个debug添加server并关联\n3.2.1 创建server在设置中找到如下路径\n1Setting &gt; Languages &amp; Frameworks &gt; PHP &gt; Servers\n新增一个server配置，名字自定义，其他的值是，host port ，重要的是 Debugger，这个选项指定调试的时候使用哪个debug引擎\n3.2.2 配置debug在 Run &gt; Edit Configurations 中新增，类型选择 PHP Web Application，其中Server中选择上一步配置的，URL为要请求的Url，PHPStrom在请求的时候会自动帮你加上 XDEBUG_SESSION_START=111222，因为在创建server的时候我们在debugger选项中选择了 xdebug\n","dateCreated":"2017-06-21T14:06:40+08:00","dateModified":"2017-06-29T14:48:10+08:00","datePublished":"2017-06-21T14:06:40+08:00","description":"xdebug的断点原理就是，通过php的xdebug对php运行的变量文件等信息进行监听，并通过9000端口以及DBGp协议，将这些信息发送给客户端PHPStrom。PHPStrom 作为IDE对自己内部设置的断点以及接收到的数据进行安排显示，并再次通过9000端口，做出响应到服务端的xdebug。","headline":"使用phpstorm进行断点调试","image":[],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2017/06/21/%E4%BD%BF%E7%94%A8phpstorm%E8%BF%9B%E8%A1%8C%E6%96%AD%E7%82%B9%E8%B0%83%E8%AF%95/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2017/06/21/%E4%BD%BF%E7%94%A8phpstorm%E8%BF%9B%E8%A1%8C%E6%96%AD%E7%82%B9%E8%B0%83%E8%AF%95/","keywords":"phpstrom, debug, xdebug"}</script>
+    <meta name="description" content="xdebug的断点原理就是，通过php的xdebug对php运行的变量文件等信息进行监听，并通过9000端口以及DBGp协议，将这些信息发送给客户端PHPStrom。PHPStrom 作为IDE对自己内部设置的断点以及接收到的数据进行安排显示，并再次通过9000端口，做出响应到服务端的xdebug。">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="使用phpstorm进行断点调试">
+<meta property="og:url" content="https://fantiq.github.io/2017/06/21/%E4%BD%BF%E7%94%A8phpstorm%E8%BF%9B%E8%A1%8C%E6%96%AD%E7%82%B9%E8%B0%83%E8%AF%95/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="xdebug的断点原理就是，通过php的xdebug对php运行的变量文件等信息进行监听，并通过9000端口以及DBGp协议，将这些信息发送给客户端PHPStrom。PHPStrom 作为IDE对自己内部设置的断点以及接收到的数据进行安排显示，并再次通过9000端口，做出响应到服务端的xdebug。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2017-06-21T06:06:40.000Z">
+<meta property="article:modified_time" content="2017-06-29T06:48:10.000Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="phpstrom">
+<meta property="article:tag" content="debug">
+<meta property="article:tag" content="xdebug">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            使用phpstorm进行断点调试
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2017-06-21T14:06:40+08:00">
+	
+		    6月 21, 2017
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/%E5%B7%A5%E5%85%B7/">工具</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>xdebug的断点原理就是，通过php的xdebug对php运行的变量文件等信息进行监听，并通过9000端口以及DBGp协议，将这些信息发送给客户端PHPStrom。<br>PHPStrom 作为IDE对自己内部设置的断点以及接收到的数据进行安排显示，并再次通过9000端口，做出响应到服务端的xdebug。</p>
+<span id="more"></span>
+<h2 id="1-php中xdebug配置"><a href="#1-php中xdebug配置" class="headerlink" title="1. php中xdebug配置"></a>1. php中xdebug配置</h2><p>安装xdebug扩展并重启服务，这里省略说明，具体罗列解释下xdebug断点相关的配置项</p>
+<p>php开启扩展的配置</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">#php.ini </span><br><span class="line">xdebug.remote_enable=on</span><br><span class="line">xdebug.idekey=PHPSTROM</span><br></pre></td></tr></table></figure>
+
+<p>xdebug相关参数使用</p>
+<table>
+<thead>
+<tr>
+<th>key</th>
+<th>val</th>
+<th>default</th>
+<th>explain</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>xdebug.remote_enable</td>
+<td>on</td>
+<td>off</td>
+<td>是否开启远程调试</td>
+</tr>
+<tr>
+<td>xdebug.idekey</td>
+<td>PHPSTROM</td>
+<td>[HOST_NAME]</td>
+<td>这个值会放在cookie里 XDEBUG_SESSION=PHPSTORM 区分不同的客户端</td>
+</tr>
+<tr>
+<td>xdebug.remote_host</td>
+<td>localhost</td>
+<td>localhost</td>
+<td>与客户端(IDE)交互的地址</td>
+</tr>
+<tr>
+<td>xdebug.remote_port</td>
+<td>9000</td>
+<td>9000</td>
+<td>与客户端(IDE)交互的端口</td>
+</tr>
+<tr>
+<td>xdebug.remote_handler</td>
+<td>dbgp</td>
+<td>dbgp</td>
+<td>与客户端(IDE)交互的协议</td>
+</tr>
+<tr>
+<td>xdebug.remote_mode</td>
+<td>req</td>
+<td>req</td>
+<td>调试模式模式</td>
+</tr>
+</tbody></table>
+<h2 id="2-PHPSTORM-的配置"><a href="#2-PHPSTORM-的配置" class="headerlink" title="2. PHPSTORM 的配置"></a>2. PHPSTORM 的配置</h2><p>在设置中找到如下路径</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Setting &gt; Languages &amp; Frameworks &gt; PHP &gt; Debug &gt; DBGp Proxy</span><br></pre></td></tr></table></figure>
+<p>按照如下的值进行填写</p>
+<table>
+<thead>
+<tr>
+<th>key</th>
+<th>val</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>IDE Key</td>
+<td>PHPSTORM</td>
+</tr>
+<tr>
+<td>Host</td>
+<td>localhost</td>
+</tr>
+<tr>
+<td>Port</td>
+<td>9000</td>
+</tr>
+</tbody></table>
+<h2 id="3-触发xdebug以及使用"><a href="#3-触发xdebug以及使用" class="headerlink" title="3. 触发xdebug以及使用"></a>3. 触发xdebug以及使用</h2><p>当PHPSTROM需要监听的时候需要先开启开关 <code>Run &gt; Start Listening for PHP Debug Connections</code></p>
+<p>触发xdebug的方法目前有两种，在请求的时候</p>
+<ol>
+<li>cookie 中增加值 <code>XDEBUG_SESSION=PHPSTORM</code> </li>
+<li>queryString 上带上一些参数，比如 <code>http://localhost/index.php?XDEBUG_SESSION_START=13679</code></li>
+</ol>
+<h3 id="3-1-cookie中增加值"><a href="#3-1-cookie中增加值" class="headerlink" title="3.1 cookie中增加值"></a>3.1 cookie中增加值</h3><p>可以通过chrome扩展方面实现 cookie值的添加与去除</p>
+<p>扩展的<a target="_blank" rel="noopener" href="https://chrome.google.com/webstore/detail/eadndfjplgieldjbigjakmdgkmoaaaoc">下载地址</a></p>
+<h3 id="3-2-在PHPStrom-中Debug"><a href="#3-2-在PHPStrom-中Debug" class="headerlink" title="3.2 在PHPStrom 中Debug"></a>3.2 在PHPStrom 中Debug</h3><p>PHPStrom中点击 <code>Run &gt; Debug</code> ，因为这个debug实例是通过浏览器的，所以要给这个debug添加server并关联</p>
+<h5 id="3-2-1-创建server"><a href="#3-2-1-创建server" class="headerlink" title="3.2.1 创建server"></a>3.2.1 创建server</h5><p>在设置中找到如下路径</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Setting &gt; Languages &amp; Frameworks &gt; PHP &gt; Servers</span><br></pre></td></tr></table></figure>
+<p>新增一个server配置，名字自定义，其他的值是，host port ，重要的是 Debugger，这个选项指定调试的时候使用哪个debug引擎</p>
+<h5 id="3-2-2-配置debug"><a href="#3-2-2-配置debug" class="headerlink" title="3.2.2 配置debug"></a>3.2.2 配置debug</h5><p>在 <code>Run &gt; Edit Configurations</code> 中新增，类型选择 <code>PHP Web Application</code>，其中Server中选择上一步配置的，URL为要请求的Url，PHPStrom在请求的时候会自动帮你加上 <code>XDEBUG_SESSION_START=111222</code>，因为在创建server的时候我们在debugger选项中选择了 <code>xdebug</code></p>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/debug/" rel="tag">debug</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/phpstrom/" rel="tag">phpstrom</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/xdebug/" rel="tag">xdebug</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2017/06/29/symfony%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8B%E6%A1%86%E6%9E%B6%E4%B8%BB%E6%B5%81%E7%A8%8B/"
+                    data-tooltip="symfony源码分析之框架主流程"
+                    aria-label="上一篇: symfony源码分析之框架主流程"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2017/04/06/php%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/"
+                    data-tooltip="php并发控制"
+                    aria-label="下一篇: php并发控制"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2017/06/21/%E4%BD%BF%E7%94%A8phpstorm%E8%BF%9B%E8%A1%8C%E6%96%AD%E7%82%B9%E8%B0%83%E8%AF%95/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2017/06/21/%E4%BD%BF%E7%94%A8phpstorm%E8%BF%9B%E8%A1%8C%E6%96%AD%E7%82%B9%E8%B0%83%E8%AF%95/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2017/06/21/%E4%BD%BF%E7%94%A8phpstorm%E8%BF%9B%E8%A1%8C%E6%96%AD%E7%82%B9%E8%B0%83%E8%AF%95/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2017/06/29/symfony%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B9%8B%E6%A1%86%E6%9E%B6%E4%B8%BB%E6%B5%81%E7%A8%8B/"
+                    data-tooltip="symfony源码分析之框架主流程"
+                    aria-label="上一篇: symfony源码分析之框架主流程"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2017/04/06/php%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/"
+                    data-tooltip="php并发控制"
+                    aria-label="下一篇: php并发控制"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2017/06/21/%E4%BD%BF%E7%94%A8phpstorm%E8%BF%9B%E8%A1%8C%E6%96%AD%E7%82%B9%E8%B0%83%E8%AF%95/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2017/06/21/%E4%BD%BF%E7%94%A8phpstorm%E8%BF%9B%E8%A1%8C%E6%96%AD%E7%82%B9%E8%B0%83%E8%AF%95/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2017/06/21/%E4%BD%BF%E7%94%A8phpstorm%E8%BF%9B%E8%A1%8C%E6%96%AD%E7%82%B9%E8%B0%83%E8%AF%95/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2017/06/21/%E4%BD%BF%E7%94%A8phpstorm%E8%BF%9B%E8%A1%8C%E6%96%AD%E7%82%B9%E8%B0%83%E8%AF%95/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2017/06/21/%E4%BD%BF%E7%94%A8phpstorm%E8%BF%9B%E8%A1%8C%E6%96%AD%E7%82%B9%E8%B0%83%E8%AF%95/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2017/06/21/%E4%BD%BF%E7%94%A8phpstorm%E8%BF%9B%E8%A1%8C%E6%96%AD%E7%82%B9%E8%B0%83%E8%AF%95/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

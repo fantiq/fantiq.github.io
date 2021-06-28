@@ -1,0 +1,751 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>composer使用指南 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"composer 是php中经常使用的包管理器 日常使用中也存在很多使用的注意事项这里总结下使用composer比较实用的知识点\n\n1. 实现原理composer 是一个包管理工具 如同nodejs中的npm 如同ruby中的gem。composer 的原理其实就是从github上面下载这些软件包 但是这些软件包文件夹的组织结构 分支管理 版本定义 各不相同 ， composer做为各个软件包到达用户的统一入口门面 作用就是规范统一各个软件包的组织形式\ncomposer运行原理如下图\n每个github上面的包 都要打包成固定格式上传到 packagist.org 才能被composer客户端下载到客户端通过包的别名 去 packagist.org 查到对应版本的软件包在github上的下载地址查到后将软件包源代码下载到本地 并会 更新本地的 autoload 文件\n客户端的实现都是通过一个 composer.phar 来实现的 里面的实现代码是php 所以需要php来解释执行\n2. 安装php 要开启 openssl 扩展(composer文件的下载 是 https 协议)\nwindows通过php函数下载安装文件 https://getcomposer.org/installer 并通过php来执行下载的文件将 composer.phar 下载到本地制作执行脚本 composer.bat 并将这个文件所在目录添加到系统环境变量path中这样就可以在cmd中直接执行composer命令了\n1234# 下载 composer.pharphp -r &quot;readfile(&#x27;https://getcomposer.org/installer&#x27;);&quot; | php# 添加到系统echo @php &quot;%~dp0composer.phar&quot; %*  &gt; composer.bat\n*unix123456# 下载 composer.pharcurl -sS https://getcomposer.org/installer | php# 或者php -r &quot;readfile(&#x27;https://getcomposer.org/installer&#x27;);&quot; | php# 添加到系统mv composer.phar /usr/local/bin/composer\n3. 使用软件包的安装是通过 composer.json 中定义的 软件包以及版本 进行下载安装的一个简单的composer.json 文件\n1234567&#123;    &quot;require&quot;: &#123;        &quot;包名称1&quot;: &quot;版本1&quot;,        &quot;包名称2&quot;: &quot;版本2&quot;,        .......    &#125;&#125;\n\n安装软件包在当前文件夹执行安装命令\n1composer install\n也许会等待很长时间 由于国内网络问题 需要更换成中国镜像地址才能提高工作效率更换下载源 换源方式参考\n123456789# 在 composer.json 文件中更换&quot;repositories&quot; : &#123;    &quot;packagist&quot; : &#123;        &quot;type&quot; : &quot;composer&quot;,        &quot;url&quot;  : &quot;https://packagist.phpcomposer.com&quot;    &#125;&#125;# 命令行更换 这个命令会自动添加上面的内容到 composer.json 文件composer config -g repo.packagist composer https://packagist.phpcomposer.com\n\n安装完成会生成一个 composer.lock 文件因为在安装个软件包的时候我们可以指定一个具体的软件包版本 也可以指定一个版本范围 如\n123456789# 指定下载 1,2 到 1,3 的最新版本pkgname:&gt;=1.2,&lt;1.3# 指定下载 1.2 版本里面最新的版本但不超过 1.2# 等同 &gt;=1.2,&lt;1.3pkgname:1.2.*# 等同 &gt;=1.3,&lt;2.0pkgname:~1.3# 等同 &gt;=1.3.1,&lt;1.4pkgname:~1.3.1\ncomposer在安装的时候找到一个符号我们定义规则的版本进行下载 然后会把这个确定下来的版本号记录到composer.lock文件中\n当composer.lock不存在的时候composer install composer update 都会下载包文件并生成composer.lock\n当composer.lock已经存在的时候composer install 只会从 composer.lock 文件中下载固定的软件版本不会读取 composer.json 文件的内容 所以这个情况 当你需要添加新的包时候 修改composer.json文件然后 composer install 并不会下载新的包\ncomposer update 会从composer.json 中读取包定义 并且查询最新的版本并下载下载完毕会重写composer.lock 文件这样会带来一个问题就是 不同开发者 使用的包版本不一致\n当我们需要添加一个新的软件包的时候需要用\n1composer require &quot;包名称:版本&quot;\n这样会添加新的包规则到 composer.json composer.lock 文件 而不是重写这两个文件\n4. 版本版本号说明一个php版本号的例子\n1237.0.6# 或者7.0.6.160810_Beta2\n对上面的版本号进行抽象\n1A.B.C[.D_E ]\n\n\n\n#\n可选值\n取值\n名称\n意义\n\n\n\nA\nint unsigined\n&gt;0\n主版本号/大版本号\n框架调整 流程变更等大的变动\n\n\nB\nint unsigined\n&gt;0\n次版本号\n功能的增加 完善\n\n\nC\nint unsigined\n&gt;0\n小版本号\nbug的修复等小修改\n\n\nD\nymd\n160810\n时间\n发布时间\n\n\nE\n希腊字母\nBase\n-\n尚未实现功能 demo版本\n\n\n-\n-\nAlpha\n-\n主功能实现 尚存在bug\n\n\n-\n-\nBeta\n-\n存在一些缺陷 如UI方面的调整\n\n\n-\n-\nRC\n-\n发布前的一个过度版\n\n\n-\n-\nRelease\n-\n正式发布版\n\n\n我们常用的一个版本定义是主版本号.次版本号.小版本号的形式\ncomposer中版本号的定义1. 定义具体的版本指定下载 1.2.3 这个版本\n1pkgName:1.2.3\n2. 指定具体的版本范围指定下载 大于等于 1.2 小于 1.3 的版本范围中最新版本\n1pkgName:&gt;=1.2,&lt;1.3\n3. 通配符版本指定下载 1.2 版本下 小版本最新的版本等效 &gt;=1.2,&lt;1.3\n1pkgName:1.2.*\n4. 下一个重要版本12345# 等效 &gt;=1.2.3,&lt;1.3.0pkgName:~1.2.3# 等效 &gt;=1.2.0,&lt;2.0.0pkgName:~1.2\n\n5. 常用命令1234composer initcomposer installcomposer updatecomposer require &quot;包名称:版本&quot;\n\n参考地址\n6. 项目中的使用各个开发人员 各个分支 确保包版本的一致初始化项目代码第一次安装包\n1composer install\n将 composer.json composer.lock 提交到版本库git\n其他人下载代码(clone) 安装包执行\n1composer install\n\n更新/添加新的包其中一个开发执行\n12composer require &quot;包名称:版本&quot;composer update &quot;包名称:版本&quot;\n这个时候 composer.json composer.lock 都会写入这个新添加的包信息安装后 将composer.json composer.lock 这两个文件修改提交到版本库\n其他开发将这个两个文件的更新 合并到自己分支代码 执行\n1composer install\n这个时候是从composer.lock安装包 这样所有开发这安装的包版本是一致的参考链接\n用composer搭建内部包管理系统a 创建私有库/包使用github做代码仓库(vcs) 下载自建的git代码\n1git clone git@github.com:fantiq/vertu.git\n将项目初始化成一个 composer 包\n123cd vertucomposer init# 填写基本信息 生成 `composer.json`\n生成的 composer.json 文件内容\n12345678910111213&#123;    &quot;name&quot;: &quot;fantasy/vertu&quot;,    &quot;description&quot;: &quot;composer test&quot;,    &quot;type&quot;: &quot;composer&quot;,    &quot;license&quot;: &quot;GPL&quot;,    &quot;authors&quot;: [        &#123;            &quot;name&quot;: &quot;fantiq&quot;,            &quot;email&quot;: &quot;fantiq@163.com&quot;        &#125;    ],    &quot;require&quot;: &#123;&#125;&#125;\n库的配置 参考链接创建开发分支 创建发行版本 提交版本库\n12345678910111213141516git add .git commit -m &#x27;增加composer配置文件&#x27;git push origin master# 以版本号(无小版本号) 创建分支 composer会自动将这些分支识别成开发版本git branch 1.0git push origin 1.0git branch 1.1git push origin 1.1git branch 1.2git push origin 1.2# 以版本号创建 标签 github会对应生成release 并且会自动打包代码# composer下载的正式版就是这些tag打包的文件git tag v1.0.3git tag v1.1.5git tag v1.2.1git push origin --tags\n\nb 搭建本地资源库本地资源库主要的是 packages.json 文件的生成 可以借组 satis 来实现\n12345678# 下载 `satis`composer create-project composer/satis --stability=dev # 生成satis配置文件php /satis/bin/satis init satis.json# 提示输入 资源库名称Repository name: test pkg# 提示输入 资源库地址Home page: http://packagist.dev\n上面命令会生成配置文件 satis.json文件内容大致如下\n1234567891011121314151617&#123;    &quot;name&quot; : &quot;自定义资源包名称&quot;,    &quot;homepage&quot; : &quot;资源包域名&quot;,    # 定义资源查询地址 读取对应地址的 composer.json 文件 解析出包的内容    &quot;repositories&quot; : [        &#123;            &quot;type&quot; : &quot;cvs&quot;,            &quot;url&quot; : &quot;git@github.com:fantiq/vertu.git&quot;        &#125;    ],    &quot;require&quot; : &#123;        # &quot;包名&quot; : &quot;需要下载的版本&quot;        &quot;fantiq/vertu&quot; : &quot;*&quot;    &#125;,    # 下载所有    &quot;require-all&quot; : true&#125;\n生成资源库文件\n1php satis/bin/satis build satis.json public/\n通过http服务器 将配置的资源库域名指向上面文件生成的目录 public\nsatis 使用的参考链接\nc 从自建资源库 下载 私有包12345678910111213141516171819composer.json&#123;    &quot;require&quot; : &#123;        &quot;fantiq/phpframework&quot; : &quot;*&quot;,        &quot;fantiq/vertu&quot; : &quot;*&quot;,    &#125;,    &quot;repositories&quot;: [        &#123;            &quot;type&quot; : &quot;composer&quot;,            &quot;url&quot;  : &quot;http://packagist.dev/&quot;        &#125;,        &#123;            &quot;type&quot;: &quot;composer&quot;,            &quot;url&quot;: &quot;https://packagist.phpcomposer.com&quot;        &#125;    ]&#125;composer install\n\n\n原理 ：当客户端使用composer下载的时候会先从composer.json 文件中寻找下载源列表\n12345repositories : [    &#123;&quot;type&quot;:&quot;composer&quot;, &quot;url&quot;:&quot;http://example.org/1&quot;&#125;    &#123;&quot;type&quot;:&quot;composer&quot;, &quot;url&quot;:&quot;http://example.org/2&quot;&#125;    ...]\ncomposer会按下载源的顺序寻找要下载的软件包 都找不到 才会通过全局下载源地址寻找包下载源地址根目录都会有一个packages.json 文件 软件包下载地址就是从这个文件中查找的\n服务端 资源库官方资源库中国镜像资源库自建私有资源库\npackages.json\n12345678910111213141516171819202122&#123;    &quot;packages&quot; : &#123;        &quot;vendor/package-name&quot; : &#123;            &quot;dev-master&quot; : &#123;@composer.json&#125;,            &quot;1.0.x-dev&quot; : &#123;@composer.json&#125;,            &quot;1.0.2&quot; : &#123;@composer.json&#125;        &#125;    &#125;&#125;packages.json 拆分&#123;    &quot;includes&quot; : &#123;        # 单个packages.json 文件的文件名        &quot;packages1.json&quot; : &#123;            &quot;sha1&quot; : &quot;525a85fb37edd1ad71040d429928c2c0edec9d17&quot;        &#125;,        &quot;packages2.json&quot; : &#123;            &quot;sha1&quot; : &quot;897cde726f8a3918faf27c803b336da223d400dd&quot;        &#125;,    &#125;&#125;\n资源库相关参考信息\n客户端 包/库\n包/库 &lt;- 资源库 &lt;- 库\ncomposer.json\n库 : 一个可以提供给其他包通过composer 下载来使用的 包 , 库可以依赖其他的库包 : 需要使用其他的库 但是不对其他的包提供服务, 包是一个私有项目\n库的composer.json 文件中需要使用 name  声明库名称包的composer.json 文件中仅仅使用 require 声明依赖\ncomposer.json 文件结构说明说明 json格式中是不支持注释的书写的 这里写的注释只是为了方便说明\n123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899100101102103104105106107108109110111112&#123;    # 库名称 如果是库 这个字段是必填项    &quot;name&quot; : &quot;foo/bar&quot;,    # 如果是库 这个字段是必填项    &quot;description&quot; : &quot;库的功能简介&quot;,    # 库的关键词 在资源库中搜索时候会用到    &quot;keywords&quot; : [&#x27;foo&#x27;, &#x27;bar&#x27;],    # 库/包 的安装类型 定义安装逻辑 默认值 library    &quot;type&quot; : &quot;library|project|metapackage|composer-plugin&quot;,    # 库主页地址    &quot;homepage&quot; : &quot;http://example.org&quot;,    # 库的版本 这个建议填写 composer 会从你的git中的分支 标签分析出版本    &quot;version&quot; : &quot;1.0.2&quot;,    # 版本发布时间    &quot;time&quot; : &quot;YYYY-MM-DD HH:MM:SS&quot;,    # 许可协议    &quot;license&quot; : &quot;MIT|GPL|BSD|Apache&quot;,    # 项目相关人员信息    &quot;authors&quot; : [        &#123;            &quot;name&quot; : &quot;范易龙&quot;,            &quot;email&quot; : &quot;fanyilong@kuaiqiangche.com&quot;,            &quot;homepage&quot; : &quot;https://fantiq.github.io&quot;,            &quot;role&quot; : &quot;Developer&quot;        &#125;,        &#123;            &quot;name&quot; : &quot;fantiq&quot;,            &quot;email&quot; : &quot;fantiq@163.com&quot;,            &quot;homepage&quot; : &quot;https://fantiq.github.io&quot;,            &quot;role&quot; : &quot;Translator&quot;        &#125;,    ],    # 项目联系方式    &quot;support&quot; : &#123;        &quot;email&quot; : &quot;support@example.org&quot;,        &quot;issue&quot; : &quot;https://github.com/fantiq/phpframework/issues&quot;,        &quot;wiki&quot; : &quot;https://github.com/fantiq/phpframework/wiki&quot;,        &quot;forum&quot; : &quot;&quot;,        &quot;source&quot; : &quot;&quot;,        &quot;irc&quot; : &quot;irc://irc.freenode.org/composer&quot;    &#125;,    # 定义依赖包    &quot;require&quot; : &#123;        # 定义版本范围 &gt;=1.2.1,&lt;1.3.0        # 定义版本发行 1.0.*@beta        # 精确到一个开发版本的具体commitID dev-master#2eb0c0978d290a1c45346a1955188929cb4e5db7        &quot;包名称&quot; : &quot;版本号或者版本范围&quot;,        .....    &#125;,    # 提供开发测试需要的额外包 默认会进行安装    # install update的时候可以通过参数 --no-dev 来排除这里定义的包    &quot;require-dev&quot; : &#123;        &quot;包名称&quot; : &quot;版本号或者版本范围&quot;,        .....    &#125;,    &quot;conflict&quot; : &#123;&#125;,    &quot;replace&quot; : &#123;&#125;,    &quot;provide&quot; : &#123;&#125;,    # 推荐给使用者的包 建议安装的信息    &quot;suggest&quot; : &#123;        &quot;包名称&quot; : &quot;自定义提醒信息&quot;    &#125;,    &quot;autoload&quot; : &#123;        &quot;psr-4&quot; : &#123;            # 在自动加载的时候会将命名空间前缀 替换成这里定义的路径            &quot;pre-namespace&quot; : &quot;path&quot;,            ...        &#125;,        &quot;classmap&quot; : [],        # 需要自动加载进来的文件        &quot;files&quot; : &quot;foo/bar/file.php&quot;    &#125;,    &quot;autoload-dev&quot; : &#123;&#125;,    # 添加到 php include_path 列表的路径    &quot;include-path&quot; : [&#x27;foo&#x27;, &#x27;bar&#x27;, &#x27;..&#x27;],    &quot;target-dir&quot; : &#123;&#125;,    # 稳定性过滤行为     &quot;minimum-stability&quot; : &quot;stable|RC|beta|alpha|dev&quot;,    # 指明 优先下载稳定版    &quot;prefer-stable&quot; : true,    # 资源库地址定义 composer在查找资源包的时候是根据顺序进行查找的    &quot;repositories&quot; : [        &#123;            &quot;type&quot; : &quot;composer|vcs|pear&quot;,            &quot;url&quot; : &quot;http://pkg.example.org/1&quot;        &#125;,        &#123;            &quot;type&quot; : &quot;composer&quot;,            &quot;url&quot; : &quot;http://pkg.example.org/2&quot;,            &quot;options&quot; : &#123;                &quot;ssl&quot; : &#123;                    &quot;verify_peer&quot; : &quot;true&quot;                &#125;            &#125;        &#125;    ],    &quot;config&quot; : &#123;&#125;,    # 挂载的脚本 可以在composer执行的一些事件点 挂载执行的脚本    &quot;script&quot; : &#123;        &quot;post-install-cmd&quot; : [            &quot;foo\\\\bar\\\\baz::func&quot;,            &quot;phpunit -c app/&quot;        ]    &#125;,    # 提供给script的数据 脚本中使用方式 $extra = $event-&gt;getComposer()-&gt;getPackage()-&gt;getExtra();    &quot;extra&quot; : &#123;&#125;,    &quot;bin&quot; : &#123;&#125;,    &quot;archive&quot; : &#123;        &quot;exclude&quot; : [&#x27;/foo/bar&#x27;, &#x27;baz&#x27;, &#x27;/*.test&#x27;, &#x27;!/foo/bar/baz&#x27;]    &#125;&#125;\ncomposer.json 可用字段参考\n","dateCreated":"2016-08-10T09:03:37+08:00","dateModified":"2016-08-12T15:00:20+08:00","datePublished":"2016-08-10T09:03:37+08:00","description":"composer 是php中经常使用的包管理器 日常使用中也存在很多使用的注意事项这里总结下使用composer比较实用的知识点","headline":"composer使用指南","image":["logo.png"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/","keywords":"composer, php","thumbnailUrl":"logo.png"}</script>
+    <meta name="description" content="composer 是php中经常使用的包管理器 日常使用中也存在很多使用的注意事项这里总结下使用composer比较实用的知识点">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="composer使用指南">
+<meta property="og:url" content="https://fantiq.github.io/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="composer 是php中经常使用的包管理器 日常使用中也存在很多使用的注意事项这里总结下使用composer比较实用的知识点">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fantiq.github.io/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/framework.png">
+<meta property="og:image" content="https://fantiq.github.io/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/composer-init.png">
+<meta property="article:published_time" content="2016-08-10T01:03:37.000Z">
+<meta property="article:modified_time" content="2016-08-12T07:00:20.000Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="composer">
+<meta property="article:tag" content="php">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fantiq.github.io/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/framework.png">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/logo.png"/>
+        <meta class="swiftype" name="image" data-type="enum" content="https://fantiq.github.io/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/logo.png"/>
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            composer使用指南
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2016-08-10T09:03:37+08:00">
+	
+		    8月 10, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/%E5%B7%A5%E5%85%B7/">工具</a>, <a class="category-link" href="/categories/%E5%B7%A5%E5%85%B7/%E4%BB%A3%E7%A0%81%E7%AE%A1%E7%90%86/">代码管理</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>composer 是php中经常使用的包管理器 日常使用中也存在很多使用的注意事项<br>这里总结下使用composer比较实用的知识点</p>
+<span id="more"></span>
+<h2 id="1-实现原理"><a href="#1-实现原理" class="headerlink" title="1. 实现原理"></a>1. 实现原理</h2><p>composer 是一个包管理工具 如同<code>nodejs</code>中的<code>npm</code> 如同<code>ruby</code>中的<code>gem</code>。composer 的原理其实就是从github上面下载这些软件包 但是这些软件包文件夹的组织结构 分支管理 版本定义 各不相同 ， composer做为各个软件包到达用户的统一入口门面 作用就是规范统一各个软件包的组织形式</p>
+<p>composer运行原理如下图<br><img src="framework.png" alt="运行原理"></p>
+<p>每个github上面的包 都要打包成固定格式上传到 <code>packagist.org</code> 才能被composer客户端下载到<br>客户端通过包的别名 去 <code>packagist.org</code> 查到对应版本的软件包在github上的下载地址<br>查到后将软件包源代码下载到本地 并会 更新本地的 autoload 文件</p>
+<p>客户端的实现都是通过一个 <code>composer.phar</code> 来实现的 里面的实现代码是<code>php</code> 所以需要php来解释执行</p>
+<h2 id="2-安装"><a href="#2-安装" class="headerlink" title="2. 安装"></a>2. 安装</h2><p>php 要开启 <code>openssl</code> 扩展(composer文件的下载 是 https 协议)</p>
+<h4 id="windows"><a href="#windows" class="headerlink" title="windows"></a>windows</h4><p>通过php函数下载安装文件 <code>https://getcomposer.org/installer</code> 并通过php来执行下载的文件将 <code>composer.phar</code> 下载到本地<br>制作执行脚本 <code>composer.bat</code> 并将这个文件所在目录添加到系统环境变量<code>path</code>中<br>这样就可以在cmd中直接执行<code>composer</code>命令了</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># 下载 composer.phar</span><br><span class="line">php -r &quot;readfile(&#x27;https://getcomposer.org/installer&#x27;);&quot; | php</span><br><span class="line"># 添加到系统</span><br><span class="line">echo @php &quot;%~dp0composer.phar&quot; %*  &gt; composer.bat</span><br></pre></td></tr></table></figure>
+<h4 id="unix"><a href="#unix" class="headerlink" title="*unix"></a>*unix</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># 下载 composer.phar</span><br><span class="line">curl -sS https://getcomposer.org/installer | php</span><br><span class="line"># 或者</span><br><span class="line">php -r &quot;readfile(&#x27;https://getcomposer.org/installer&#x27;);&quot; | php</span><br><span class="line"># 添加到系统</span><br><span class="line">mv composer.phar /usr/local/bin/composer</span><br></pre></td></tr></table></figure>
+<h2 id="3-使用"><a href="#3-使用" class="headerlink" title="3. 使用"></a>3. 使用</h2><p>软件包的安装是通过 <code>composer.json</code> 中定义的 软件包以及版本 进行下载安装的<br>一个简单的<code>composer.json</code> 文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;require&quot;: &#123;</span><br><span class="line">        &quot;包名称1&quot;: &quot;版本1&quot;,</span><br><span class="line">        &quot;包名称2&quot;: &quot;版本2&quot;,</span><br><span class="line">        .......</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="安装软件包"><a href="#安装软件包" class="headerlink" title="安装软件包"></a>安装软件包</h4><p>在当前文件夹执行安装命令</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">composer install</span><br></pre></td></tr></table></figure>
+<p>也许会等待很长时间 由于国内网络问题 需要更换成中国镜像地址才能提高工作效率<br>更换下载源 <a target="_blank" rel="noopener" href="http://pkg.phpcomposer.com/">换源方式参考</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"># 在 composer.json 文件中更换</span><br><span class="line">&quot;repositories&quot; : &#123;</span><br><span class="line">    &quot;packagist&quot; : &#123;</span><br><span class="line">        &quot;type&quot; : &quot;composer&quot;,</span><br><span class="line">        &quot;url&quot;  : &quot;https://packagist.phpcomposer.com&quot;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"># 命令行更换 这个命令会自动添加上面的内容到 composer.json 文件</span><br><span class="line">composer config -g repo.packagist composer https://packagist.phpcomposer.com</span><br></pre></td></tr></table></figure>
+
+<p>安装完成会生成一个 <code>composer.lock</code> 文件<br>因为在安装个软件包的时候我们可以指定一个具体的软件包版本 也可以指定一个版本范围 如</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"># 指定下载 1,2 到 1,3 的最新版本</span><br><span class="line">pkgname:&gt;=1.2,&lt;1.3</span><br><span class="line"># 指定下载 1.2 版本里面最新的版本但不超过 1.2</span><br><span class="line"># 等同 &gt;=1.2,&lt;1.3</span><br><span class="line">pkgname:1.2.*</span><br><span class="line"># 等同 &gt;=1.3,&lt;2.0</span><br><span class="line">pkgname:~1.3</span><br><span class="line"># 等同 &gt;=1.3.1,&lt;1.4</span><br><span class="line">pkgname:~1.3.1</span><br></pre></td></tr></table></figure>
+<p>composer在安装的时候找到一个符号我们定义规则的版本进行下载 然后会把这个确定下来的版本号<br>记录到<code>composer.lock</code>文件中</p>
+<p>当<code>composer.lock</code>不存在的时候<br><code>composer install</code> <code>composer update</code> 都会下载包文件并生成<code>composer.lock</code></p>
+<p>当<code>composer.lock</code>已经存在的时候<br><code>composer install</code> 只会从 <code>composer.lock</code> 文件中下载固定的软件版本<br>不会读取 <code>composer.json</code> 文件的内容 所以这个情况 当你需要添加新的包时候 修改<code>composer.json</code><br>文件然后 <code>composer install</code> 并不会下载新的包</p>
+<p><code>composer update</code> 会从<code>composer.json</code> 中读取包定义 并且查询最新的版本并下载<br>下载完毕会重写<code>composer.lock</code> 文件<br>这样会带来一个问题就是 不同开发者 使用的包版本不一致</p>
+<p>当我们需要添加一个新的软件包的时候需要用</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">composer require &quot;包名称:版本&quot;</span><br></pre></td></tr></table></figure>
+<p>这样会添加新的包规则到 <code>composer.json</code> <code>composer.lock</code> 文件 而不是重写这两个文件</p>
+<h2 id="4-版本"><a href="#4-版本" class="headerlink" title="4. 版本"></a>4. 版本</h2><h4 id="版本号说明"><a href="#版本号说明" class="headerlink" title="版本号说明"></a>版本号说明</h4><p>一个php版本号的例子</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">7.0.6</span><br><span class="line"># 或者</span><br><span class="line">7.0.6.160810_Beta2</span><br></pre></td></tr></table></figure>
+<p>对上面的版本号进行抽象</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">A.B.C[.D_E ]</span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>可选值</th>
+<th>取值</th>
+<th>名称</th>
+<th>意义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A</td>
+<td>int unsigined</td>
+<td>&gt;0</td>
+<td>主版本号/大版本号</td>
+<td>框架调整 流程变更等大的变动</td>
+</tr>
+<tr>
+<td>B</td>
+<td>int unsigined</td>
+<td>&gt;0</td>
+<td>次版本号</td>
+<td>功能的增加 完善</td>
+</tr>
+<tr>
+<td>C</td>
+<td>int unsigined</td>
+<td>&gt;0</td>
+<td>小版本号</td>
+<td>bug的修复等小修改</td>
+</tr>
+<tr>
+<td>D</td>
+<td>ymd</td>
+<td>160810</td>
+<td>时间</td>
+<td>发布时间</td>
+</tr>
+<tr>
+<td>E</td>
+<td>希腊字母</td>
+<td>Base</td>
+<td>-</td>
+<td>尚未实现功能 demo版本</td>
+</tr>
+<tr>
+<td>-</td>
+<td>-</td>
+<td>Alpha</td>
+<td>-</td>
+<td>主功能实现 尚存在bug</td>
+</tr>
+<tr>
+<td>-</td>
+<td>-</td>
+<td>Beta</td>
+<td>-</td>
+<td>存在一些缺陷 如UI方面的调整</td>
+</tr>
+<tr>
+<td>-</td>
+<td>-</td>
+<td>RC</td>
+<td>-</td>
+<td>发布前的一个过度版</td>
+</tr>
+<tr>
+<td>-</td>
+<td>-</td>
+<td>Release</td>
+<td>-</td>
+<td>正式发布版</td>
+</tr>
+</tbody></table>
+<p>我们常用的一个版本定义是<code>主版本号.次版本号.小版本号</code>的形式</p>
+<h4 id="composer中版本号的定义"><a href="#composer中版本号的定义" class="headerlink" title="composer中版本号的定义"></a>composer中版本号的定义</h4><h5 id="1-定义具体的版本"><a href="#1-定义具体的版本" class="headerlink" title="1. 定义具体的版本"></a>1. 定义具体的版本</h5><p>指定下载 <code>1.2.3</code> 这个版本</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pkgName:1.2.3</span><br></pre></td></tr></table></figure>
+<h5 id="2-指定具体的版本范围"><a href="#2-指定具体的版本范围" class="headerlink" title="2. 指定具体的版本范围"></a>2. 指定具体的版本范围</h5><p>指定下载 大于等于 <code>1.2</code> 小于 <code>1.3</code> 的版本范围中最新版本</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pkgName:&gt;=1.2,&lt;1.3</span><br></pre></td></tr></table></figure>
+<h5 id="3-通配符版本"><a href="#3-通配符版本" class="headerlink" title="3. 通配符版本"></a>3. 通配符版本</h5><p>指定下载 <code>1.2</code> 版本下 小版本最新的版本<br>等效 &gt;=1.2,&lt;1.3</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pkgName:1.2.*</span><br></pre></td></tr></table></figure>
+<h5 id="4-下一个重要版本"><a href="#4-下一个重要版本" class="headerlink" title="4. 下一个重要版本"></a>4. 下一个重要版本</h5><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># 等效 &gt;=1.2.3,&lt;1.3.0</span><br><span class="line">pkgName:~1.2.3</span><br><span class="line"></span><br><span class="line"># 等效 &gt;=1.2.0,&lt;2.0.0</span><br><span class="line">pkgName:~1.2</span><br></pre></td></tr></table></figure>
+
+<h2 id="5-常用命令"><a href="#5-常用命令" class="headerlink" title="5. 常用命令"></a>5. 常用命令</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">composer init</span><br><span class="line">composer install</span><br><span class="line">composer update</span><br><span class="line">composer require &quot;包名称:版本&quot;</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="http://docs.phpcomposer.com/">参考地址</a></p>
+<h2 id="6-项目中的使用"><a href="#6-项目中的使用" class="headerlink" title="6. 项目中的使用"></a>6. 项目中的使用</h2><h4 id="各个开发人员-各个分支-确保包版本的一致"><a href="#各个开发人员-各个分支-确保包版本的一致" class="headerlink" title="各个开发人员 各个分支 确保包版本的一致"></a>各个开发人员 各个分支 确保包版本的一致</h4><h5 id="初始化项目代码"><a href="#初始化项目代码" class="headerlink" title="初始化项目代码"></a>初始化项目代码</h5><p>第一次安装包</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">composer install</span><br></pre></td></tr></table></figure>
+<p>将 <code>composer.json</code> <code>composer.lock</code> 提交到版本库git</p>
+<p>其他人下载代码(clone) 安装包执行</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">composer install</span><br></pre></td></tr></table></figure>
+
+<h5 id="更新-添加新的包"><a href="#更新-添加新的包" class="headerlink" title="更新/添加新的包"></a>更新/添加新的包</h5><p>其中一个开发执行</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">composer require &quot;包名称:版本&quot;</span><br><span class="line">composer update &quot;包名称:版本&quot;</span><br></pre></td></tr></table></figure>
+<p>这个时候 <code>composer.json</code> <code>composer.lock</code> 都会写入这个新添加的包信息<br>安装后 将<code>composer.json</code> <code>composer.lock</code> 这两个文件修改提交到版本库</p>
+<p>其他开发将这个两个文件的更新 合并到自己分支代码 执行</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">composer install</span><br></pre></td></tr></table></figure>
+<p>这个时候是从<code>composer.lock</code>安装包 这样所有开发这安装的包版本是一致的<br><a target="_blank" rel="noopener" href="https://phphub.org/topics/1901">参考链接</a></p>
+<h4 id="用composer搭建内部包管理系统"><a href="#用composer搭建内部包管理系统" class="headerlink" title="用composer搭建内部包管理系统"></a>用composer搭建内部包管理系统</h4><h6 id="a-创建私有库-包"><a href="#a-创建私有库-包" class="headerlink" title="a 创建私有库/包"></a>a 创建私有库/包</h6><p>使用github做代码仓库(vcs) 下载自建的git代码</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git clone git@github.com:fantiq/vertu.git</span><br></pre></td></tr></table></figure>
+<p>将项目初始化成一个 composer 包</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd vertu</span><br><span class="line">composer init</span><br><span class="line"># 填写基本信息 生成 `composer.json`</span><br></pre></td></tr></table></figure>
+<p><img src="composer-init.png" alt="composer init"><br>生成的 <code>composer.json</code> 文件内容</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;name&quot;: &quot;fantasy/vertu&quot;,</span><br><span class="line">    &quot;description&quot;: &quot;composer test&quot;,</span><br><span class="line">    &quot;type&quot;: &quot;composer&quot;,</span><br><span class="line">    &quot;license&quot;: &quot;GPL&quot;,</span><br><span class="line">    &quot;authors&quot;: [</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;name&quot;: &quot;fantiq&quot;,</span><br><span class="line">            &quot;email&quot;: &quot;fantiq@163.com&quot;</span><br><span class="line">        &#125;</span><br><span class="line">    ],</span><br><span class="line">    &quot;require&quot;: &#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="http://docs.phpcomposer.com/02-libraries.html">库的配置 参考链接</a><br>创建开发分支 创建发行版本 提交版本库</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">git add .</span><br><span class="line">git commit -m &#x27;增加composer配置文件&#x27;</span><br><span class="line">git push origin master</span><br><span class="line"># 以版本号(无小版本号) 创建分支 composer会自动将这些分支识别成开发版本</span><br><span class="line">git branch 1.0</span><br><span class="line">git push origin 1.0</span><br><span class="line">git branch 1.1</span><br><span class="line">git push origin 1.1</span><br><span class="line">git branch 1.2</span><br><span class="line">git push origin 1.2</span><br><span class="line"># 以版本号创建 标签 github会对应生成release 并且会自动打包代码</span><br><span class="line"># composer下载的正式版就是这些tag打包的文件</span><br><span class="line">git tag v1.0.3</span><br><span class="line">git tag v1.1.5</span><br><span class="line">git tag v1.2.1</span><br><span class="line">git push origin --tags</span><br></pre></td></tr></table></figure>
+
+<h6 id="b-搭建本地资源库"><a href="#b-搭建本地资源库" class="headerlink" title="b 搭建本地资源库"></a>b 搭建本地资源库</h6><p>本地资源库主要的是 <code>packages.json</code> 文件的生成 可以借组 <code>satis</code> 来实现</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># 下载 `satis`</span><br><span class="line">composer create-project composer/satis --stability=dev </span><br><span class="line"># 生成satis配置文件</span><br><span class="line">php /satis/bin/satis init satis.json</span><br><span class="line"># 提示输入 资源库名称</span><br><span class="line">Repository name: test pkg</span><br><span class="line"># 提示输入 资源库地址</span><br><span class="line">Home page: http://packagist.dev</span><br></pre></td></tr></table></figure>
+<p>上面命令会生成配置文件 <code>satis.json</code><br>文件内容大致如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;name&quot; : &quot;自定义资源包名称&quot;,</span><br><span class="line">    &quot;homepage&quot; : &quot;资源包域名&quot;,</span><br><span class="line">    # 定义资源查询地址 读取对应地址的 composer.json 文件 解析出包的内容</span><br><span class="line">    &quot;repositories&quot; : [</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;type&quot; : &quot;cvs&quot;,</span><br><span class="line">            &quot;url&quot; : &quot;git@github.com:fantiq/vertu.git&quot;</span><br><span class="line">        &#125;</span><br><span class="line">    ],</span><br><span class="line">    &quot;require&quot; : &#123;</span><br><span class="line">        # &quot;包名&quot; : &quot;需要下载的版本&quot;</span><br><span class="line">        &quot;fantiq/vertu&quot; : &quot;*&quot;</span><br><span class="line">    &#125;,</span><br><span class="line">    # 下载所有</span><br><span class="line">    &quot;require-all&quot; : true</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>生成资源库文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">php satis/bin/satis build satis.json public/</span><br></pre></td></tr></table></figure>
+<p>通过http服务器 将配置的资源库域名指向上面文件生成的目录 <code>public</code></p>
+<p><a target="_blank" rel="noopener" href="http://docs.phpcomposer.com/articles/handling-private-packages-with-satis.html">satis 使用的参考链接</a></p>
+<h6 id="c-从自建资源库-下载-私有包"><a href="#c-从自建资源库-下载-私有包" class="headerlink" title="c 从自建资源库 下载 私有包"></a>c 从自建资源库 下载 私有包</h6><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">composer.json</span><br><span class="line">&#123;</span><br><span class="line">    &quot;require&quot; : &#123;</span><br><span class="line">        &quot;fantiq/phpframework&quot; : &quot;*&quot;,</span><br><span class="line">        &quot;fantiq/vertu&quot; : &quot;*&quot;,</span><br><span class="line">    &#125;,</span><br><span class="line">    &quot;repositories&quot;: [</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;type&quot; : &quot;composer&quot;,</span><br><span class="line">            &quot;url&quot;  : &quot;http://packagist.dev/&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;type&quot;: &quot;composer&quot;,</span><br><span class="line">            &quot;url&quot;: &quot;https://packagist.phpcomposer.com&quot;</span><br><span class="line">        &#125;</span><br><span class="line">    ]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">composer install</span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>原理 ：<br>当客户端使用composer下载的时候会先从<code>composer.json</code> 文件中寻找下载源列表</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">repositories : [</span><br><span class="line">    &#123;&quot;type&quot;:&quot;composer&quot;, &quot;url&quot;:&quot;http://example.org/1&quot;&#125;</span><br><span class="line">    &#123;&quot;type&quot;:&quot;composer&quot;, &quot;url&quot;:&quot;http://example.org/2&quot;&#125;</span><br><span class="line">    ...</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+<p>composer会按下载源的顺序寻找要下载的软件包 都找不到 才会通过全局下载源地址寻找包<br>下载源地址根目录都会有一个<code>packages.json</code> 文件 软件包下载地址就是从这个文件中查找的</p>
+<p>服务端 资源库<br>官方资源库<br>中国镜像资源库<br>自建私有资源库</p>
+<p>packages.json</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;packages&quot; : &#123;</span><br><span class="line">        &quot;vendor/package-name&quot; : &#123;</span><br><span class="line">            &quot;dev-master&quot; : &#123;@composer.json&#125;,</span><br><span class="line">            &quot;1.0.x-dev&quot; : &#123;@composer.json&#125;,</span><br><span class="line">            &quot;1.0.2&quot; : &#123;@composer.json&#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">packages.json 拆分</span><br><span class="line">&#123;</span><br><span class="line">    &quot;includes&quot; : &#123;</span><br><span class="line">        # 单个packages.json 文件的文件名</span><br><span class="line">        &quot;packages1.json&quot; : &#123;</span><br><span class="line">            &quot;sha1&quot; : &quot;525a85fb37edd1ad71040d429928c2c0edec9d17&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">        &quot;packages2.json&quot; : &#123;</span><br><span class="line">            &quot;sha1&quot; : &quot;897cde726f8a3918faf27c803b336da223d400dd&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="http://docs.phpcomposer.com/05-repositories.html">资源库相关参考信息</a></p>
+<p>客户端 包/库</p>
+<p>包/库 &lt;- 资源库 &lt;- 库</p>
+<p>composer.json</p>
+<p>库 : 一个可以提供给其他<code>包</code>通过composer 下载来使用的 <code>包</code> , 库可以依赖其他的库<br>包 : 需要使用其他的库 但是不对其他的<code>包</code>提供服务, 包是一个私有项目</p>
+<p>库的<code>composer.json</code> 文件中需要使用 <code>name</code>  声明库名称<br>包的<code>composer.json</code> 文件中仅仅使用 <code>require</code> 声明依赖</p>
+<p><code>composer.json</code> 文件结构说明<br><strong>说明</strong> json格式中是不支持注释的书写的 这里写的注释只是为了方便说明</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    # 库名称 如果是库 这个字段是必填项</span><br><span class="line">    &quot;name&quot; : &quot;foo/bar&quot;,</span><br><span class="line">    # 如果是库 这个字段是必填项</span><br><span class="line">    &quot;description&quot; : &quot;库的功能简介&quot;,</span><br><span class="line">    # 库的关键词 在资源库中搜索时候会用到</span><br><span class="line">    &quot;keywords&quot; : [&#x27;foo&#x27;, &#x27;bar&#x27;],</span><br><span class="line">    # 库/包 的安装类型 定义安装逻辑 默认值 library</span><br><span class="line">    &quot;type&quot; : &quot;library|project|metapackage|composer-plugin&quot;,</span><br><span class="line">    # 库主页地址</span><br><span class="line">    &quot;homepage&quot; : &quot;http://example.org&quot;,</span><br><span class="line">    # 库的版本 这个建议填写 composer 会从你的git中的分支 标签分析出版本</span><br><span class="line">    &quot;version&quot; : &quot;1.0.2&quot;,</span><br><span class="line">    # 版本发布时间</span><br><span class="line">    &quot;time&quot; : &quot;YYYY-MM-DD HH:MM:SS&quot;,</span><br><span class="line">    # 许可协议</span><br><span class="line">    &quot;license&quot; : &quot;MIT|GPL|BSD|Apache&quot;,</span><br><span class="line">    # 项目相关人员信息</span><br><span class="line">    &quot;authors&quot; : [</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;name&quot; : &quot;范易龙&quot;,</span><br><span class="line">            &quot;email&quot; : &quot;fanyilong@kuaiqiangche.com&quot;,</span><br><span class="line">            &quot;homepage&quot; : &quot;https://fantiq.github.io&quot;,</span><br><span class="line">            &quot;role&quot; : &quot;Developer&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;name&quot; : &quot;fantiq&quot;,</span><br><span class="line">            &quot;email&quot; : &quot;fantiq@163.com&quot;,</span><br><span class="line">            &quot;homepage&quot; : &quot;https://fantiq.github.io&quot;,</span><br><span class="line">            &quot;role&quot; : &quot;Translator&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">    ],</span><br><span class="line">    # 项目联系方式</span><br><span class="line">    &quot;support&quot; : &#123;</span><br><span class="line">        &quot;email&quot; : &quot;support@example.org&quot;,</span><br><span class="line">        &quot;issue&quot; : &quot;https://github.com/fantiq/phpframework/issues&quot;,</span><br><span class="line">        &quot;wiki&quot; : &quot;https://github.com/fantiq/phpframework/wiki&quot;,</span><br><span class="line">        &quot;forum&quot; : &quot;&quot;,</span><br><span class="line">        &quot;source&quot; : &quot;&quot;,</span><br><span class="line">        &quot;irc&quot; : &quot;irc://irc.freenode.org/composer&quot;</span><br><span class="line">    &#125;,</span><br><span class="line">    # 定义依赖包</span><br><span class="line">    &quot;require&quot; : &#123;</span><br><span class="line">        # 定义版本范围 &gt;=1.2.1,&lt;1.3.0</span><br><span class="line">        # 定义版本发行 1.0.*@beta</span><br><span class="line">        # 精确到一个开发版本的具体commitID dev-master#2eb0c0978d290a1c45346a1955188929cb4e5db7</span><br><span class="line">        &quot;包名称&quot; : &quot;版本号或者版本范围&quot;,</span><br><span class="line">        .....</span><br><span class="line">    &#125;,</span><br><span class="line">    # 提供开发测试需要的额外包 默认会进行安装</span><br><span class="line">    # install update的时候可以通过参数 --no-dev 来排除这里定义的包</span><br><span class="line">    &quot;require-dev&quot; : &#123;</span><br><span class="line">        &quot;包名称&quot; : &quot;版本号或者版本范围&quot;,</span><br><span class="line">        .....</span><br><span class="line">    &#125;,</span><br><span class="line">    &quot;conflict&quot; : &#123;&#125;,</span><br><span class="line">    &quot;replace&quot; : &#123;&#125;,</span><br><span class="line">    &quot;provide&quot; : &#123;&#125;,</span><br><span class="line">    # 推荐给使用者的包 建议安装的信息</span><br><span class="line">    &quot;suggest&quot; : &#123;</span><br><span class="line">        &quot;包名称&quot; : &quot;自定义提醒信息&quot;</span><br><span class="line">    &#125;,</span><br><span class="line">    &quot;autoload&quot; : &#123;</span><br><span class="line">        &quot;psr-4&quot; : &#123;</span><br><span class="line">            # 在自动加载的时候会将命名空间前缀 替换成这里定义的路径</span><br><span class="line">            &quot;pre-namespace&quot; : &quot;path&quot;,</span><br><span class="line">            ...</span><br><span class="line">        &#125;,</span><br><span class="line">        &quot;classmap&quot; : [],</span><br><span class="line">        # 需要自动加载进来的文件</span><br><span class="line">        &quot;files&quot; : &quot;foo/bar/file.php&quot;</span><br><span class="line">    &#125;,</span><br><span class="line">    &quot;autoload-dev&quot; : &#123;&#125;,</span><br><span class="line">    # 添加到 php include_path 列表的路径</span><br><span class="line">    &quot;include-path&quot; : [&#x27;foo&#x27;, &#x27;bar&#x27;, &#x27;..&#x27;],</span><br><span class="line">    &quot;target-dir&quot; : &#123;&#125;,</span><br><span class="line">    # 稳定性过滤行为 </span><br><span class="line">    &quot;minimum-stability&quot; : &quot;stable|RC|beta|alpha|dev&quot;,</span><br><span class="line">    # 指明 优先下载稳定版</span><br><span class="line">    &quot;prefer-stable&quot; : true,</span><br><span class="line">    # 资源库地址定义 composer在查找资源包的时候是根据顺序进行查找的</span><br><span class="line">    &quot;repositories&quot; : [</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;type&quot; : &quot;composer|vcs|pear&quot;,</span><br><span class="line">            &quot;url&quot; : &quot;http://pkg.example.org/1&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;type&quot; : &quot;composer&quot;,</span><br><span class="line">            &quot;url&quot; : &quot;http://pkg.example.org/2&quot;,</span><br><span class="line">            &quot;options&quot; : &#123;</span><br><span class="line">                &quot;ssl&quot; : &#123;</span><br><span class="line">                    &quot;verify_peer&quot; : &quot;true&quot;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    ],</span><br><span class="line">    &quot;config&quot; : &#123;&#125;,</span><br><span class="line">    # 挂载的脚本 可以在composer执行的一些事件点 挂载执行的脚本</span><br><span class="line">    &quot;script&quot; : &#123;</span><br><span class="line">        &quot;post-install-cmd&quot; : [</span><br><span class="line">            &quot;foo\\bar\\baz::func&quot;,</span><br><span class="line">            &quot;phpunit -c app/&quot;</span><br><span class="line">        ]</span><br><span class="line">    &#125;,</span><br><span class="line">    # 提供给script的数据 脚本中使用方式 $extra = $event-&gt;getComposer()-&gt;getPackage()-&gt;getExtra();</span><br><span class="line">    &quot;extra&quot; : &#123;&#125;,</span><br><span class="line">    &quot;bin&quot; : &#123;&#125;,</span><br><span class="line">    &quot;archive&quot; : &#123;</span><br><span class="line">        &quot;exclude&quot; : [&#x27;/foo/bar&#x27;, &#x27;baz&#x27;, &#x27;/*.test&#x27;, &#x27;!/foo/bar/baz&#x27;]</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="http://docs.phpcomposer.com/04-schema.html">composer.json 可用字段参考</a></p>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/composer/" rel="tag">composer</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/php/" rel="tag">php</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/09/10/%E5%88%A9%E7%94%A8apidoc%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88/"
+                    data-tooltip="利用apidoc设计文档自动生成方案"
+                    aria-label="上一篇: 利用apidoc设计文档自动生成方案"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/08/09/linux%E7%A1%AC%E7%9B%98%E6%89%A9%E5%AE%B9/"
+                    data-tooltip="linux硬盘扩容"
+                    aria-label="下一篇: linux硬盘扩容"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/09/10/%E5%88%A9%E7%94%A8apidoc%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88/"
+                    data-tooltip="利用apidoc设计文档自动生成方案"
+                    aria-label="上一篇: 利用apidoc设计文档自动生成方案"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/08/09/linux%E7%A1%AC%E7%9B%98%E6%89%A9%E5%AE%B9/"
+                    data-tooltip="linux硬盘扩容"
+                    aria-label="下一篇: linux硬盘扩容"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2016/08/10/composer%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

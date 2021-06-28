@@ -1,0 +1,611 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>linux centos samba 文件共享 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"系统 linux centos软件 samba\n\n\n1 安装samba安装软件\n1yum install samba -y\n检查samba服务是否已经启动\n1service smb status\n启动服务\n1service smb start\n或者\n123/etc/init.d/smb start/etc/init.d/smb restart # 重启服务\n\n##2 配置文件\n1vim /etc/samba/smb.conf\n修改访问方式 不然需要你登录 才能访问\n1234将security = user修改成security = share\n添加一个共享目录\n1234567[共享的名称]comment=注释描述path=/root/share # 共享的文件夹路径public=yes  # 是否运行上传browseable=yes # 是否有浏览权限writable=yes # 是否有可写权限guest ok=yes # 访客是否可访问\n注意： \n\n修改配置文件后要重启smbd服务 这个配置文件是给smb服务端读的\n无法访问也可能是防火问题 service iptables status 查看下是否已经关闭或者iptables -L看你的ip是否有访问服务器的权限\n权限问题 首先普及下权限的问题x 1 执行w 2 写r 4 读这几个权限可以任意组合 chmod 来修改文件权限当我们访问一个目录的时候 执行x 与读取r是有区别的读取r 允许列出目录里面的列表(ll) 但是没有读取目录里内容的权限执行x 无法读取目录里面的列表 但是可以读取目录里面的内容也就是说 /foo/bar 这个目录你需要在bar目录里面写文件可以给 bar 777 但是 foo目录你要给x权限 不然 进不去的目录权限可以参考这里\n\n##3 重启samba服务\n12service smb restart/etc/init.d/smb restart\n##4 配置文件详解\n这里是配置的一个详细解释\n123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899100101102103104105106107108109110111112113114115116117118119120121122123124125126127128129130131132133134135136#======================= Global Settings =====================================    [global]    # 指定所属的域    workgroup = MYGROUP    server string = Samba Server Version %v        netbios name = MYSERVER        interfaces = lo eth0 192.168.12.2/24 192.168.13.2/24     # 允许哪些ip访问    hosts allow = 127. 192.168.12. 192.168.13.    # --------------------------- Logging Options -----------------------------    # 日志文件存储的位置    log file = /var/log/samba/log.%m    # 限制单个日志文件的大小 单位 KB    max log size = 50    # ----------------------- Standalone Server Options ------------------------    # 用户访问samba共享的验证方式    # user    需要帐号密码登录才能访问 帐号密码的提供以及验证由samba来做    # share   不需要验证帐号可直接访问    # server  用过服务器来进行验证    # domain  通过验证服务器(主域控制器PDC)来进行验证    security = share    # 用户后台    # smbpasswd samba自己的用户密码管理工具 文件形式    # tdbsam    使用数据库的形式管理帐号密码    # dapsam    LDAP服务实现帐号密码的管理    passdb backend = tdbsam# ----------------------- Domain Members Options ------------------------    security = domain    passdb backend = tdbsam    realm = MY_REALM    password server = &lt;NT-Server-Name&gt;# ----------------------- Domain Controller Options ------------------------;   security = user;   passdb backend = tdbsam;   domain master = yes ;   domain logons = yes;   logon script = %m.bat;   logon script = %u.bat;   logon path = \\\\%L\\Profiles\\%u;   logon path =              ;   add user script = /usr/sbin/useradd &quot;%u&quot; -n -g users;   add group script = /usr/sbin/groupadd &quot;%g&quot;;   add machine script = /usr/sbin/useradd -n -c &quot;Workstation (%u)&quot; -M -d /nohome -s /bin/false &quot;%u&quot;;   delete user script = /usr/sbin/userdel &quot;%u&quot;;   delete user from group script = /usr/sbin/userdel &quot;%u&quot; &quot;%g&quot;;   delete group script = /usr/sbin/groupdel &quot;%g&quot;        # ----------------------- Browser Control Options ----------------------------;   local master = no;   os level = 33;   preferred master = yes    #----------------------------- Name Resolution -------------------------------;   wins support = yes;   wins server = w.x.y.z;   wins proxy = yes;   dns proxy = yes    # --------------------------- Printing Options -----------------------------    load printers = yes    cups options = raw;   printcap name = /etc/printcap    #obtain list of printers automatically on SystemV;   printcap name = lpstat;   printing = cups# --------------------------- Filesystem Options ---------------------------;   map archive = no;   map hidden = no;   map read only = no;   map system = no;   store dos attributes = yes#============================ Share Definitions ==============================# 这几个是一些特殊共享[homes]    comment = Home Directories    browseable = no    writable = yes;   valid users = %S;   valid users = MYDOMAIN\\%S    [printers]    comment = All Printers    path = /var/spool/samba    browseable = no    guest ok = no    writable = no    printable = yes    # Un-comment the following and create the netlogon directory for Domain Logons;   [netlogon];   comment = Network Logon Service;   path = /var/lib/samba/netlogon;   guest ok = yes;   writable = no;   share modes = no        # Un-comment the following to provide a specific roving profile share# the default is to use the user&#x27;s home directory;   [Profiles];   path = /var/lib/samba/profiles;   browseable = no;   guest ok = yes        # A publicly accessible directory, but read only, except for people in# the &quot;staff&quot; group;   [public];   comment = Public Stuff;   path = /home/samba;   public = yes;   writable = yes;   printable = no;   write list = +staff[com]comment = 测试samba共享目录path = /root/sharepublic = yes        # 是否允许guest帐号访问browseable = yes    # 是否允许浏览writable = yes      # 是否可写guest ok = yes      # 同义词 public\n","dateCreated":"2016-06-07T14:01:52+08:00","dateModified":"2016-06-10T19:41:16+08:00","datePublished":"2016-06-07T14:01:52+08:00","description":"系统 linux centos软件 samba","headline":"linux centos samba 文件共享","image":[],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2016/06/07/linux-centos-samba-%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2016/06/07/linux-centos-samba-%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/","keywords":"linux, centos, samba"}</script>
+    <meta name="description" content="系统 linux centos软件 samba">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="linux centos samba 文件共享">
+<meta property="og:url" content="https://fantiq.github.io/2016/06/07/linux-centos-samba-%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="系统 linux centos软件 samba">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-06-07T06:01:52.000Z">
+<meta property="article:modified_time" content="2016-06-10T11:41:16.000Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="linux">
+<meta property="article:tag" content="centos">
+<meta property="article:tag" content="samba">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            linux centos samba 文件共享
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2016-06-07T14:01:52+08:00">
+	
+		    6月 07, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/%E8%BF%90%E7%BB%B4/">运维</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>系统 linux centos<br>软件 samba</p>
+<span id="more"></span>
+
+<h2 id="1-安装samba"><a href="#1-安装samba" class="headerlink" title="1 安装samba"></a>1 安装samba</h2><p>安装软件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install samba -y</span><br></pre></td></tr></table></figure>
+<p>检查samba服务是否已经启动</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">service smb status</span><br></pre></td></tr></table></figure>
+<p>启动服务</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">service smb start</span><br></pre></td></tr></table></figure>
+<p>或者</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">/etc/init.d/smb start</span><br><span class="line">/etc/init.d/smb restart # 重启服务</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>##2 配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/samba/smb.conf</span><br></pre></td></tr></table></figure>
+<p>修改访问方式 不然需要你登录 才能访问</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">将</span><br><span class="line">security = user</span><br><span class="line">修改成</span><br><span class="line">security = share</span><br></pre></td></tr></table></figure>
+<p>添加一个共享目录</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[共享的名称]</span><br><span class="line">comment=注释描述</span><br><span class="line">path=/root/share # 共享的文件夹路径</span><br><span class="line">public=yes  # 是否运行上传</span><br><span class="line">browseable=yes # 是否有浏览权限</span><br><span class="line">writable=yes # 是否有可写权限</span><br><span class="line">guest ok=yes # 访客是否可访问</span><br></pre></td></tr></table></figure>
+<p><strong>注意：</strong> </p>
+<ol>
+<li>修改配置文件后要重启smbd服务 这个配置文件是给smb服务端读的</li>
+<li>无法访问也可能是防火问题 <code>service iptables status</code> 查看下是否已经关闭或者<code>iptables -L</code>看你的ip是否有访问服务器的权限</li>
+<li>权限问题 首先普及下权限的问题<br>x 1 执行<br>w 2 写<br>r 4 读<br>这几个权限可以任意组合 chmod 来修改文件权限<br>当我们访问一个目录的时候 执行x 与读取r是有区别的<br>读取r 允许列出目录里面的列表(ll) 但是没有读取目录里内容的权限<br>执行x 无法读取目录里面的列表 但是可以读取目录里面的内容<br>也就是说 /foo/bar 这个目录你需要在bar目录里面写文件<br>可以给 bar 777 但是 foo目录你要给x权限 不然 进不去的<br><a target="_blank" rel="noopener" href="http://blog.csdn.net/caomiao2006/article/details/21701791">目录权限可以参考这里</a></li>
+</ol>
+<p>##3 重启samba服务</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">service smb restart</span><br><span class="line">/etc/init.d/smb restart</span><br></pre></td></tr></table></figure>
+<p>##4 配置文件详解</p>
+<p><a target="_blank" rel="noopener" href="http://yuanbin.blog.51cto.com/363003/115761/">这里是配置的一个详细解释</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">#======================= Global Settings =====================================</span><br><span class="line">    </span><br><span class="line">[global]</span><br><span class="line">    # 指定所属的域</span><br><span class="line">    workgroup = MYGROUP</span><br><span class="line">    server string = Samba Server Version %v</span><br><span class="line">    </span><br><span class="line">    netbios name = MYSERVER</span><br><span class="line">    </span><br><span class="line">    interfaces = lo eth0 192.168.12.2/24 192.168.13.2/24 </span><br><span class="line">    # 允许哪些ip访问</span><br><span class="line">    hosts allow = 127. 192.168.12. 192.168.13.</span><br><span class="line">    </span><br><span class="line"># --------------------------- Logging Options -----------------------------</span><br><span class="line">    # 日志文件存储的位置</span><br><span class="line">    log file = /var/log/samba/log.%m</span><br><span class="line">    # 限制单个日志文件的大小 单位 KB</span><br><span class="line">    max log size = 50</span><br><span class="line">    </span><br><span class="line"># ----------------------- Standalone Server Options ------------------------</span><br><span class="line">    # 用户访问samba共享的验证方式</span><br><span class="line">    # user    需要帐号密码登录才能访问 帐号密码的提供以及验证由samba来做</span><br><span class="line">    # share   不需要验证帐号可直接访问</span><br><span class="line">    # server  用过服务器来进行验证</span><br><span class="line">    # domain  通过验证服务器(主域控制器PDC)来进行验证</span><br><span class="line">    security = share</span><br><span class="line">    # 用户后台</span><br><span class="line">    # smbpasswd samba自己的用户密码管理工具 文件形式</span><br><span class="line">    # tdbsam    使用数据库的形式管理帐号密码</span><br><span class="line">    # dapsam    LDAP服务实现帐号密码的管理</span><br><span class="line">    passdb backend = tdbsam</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"># ----------------------- Domain Members Options ------------------------</span><br><span class="line">    security = domain</span><br><span class="line">    passdb backend = tdbsam</span><br><span class="line">    realm = MY_REALM</span><br><span class="line">    password server = &lt;NT-Server-Name&gt;</span><br><span class="line"></span><br><span class="line"># ----------------------- Domain Controller Options ------------------------</span><br><span class="line">;   security = user</span><br><span class="line">;   passdb backend = tdbsam</span><br><span class="line">;   domain master = yes </span><br><span class="line">;   domain logons = yes</span><br><span class="line">;   logon script = %m.bat</span><br><span class="line">;   logon script = %u.bat</span><br><span class="line">;   logon path = \\%L\Profiles\%u</span><br><span class="line">;   logon path =          </span><br><span class="line">    </span><br><span class="line">;   add user script = /usr/sbin/useradd &quot;%u&quot; -n -g users</span><br><span class="line">;   add group script = /usr/sbin/groupadd &quot;%g&quot;</span><br><span class="line">;   add machine script = /usr/sbin/useradd -n -c &quot;Workstation (%u)&quot; -M -d /nohome -s /bin/false &quot;%u&quot;</span><br><span class="line">;   delete user script = /usr/sbin/userdel &quot;%u&quot;</span><br><span class="line">;   delete user from group script = /usr/sbin/userdel &quot;%u&quot; &quot;%g&quot;</span><br><span class="line">;   delete group script = /usr/sbin/groupdel &quot;%g&quot;</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line"># ----------------------- Browser Control Options ----------------------------</span><br><span class="line">;   local master = no</span><br><span class="line">;   os level = 33</span><br><span class="line">;   preferred master = yes</span><br><span class="line">    </span><br><span class="line">#----------------------------- Name Resolution -------------------------------</span><br><span class="line">;   wins support = yes</span><br><span class="line">;   wins server = w.x.y.z</span><br><span class="line">;   wins proxy = yes</span><br><span class="line">;   dns proxy = yes</span><br><span class="line">    </span><br><span class="line"># --------------------------- Printing Options -----------------------------</span><br><span class="line">    load printers = yes</span><br><span class="line">    cups options = raw</span><br><span class="line">;   printcap name = /etc/printcap</span><br><span class="line">    #obtain list of printers automatically on SystemV</span><br><span class="line">;   printcap name = lpstat</span><br><span class="line">;   printing = cups</span><br><span class="line"></span><br><span class="line"># --------------------------- Filesystem Options ---------------------------</span><br><span class="line">;   map archive = no</span><br><span class="line">;   map hidden = no</span><br><span class="line">;   map read only = no</span><br><span class="line">;   map system = no</span><br><span class="line">;   store dos attributes = yes</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">#============================ Share Definitions ==============================</span><br><span class="line"># 这几个是一些特殊共享</span><br><span class="line">[homes]</span><br><span class="line">    comment = Home Directories</span><br><span class="line">    browseable = no</span><br><span class="line">    writable = yes</span><br><span class="line">;   valid users = %S</span><br><span class="line">;   valid users = MYDOMAIN\%S</span><br><span class="line">    </span><br><span class="line">[printers]</span><br><span class="line">    comment = All Printers</span><br><span class="line">    path = /var/spool/samba</span><br><span class="line">    browseable = no</span><br><span class="line">    guest ok = no</span><br><span class="line">    writable = no</span><br><span class="line">    printable = yes</span><br><span class="line">    </span><br><span class="line"># Un-comment the following and create the netlogon directory for Domain Logons</span><br><span class="line">;   [netlogon]</span><br><span class="line">;   comment = Network Logon Service</span><br><span class="line">;   path = /var/lib/samba/netlogon</span><br><span class="line">;   guest ok = yes</span><br><span class="line">;   writable = no</span><br><span class="line">;   share modes = no</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line"># Un-comment the following to provide a specific roving profile share</span><br><span class="line"># the default is to use the user&#x27;s home directory</span><br><span class="line">;   [Profiles]</span><br><span class="line">;   path = /var/lib/samba/profiles</span><br><span class="line">;   browseable = no</span><br><span class="line">;   guest ok = yes</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line"># A publicly accessible directory, but read only, except for people in</span><br><span class="line"># the &quot;staff&quot; group</span><br><span class="line">;   [public]</span><br><span class="line">;   comment = Public Stuff</span><br><span class="line">;   path = /home/samba</span><br><span class="line">;   public = yes</span><br><span class="line">;   writable = yes</span><br><span class="line">;   printable = no</span><br><span class="line">;   write list = +staff</span><br><span class="line">[com]</span><br><span class="line">comment = 测试samba共享目录</span><br><span class="line">path = /root/share</span><br><span class="line">public = yes        # 是否允许guest帐号访问</span><br><span class="line">browseable = yes    # 是否允许浏览</span><br><span class="line">writable = yes      # 是否可写</span><br><span class="line">guest ok = yes      # 同义词 public</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/centos/" rel="tag">centos</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/linux/" rel="tag">linux</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/samba/" rel="tag">samba</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/07/linux-centos-screen%E7%9A%84%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                    data-tooltip="linux centos screen的使用总结"
+                    aria-label="上一篇: linux centos screen的使用总结"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/"
+                    data-tooltip="linux centos 常用基本命令总结"
+                    aria-label="下一篇: linux centos 常用基本命令总结"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/06/07/linux-centos-samba-%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/06/07/linux-centos-samba-%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/06/07/linux-centos-samba-%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/07/linux-centos-screen%E7%9A%84%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                    data-tooltip="linux centos screen的使用总结"
+                    aria-label="上一篇: linux centos screen的使用总结"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/"
+                    data-tooltip="linux centos 常用基本命令总结"
+                    aria-label="下一篇: linux centos 常用基本命令总结"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/06/07/linux-centos-samba-%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/06/07/linux-centos-samba-%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/06/07/linux-centos-samba-%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/06/07/linux-centos-samba-%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/06/07/linux-centos-samba-%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2016/06/07/linux-centos-samba-%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

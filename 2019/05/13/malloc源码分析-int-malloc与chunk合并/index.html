@@ -1,0 +1,648 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>malloc源码分析-int_malloc与chunk合并 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"上一篇讲了 ptmalloc 在初始化的过程中做的一些准备工作 主要是内存的申请，这里主要是基于初始化的数据格式对内存进行分配、回收管理。重点是 各种 bin的使用，其如同缓存 减少程序频繁的内存申请操作 对内核的调用(毕竟需要且到内核态执行代码)。\n\n1.0 _int_malloc 代码结构函数 _int_malloc 的代码量很大，代码逻辑主要是基于 bins (fastbin smallbin largebin unsortedbin)查找合适的chunk，这里将函数 _int_malloc 中的代码分成多个部分分析，整个代码结构如下：\n123456789101112131415161718192021222324252627282930static void * _int_malloc (mstate av, size_t bytes) &#123;    // 将用户请求的内存尺寸以 16byte 向上对齐    checked_request2size (bytes, nb);    if ((unsigned long) (nb) &lt;= (unsigned long) (get_max_fast ())) &#123;        //  #1.1 如果用户请求尺寸是在 fast bin 的尺寸范围 则在 fastbin 链表中找合适的chunk 并将地址返回给用户    &#125;    if (in_smallbin_range (nb)) &#123;        //  #1.2 如果用户请求尺寸是在 small bin 的尺寸范围 则在 fastbin 链表中找合适的chunk 并将地址返回给用户    &#125;    else &#123;        //  #1.3 如果用户请求尺寸是在 large bin 的尺寸范围 则调用函数 malloc_consolidate 对chunk进行处理        idx = largebin_index (nb);        if (atomic_load_relaxed (&amp;av-&gt;have_fastchunks)) malloc_consolidate (av);    &#125;    for (;; ) &#123;        int iters = 0;        while ((victim = unsorted_chunks (av)-&gt;bk) != unsorted_chunks (av)) &#123;            // #2.1 在 unsort bin 的链表中查找合适尺寸的chunk 找到的话将内存地址返回给用户        &#125;        if (!in_smallbin_range (nb)) &#123;            // #2.2 在large bin 中查找比用户请求尺寸大的 chunk ，找到后讲其切割，用户尺寸部分返回给用户 剩下的内存尺寸给 remainder_chunk        &#125;        // ......        for (;; ) &#123;            // #2.3 从整个bin里面查找，这里查找使用了 bitmap 他记录了所有的空闲bin 方便查找        &#125;        use_top:            // #2.4 整个bin里面都没有找到合适的chunk 就要对 top chunk 进行切割，切割下来的返回给用户，剩下的还是 top chunk    &#125;&#125;\n首先是对用户申请内存尺寸对齐计算的宏 checked_request2size ，这里涉及到多个宏，具体如下：\n1234567891011121314151617181920212223#define INTERNAL_SIZE_T         size_t // unsigned long #define SIZE_SZ                 (sizeof (INTERNAL_SIZE_T)) // 在x64 架构上是 8// malloc 对齐尺寸 在 x64 上 这里是 2 * 8 = 16 byte#define MALLOC_ALIGNMENT        (2 * SIZE_SZ &lt; __alignof__ (long double) ? __alignof__ (long double) : 2 * SIZE_SZ) // malloc_chunk 偏移到 属性 fd_nextsize 需要移动的位置是 4 * 8 = 32 byte#define MIN_CHUNK_SIZE          (offsetof(struct malloc_chunk, fd_nextsize)) // 掩码 对齐值减一作为掩码是对齐计算中常用的方法 还要结合取反#define MALLOC_ALIGN_MASK       (MALLOC_ALIGNMENT - 1) // 最小尺寸 是需要与 MALLOC_ALIGN_MASK 对齐 也就是 32 byte#define MINSIZE                 (unsigned long)(((MIN_CHUNK_SIZE+MALLOC_ALIGN_MASK) &amp; ~MALLOC_ALIGN_MASK)) // 这里就是将 req 以 16字节向上对齐 req + SIZE_SZ ?#define request2size(req)       (((req) + SIZE_SZ + MALLOC_ALIGN_MASK &lt; MINSIZE) ? MINSIZE : ((req) + SIZE_SZ + MALLOC_ALIGN_MASK) &amp; ~MALLOC_ALIGN_MASK)// 用户申请的内存最大值不能超过的范围 ? -1 * MINSIZE 能明白 但为什么是 -2 呢#define REQUEST_OUT_OF_RANGE(req) ((unsigned long) (req) &gt;= (unsigned long) (INTERNAL_SIZE_T) (-2 * MINSIZE))// 处理用户申请的内存尺寸 并判断内存尺寸是否在允许范围内#define checked_request2size(req, sz) (&#123;    (sz) = request2size (req);    if (((sz) &lt; (req)) || REQUEST_OUT_OF_RANGE (sz)) &#123;        __set_errno (ENOMEM);        return 0;    &#125;&#125;)\n然后是一个判断，如果进程当前通过锁没有抢占到 arena 这里通过函数 sysmalloc 去申请\n12345if (__glibc_unlikely (av == NULL)) &#123;    void *p = sysmalloc (nb, av);    if (p != NULL) alloc_perturb (p, bytes);    return p;&#125;\n\n2 快速直接的查询chunkmalloc 会尝试先查找合适的chunk 这些chunk会被缓存到各个 bin中，这里先在 fast bin 与 small bin 中进行查询，找到则返回 找不到进入到下一步的处理\n2.1 在 fast bin 上查询合适的chunk代码里使用的宏比较多，这里先展开宏 便于后面代码分析\n12345678910111213141516171819202122#define REMOVE_FB(fb, victim, pp)    do &#123;        victim = pp;        if (victim == NULL)        break;    &#125;    while ((pp = catomic_compare_and_exchange_val_acq (fb, victim-&gt;fd, victim)) != victim);// idx = sz / 2^4 - 2 = sz / 16 - 2 sz 最小值是 MINSIZE 32 byte 当然 这个值是在 x64 系统上#define fastbin_index(sz)       ((((unsigned int) (sz)) &gt;&gt; (SIZE_SZ == 8 ? 4 : 3)) - 2)// 读取arena 对应索引的chunk #define fastbin(ar_ptr, idx)    ((ar_ptr)-&gt;fastbinsY[idx])// 类似掩码码的作用 00....111#define SIZE_BITS                   (PREV_INUSE | IS_MMAPPED | NON_MAIN_ARENA)#define chunksize_nomask(p)         ((p)-&gt;mchunk_size)// 通过掩码将 mchunk_size 底三位设置为 0 ，然后得出 chunk的真实大小#define chunksize(p)                (chunksize_nomask (p) &amp; ~(SIZE_BITS))// 往后偏移两个 chunk成员属性的位置#define chunk2mem(p)   ((void*)((char*)(p) + 2*SIZE_SZ))// 往前偏移两个 chunk成员属性的位置 也就是 回到 chunk 内存起始位置#define mem2chunk(mem) ((mchunkptr)((char*)(mem) - 2*SIZE_SZ))\n基于 fast bin 查询 chunk\n12345678910111213141516171819202122232425262728// 如果用户请求的尺寸在 fast bin 的缓存范围内，get_max_fast获取的值是 在 malloc_init_state 中设置的if ((unsigned long) (nb) &lt;= (unsigned long) (get_max_fast ())) &#123;    // 根据 尺寸计算出 对应在 fastbin 链表中的索引位置 idx    idx = fastbin_index (nb);    // 读取chunk 这里使用的是地址的地址 方便下面移动fd指针的时候 就将 victim 从链表中移除    mfastbinptr *fb = &amp;fastbin (av, idx);    mchunkptr pp;    victim = *fb;    if (victim != NULL) &#123; // 条件成功 说明victim不为空 可以返回给用户使用        // 这里移动fd指针 fd 是地址的地址 也就是移动后会将victim从链表中移除        if (SINGLE_THREAD_P) *fb = victim-&gt;fd;        else REMOVE_FB (fb, pp, victim);        if (__glibc_likely (victim != NULL)) &#123;            // 判断下尺寸对应的 fastbin 索引是否相等            size_t victim_idx = fastbin_index (chunksize (victim));            if (__builtin_expect (victim_idx != idx, 0)) malloc_printerr (&quot;malloc(): memory corruption (fast)&quot;);            // 调试信息            check_remalloced_chunk (av, victim, nb);            // 返回给用户的内存地址是从            void *p = chunk2mem (victim);            // 调试信息 通过 memset 初始化p内存中值(perturb_byte ^ 0xff)            alloc_perturb (p, bytes);            return p;        &#125;    &#125;&#125;\n2.2 在 small bin 上查询合适的chunk直接在 small bin 的链表中查找合适的 chunk，常用宏展开\n12345678910111213141516#define NSMALLBINS          64#define SMALLBIN_WIDTH      MALLOC_ALIGNMENT // 16 byte#define SMALLBIN_CORRECTION (MALLOC_ALIGNMENT &gt; 2 * SIZE_SZ)   // smallbin 最大值尺寸 64 * 16#define MIN_LARGE_SIZE    ((NSMALLBINS - SMALLBIN_CORRECTION) * SMALLBIN_WIDTH)// 比较是否用户尺寸小于 smallbin 的最大尺寸#define in_smallbin_range(sz) ((unsigned long) (sz) &lt; (unsigned long) MIN_LARGE_SIZE)//根据尺寸计算出对应索引 idx = sz / 16#define smallbin_index(sz)  ((SMALLBIN_WIDTH == 16 ? (((unsigned) (sz)) &gt;&gt; 4) : (((unsigned) (sz)) &gt;&gt; 3)) + SMALLBIN_CORRECTION)// 以 p 为起始地址 向上偏移 s 长度内存 对其设置 属性 mchunk_size 的 prev_inuse#define set_inuse_bit_at_offset(p, s) (((mchunkptr) (((char *) (p)) + (s)))-&gt;mchunk_size |= PREV_INUSE)#define PREV_INUSE      0x1#define IS_MMAPPED      0x2#define NON_MAIN_ARENA  0x4#define set_non_main_arena(p) ((p)-&gt;mchunk_size |= NON_MAIN_ARENA)\nsmall bin 中查找chunk的代码逻辑\n12345678910111213141516171819202122232425// 用户请求的尺寸是否在 smallbin 的尺寸范围内if (in_smallbin_range (nb)) &#123;    // 通过用户尺寸计算出 small bin 中对应尺寸的索引 idx    idx = smallbin_index (nb);    // 读取对应的bin    bin = bin_at (av, idx);    if ((victim = last (bin)) != bin) &#123; // 不等于他自身说明bin 不是空的 可以使用        // 将 查询到的合适的chunk。victim 从 small bin 的链表中祛除        bck = victim-&gt;bk;        if (__glibc_unlikely (bck-&gt;fd != victim)) malloc_printerr (&quot;malloc(): smallbin double linked list corrupted&quot;);        // 设置下一个chunk的 prev_inuse        set_inuse_bit_at_offset (victim, nb);        bin-&gt;bk = bck;        bck-&gt;fd = bin;        // 若不是主线程 设置size底三位的 NON_MAIN_AREAN        if (av != &amp;main_arena) set_non_main_arena (victim);        check_malloced_chunk (av, victim, nb);        // 转换内存地址为用户地址        void *p = chunk2mem (victim);        alloc_perturb (p, bytes);        return p;    &#125;&#125;\n2.3 通过 consolidate 合并 空闲chunk遍历整个fastbin，各个尺寸对应的链表。先查看上一个chunk 是否未使用，若未使用 将其从链表中移除，也就是与当前chunk合并（后续会通过size的形式实现）然后是下一个chunk，若下一个chunk是top chunk 则是将 当前chunk与top chunk合并，若下一个chunk不是 top chunk，看下一个chunk是否未使用，若未使用则将其与当前chunk合并\n整个合并逻辑是在循环中进行的 这样就会将相邻的空闲chunk 合并为一个 最后放入 unsorted bin 或者 top chunk 中提供给后续的内存申请 使用\n常用宏：\n12345678910111213// 获取chunk的真实尺寸#define chunksize(p)                    (chunksize_nomask (p) &amp; ~(SIZE_BITS))// 将地址从 p 移动到 p+s#define chunk_at_offset(p, s)           ((mchunkptr) (((char *) (p)) + (s)))// p指向的chunk的prev_inuse值，上一个chunk是否在使用中#define prev_inuse(p)                   ((p)-&gt;mchunk_size &amp; PREV_INUSE)// p指向的chunk的prev_size#define prev_size(p)                    ((p)-&gt;mchunk_prev_size)// p + s 指向的chunk 将其中的 标志位 prev_inuse 设置为 0#define clear_inuse_bit_at_offset(p, s) (((mchunkptr) (((char *) (p)) + (s)))-&gt;mchunk_size &amp;= ~(PREV_INUSE))// p + s 指向的chunk 的 prev_inuse 的值#define inuse_bit_at_offset(p, s) (((mchunkptr) (((char *) (p)) + (s)))-&gt;mchunk_size &amp; PREV_INUSE)\n逻辑代码\n1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162636465666768static void malloc_consolidate(mstate av) &#123;    // fast bin 结尾    maxfb = &amp;fastbin (av, NFASTBINS - 1);    // fast bin 开头    fb = &amp;fastbin (av, 0);    do &#123;        // p = fb;fb = NULL;        p = atomic_exchange_acq (fb, NULL);        if (p == 0) continue;        do &#123;            &#123;                unsigned int idx = fastbin_index (chunksize (p));                if ((&amp;fastbin (av, idx)) != fb) malloc_printerr (&quot;malloc_consolidate(): invalid chunk size&quot;);            &#125;            check_inuse_chunk(av, p);            // 获取下一个chunk的地址与尺寸            nextp = p-&gt;fd; // next chunk ptr            size = chunksize (p);            nextchunk = chunk_at_offset(p, size); // next chunk ptr            nextsize = chunksize(nextchunk); // next chunk size            // 上一个chunk 没有被使用 是空闲的            if (!prev_inuse(p)) &#123;                // 移动指针 p 到上一个 chunk 的内存地址                prevsize = prev_size (p);                size += prevsize;                p = chunk_at_offset(p, -((long) prevsize));                if (__glibc_unlikely (chunksize(p) != prevsize)) malloc_printerr (&quot;corrupted size vs. prev_size in fastbins&quot;);                // 将 p 从链表中取出 这时的p其实是 当前循环到的chunk 的上一个chunk prevchunk                unlink(av, p, bck, fwd);            &#125;            // 下一个chunk不是top            if (nextchunk != av-&gt;top) &#123;                // nextinuse 是nextchunk 是否被使用                nextinuse = inuse_bit_at_offset(nextchunk, nextsize);                // 若nextchunk未被使用 则将 nextchunk 从链表中取出                if (!nextinuse) &#123;                    size += nextsize;                    unlink(av, nextchunk, bck, fwd);                &#125;                // nextchunk 不是空闲的 则不合并，将其prev_inuse 设置为 0                 else clear_inuse_bit_at_offset(nextchunk, 0);                // 将切割下来的 p 加入到 unsorted bin 的列表头部                first_unsorted = unsorted_bin-&gt;fd;                unsorted_bin-&gt;fd = p;                first_unsorted-&gt;bk = p;                if (!in_smallbin_range (size)) &#123;                    p-&gt;fd_nextsize = NULL;                    p-&gt;bk_nextsize = NULL;                &#125;                // 设置 prev_inuse 为 1                set_head(p, size | PREV_INUSE);                p-&gt;bk = unsorted_bin;                p-&gt;fd = first_unsorted;                // 设置 size 这个size 其实是 prevchunk nextchunk 和chunksize 的和 以此实现 将这三个chunk合并的目的 合并后添加到了 unsorted bin 的头部                set_foot(p, size);            &#125;            else &#123;                 // 如果 p 的下一个 chunk 是 top 将 当前chunk与他的上一个chunk合并到top里                size += nextsize;                set_head(p, size | PREV_INUSE);                av-&gt;top = p;            &#125;        &#125; while ( (p = nextp) != 0); // 遍历链表    &#125; while (fb++ != maxfb); // 遍历fastbin各个尺寸的chunk链表 移动fb指针 不到结尾则继续计算&#125;\n\n将chunk从链表中移除的宏：\n1234567891011121314151617181920212223242526272829303132#define unlink(AV, P, BK, FD) &#123;    // 当前的尺寸与下一个chunk中 prev_size 尺寸不相等     if (__builtin_expect (chunksize(P) != prev_size (next_chunk(P)), 0)) malloc_printerr (&quot;corrupted size vs. prev_size&quot;);    // 将 p 从双向链表中移除    FD = P-&gt;fd;    BK = P-&gt;bk;    // 发现 fwd bck p 三者不连续    if (__builtin_expect (FD-&gt;bk != P || BK-&gt;fd != P, 0)) malloc_printerr (&quot;corrupted double-linked list&quot;);    else &#123;        FD-&gt;bk = BK;        BK-&gt;fd = FD;        // chunk是large bin 范围的 且 fd_nextsize 不空，说明 p 处在一个尺寸的 chunk 段中的最后一个        if (!in_smallbin_range (chunksize_nomask (P)) &amp;&amp; __builtin_expect (P-&gt;fd_nextsize != NULL, 0)) &#123;            if (__builtin_expect (P-&gt;fd_nextsize-&gt;bk_nextsize != P, 0) || __builtin_expect (P-&gt;bk_nextsize-&gt;fd_nextsize != P, 0)) malloc_printerr (&quot;corrupted double-linked list (not small)&quot;);            // large bin 是双向链表 这里需要在 nextsize 的链表中也将其移除            if (FD-&gt;fd_nextsize == NULL) &#123;                if (P-&gt;fd_nextsize == P)                  FD-&gt;fd_nextsize = FD-&gt;bk_nextsize = FD;                else &#123;                    FD-&gt;fd_nextsize = P-&gt;fd_nextsize;                    FD-&gt;bk_nextsize = P-&gt;bk_nextsize;                    P-&gt;fd_nextsize-&gt;bk_nextsize = FD;                    P-&gt;bk_nextsize-&gt;fd_nextsize = FD;                  &#125;              &#125; else &#123;                P-&gt;fd_nextsize-&gt;bk_nextsize = P-&gt;bk_nextsize;                P-&gt;bk_nextsize-&gt;fd_nextsize = P-&gt;fd_nextsize;              &#125;          &#125;      &#125;&#125;\n下图是整个合并逻辑的流程图：\n3 查询chunk 并对当前bin 中的chunk 做处理这里是接着上一步 #2 的工作继续进行的，这里不会仅仅对链表上的chunk 做尺寸比较，还会对chunk 做切割、移动的操作。上一步合并chunk到 unsorted bin 、top chunk 的chunk 在这一步里就会用到了。主要逻辑结构如下：\n\n在unsorted bin 中查找 chunk\n在largebin 中查找大于等于size的chunk进行切割处理\n在所有的 bin 中查找大于等于size的chunk进行切割处理\n切割 top chunk 返回合适的chunk\n\n1234567891011121314151617181920212223for (;; ) &#123;    int iters = 0;    while ((victim = unsorted_chunks (av)-&gt;bk) != unsorted_chunks (av)) &#123;        // unsorted bin     &#125;    if (!in_smallbin_range (nb)) &#123;        // large bin     &#125;    ++idx;    bin = bin_at (av, idx);    block = idx2block (idx);    map = av-&gt;binmap[block];    bit = idx2bit (idx);    for (;; ) &#123;        // all bins    &#125;    use_top:        // cut top chunk&#125;\n\n3.1 在 unsorted bin 上查询合适的chunk循环 unsorted bin ，若unsorted bin的链表中只有一个 chunk 且这个chunk还是last_remainder 尺寸还合适 （size &gt; nb + MINSIZE 这个条件的目的是方便切割 last_remainder）满足条件会将 这个chunk 进行切割 一部分分会给用户 另一部分作为last_remainder \n然后就看下 unsorted bin 上面是否有正好满足尺寸的chunk 返回给用户 且要将这个chunk从链表中 移除\n在然后就是将这些 chunk 根据尺寸合并到对应的 small bin 或 large bin 对应链表的头部，代码逻辑如下：\n123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899100101102103104105106107108109110111112113114115116117118int iters = 0;// 遍历 unsorted bin 链表 ，unsorted bin 的循环是从链表底部开始的 // victim 会在下面代码中从列表中分割出去，以使这里的循环能够继续下去while ((victim = unsorted_chunks (av)-&gt;bk) != unsorted_chunks (av)) &#123;    // victim上一个chunk地址    bck = victim-&gt;bk;    size = chunksize (victim);    // victim 下一个chunk地址    mchunkptr next = chunk_at_offset (victim, size);    if (__glibc_unlikely (size &lt;= 2 * SIZE_SZ)|| __glibc_unlikely (size &gt; av-&gt;system_mem)) malloc_printerr (&quot;malloc(): invalid size (unsorted)&quot;);    if (__glibc_unlikely (chunksize_nomask (next) &lt; 2 * SIZE_SZ) || __glibc_unlikely (chunksize_nomask (next) &gt; av-&gt;system_mem)) malloc_printerr (&quot;malloc(): invalid next size (unsorted)&quot;);    if (__glibc_unlikely ((prev_size (next) &amp; ~(SIZE_BITS)) != size)) malloc_printerr (&quot;malloc(): mismatching next-&gt;prev_size (unsorted)&quot;);    if (__glibc_unlikely (bck-&gt;fd != victim) || __glibc_unlikely (victim-&gt;fd != unsorted_chunks (av))) malloc_printerr (&quot;malloc(): unsorted double linked list corrupted&quot;);    if (__glibc_unlikely (prev_inuse (next))) malloc_printerr (&quot;malloc(): invalid next-&gt;prev_inuse (unsorted)&quot;);    // 尺寸在small bin的范围 且 victim是unsorted bin 链表中的第一个chunk 且 victim 是 last_remainder 且 victim的尺寸大于用户请求的尺寸 + chunk的最小尺寸（目的是方便切割victim）    if (in_smallbin_range (nb) &amp;&amp; bck == unsorted_chunks (av) &amp;&amp; victim == av-&gt;last_remainder &amp;&amp; (unsigned long) (size) &gt; (unsigned long) (nb + MINSIZE)) &#123;        // 这里将 victim 分成两份 一份是用户请求的chunk 剩下一份是 remainder        remainder_size = size - nb; // 剩下部分尺寸        remainder = chunk_at_offset (victim, nb); // 剩下部分内存地址        // 由于victim是 unsorted bin 链表中唯一一个chunk 这里将 unsorted bin 这个双向链表的 bk fd 全指向 remainder         // 其实 这个操作也同时将victim 返回给用户的哪部分内存从链表中移除了        unsorted_chunks (av)-&gt;bk = unsorted_chunks (av)-&gt;fd = remainder;         av-&gt;last_remainder = remainder; // 剩余部分赋值给 arena 的 last_remainder        remainder-&gt;bk = remainder-&gt;fd = unsorted_chunks (av);        if (!in_smallbin_range (remainder_size)) &#123; // 如果剩余部分尺寸属于largin bin 需要将其内存中fd_nextsize bk_nextsize位置的数据清空            remainder-&gt;fd_nextsize = NULL;            remainder-&gt;bk_nextsize = NULL;        &#125;        // 设置 chunk 数据        set_head (victim, nb | PREV_INUSE | (av != &amp;main_arena ? NON_MAIN_ARENA : 0));        set_head (remainder, remainder_size | PREV_INUSE);        set_foot (remainder, remainder_size);        check_malloced_chunk (av, victim, nb);        // 将分割下来的用户部分返回给用户        void *p = chunk2mem (victim);        alloc_perturb (p, bytes);        return p;    &#125;    // 将victim从 unsorted bin 的链表中移除    // unsorted bin 这个链表是 栈结构 先进后出的    if (__glibc_unlikely (bck-&gt;fd != victim)) malloc_printerr (&quot;malloc(): corrupted unsorted chunks 3&quot;);    unsorted_chunks (av)-&gt;bk = bck;    bck-&gt;fd = unsorted_chunks (av);    // 尺寸正合适 则可以直接返回给用户了    if (size == nb) &#123;        set_inuse_bit_at_offset (victim, size);        if (av != &amp;main_arena) set_non_main_arena (victim);        check_malloced_chunk (av, victim, nb);        void *p = chunk2mem (victim);        alloc_perturb (p, bytes);        return p;    &#125;    // 以下 将每次循环到的victim 重新分配到 small bin 或 large bin中     // 这里逻辑先计算一些指针 方便下面合并操作    // victim的尺寸在 small bin的范围内    if (in_smallbin_range (size)) &#123;        victim_index = smallbin_index (size);        bck = bin_at (av, victim_index);        fwd = bck-&gt;fd;    &#125;    // victim的尺寸在 large bin的范围内    // 这里主要是需要先处理large bin 中的 nextsize 链表    else &#123;        victim_index = largebin_index (size);        bck = bin_at (av, victim_index);        fwd = bck-&gt;fd;        if (fwd != bck) &#123; // large bin 对应尺寸的链表不空            size |= PREV_INUSE;            assert (chunk_main_arena (bck-&gt;bk));            // 如果 victim尺寸比large bin 链表中最后一个chunk尺寸还小 （large bin 链表中的chunk按照从大到下 排列）            // 则可以将 victim 直接添加到 最后一个chunk的后面 这里只处理了 nextsize 链表 fd bk 的链表需要在下面统一处理            if ((unsigned long) (size) &lt; (unsigned long) chunksize_nomask (bck-&gt;bk)) &#123;                fwd = bck; // 第一个chunk                bck = bck-&gt;bk; // 最后一个chunk                victim-&gt;fd_nextsize = fwd-&gt;fd; // victim放在最后 形成 循环链表 他的fd 就是 fwd                victim-&gt;bk_nextsize = fwd-&gt;fd-&gt;bk_nextsize; // fwd-&gt;fd-&gt;bk_nextsize 的当前值就是 bck                fwd-&gt;fd-&gt;bk_nextsize = victim-&gt;bk_nextsize-&gt;fd_nextsize = victim;            &#125;            else &#123;                assert (chunk_main_arena (fwd));                // 循环查询 直到size &gt;= nextsize 段的尺寸                while ((unsigned long) size &lt; chunksize_nomask (fwd)) &#123;                    fwd = fwd-&gt;fd_nextsize;                    assert (chunk_main_arena (fwd));                &#125;                // 尺寸相等并没有处理 nextsize链表，因为这不是必须的，既然相等 那我们不要将其放在 相同尺寸链表中的头部就好了，这样不会影响 nextsize链表                // 此时只需要将fwd向下移动 然后将 bck 设置到之前fwd的位置 victim就会插入 few 与 bck 之间 ，victim的位置不会是在头部 这样就不影响 nextsize链表                if ((unsigned long) size == (unsigned long) chunksize_nomask (fwd)) fwd = fwd-&gt;fd;                else &#123;                    // 此时victim尺寸是不与当前链表nextsize中的任何尺寸相等的，将victim添加到 fwd的上面                    victim-&gt;fd_nextsize = fwd;                    victim-&gt;bk_nextsize = fwd-&gt;bk_nextsize;                    fwd-&gt;bk_nextsize = victim;                    victim-&gt;bk_nextsize-&gt;fd_nextsize = victim;                &#125;                bck = fwd-&gt;bk; // 便于下面逻辑处理            &#125;        &#125;        // 链表为空 victim 是这个链表的唯一一个chunk 所以 nextsize链表中的 fd bk 都指向自己        else victim-&gt;fd_nextsize = victim-&gt;bk_nextsize = victim;    &#125;    mark_bin (av, victim_index);    // 将victim添加到主链表中    victim-&gt;bk = bck;    victim-&gt;fd = fwd;    fwd-&gt;bk = victim;    bck-&gt;fd = victim;    // 考虑到性能 尝试不超过 10000 次    #define MAX_ITERS       10000    if (++iters &gt;= MAX_ITERS) break;&#125;\n这里有一部分代码需要分析下，当尺寸范围属于 large bin的时候 需要做一些额外的处理，因为 large bin的链表中的chunk尺寸并不相等，他们根据尺寸从大到小排列，为了便于搜索 large bin 的每个链表又维护了一个nextsize链表（fb_nextsize bk_nextsize）这里的逻辑又分为两部分 若尺寸是最小的 则需要将其放在最下面 且重新建立 nextsize 链表的链接，其逻辑结构如下图：\n若victim的尺寸并不是最小的，则需要遍历nextsize链表 while ((unsigned long) size &lt; chunksize_nomask (fwd)) &#123;fwd = fwd-&gt;fd_nextsize;&#125; 查找到合适的 fwd ，这个时候需要先判断尺寸是否相等 这种情况 如果将victim添加进链表 但是不添加到 一段相同尺寸chunk的头部 就不需要调整 nextsize 链表 ，nextsize链表中的 fd_nextsize bk_nextsize 存储的地址是 一段相同尺寸链的头部和尾部 chunk 所以有代码 if ((unsigned long) size == (unsigned long) chunksize_nomask (fwd)) fwd = fwd-&gt;fd;\n其他情况的指针移动则相对简单了，通过 fwd 的地址 将 victim 的 nextsize 指针添加进 fwd 与 fwd-&gt;bk 之间。\n3.2 large bin 查询这段主要是在large bin中循环查询，这个查询是倒叙的，查找到正好大于或等于 nb 的chunk 然后对其切割。切割的一部分返回给用户 另一部分remainder 添加到 unsorted bin 链表里，若剩余部分尺寸不够一个chunk最小尺寸 （MIN_SIZE） 则不进行切割 整个返回给用户这里逻辑相对简单，代码如下：\n1234567891011121314151617181920if (!in_smallbin_range (nb)) &#123;    bin = bin_at (av, idx);    // 在large bin 的链表中取第一个chunk 若这个chunk 不为头节点 则说明链表不空    // 且第一个chunk的尺寸要大于等于请求尺寸 因为第一个chunk是这个链表最大的chunk 若不然 这个链表中的所有chunk都不能满足条件    if ((victim = first (bin)) != bin &amp;&amp; (unsigned long) chunksize_nomask (victim) &gt;= (unsigned long) (nb)) &#123;        // 倒序 先从最小的 chunk开始        victim = victim-&gt;bk_nextsize;        // 循环 直到找到 victim 正好大于等于 nb 的 chunk段        while (((unsigned long) (size = chunksize (victim)) &lt; (unsigned long) (nb))) victim = victim-&gt;bk_nextsize;        /* Avoid removing the first entry for a size so that the skip list does not have to be rerouted.  */        // 若不是最后一个chunk 且 victim的下一个chunk尺寸与victim相等 则将victim指针移动到下一个         // 这里的目的是避免用到第一个chunk 这样会破坏 nextsize链表 多出来重建链表的代码        if (victim != last (bin) &amp;&amp; chunksize_nomask (victim) == chunksize_nomask (victim-&gt;fd)) victim = victim-&gt;fd;        // 这里 切割victim的代码单独抽离出来了 看下面    &#125;&#125;\nvictim的切割\n123456789101112131415161718192021222324252627282930313233343536// 多余的尺寸remainder_size = size - nb;// 将victim从链表中移除unlink (av, victim, bck, fwd);// 剩下部分不够一个最小chunk 则不用切割 整个返回给用户if (remainder_size &lt; MINSIZE) &#123;    set_inuse_bit_at_offset (victim, size);    if (av != &amp;main_arena) set_non_main_arena (victim);&#125;else &#123; // 切割 victim    // 剩余chunk部分的地址    remainder = chunk_at_offset (victim, nb);    /* We cannot assume the unsorted list is empty and therefore have to perform a complete insert here.  */    // 将剩余部分添加到 unsorted bin 中    bck = unsorted_chunks (av);    fwd = bck-&gt;fd;    if (__glibc_unlikely (fwd-&gt;bk != bck)) malloc_printerr (&quot;malloc(): corrupted unsorted chunks&quot;);    remainder-&gt;bk = bck;    remainder-&gt;fd = fwd;    bck-&gt;fd = remainder;    fwd-&gt;bk = remainder;    if (!in_smallbin_range (remainder_size)) &#123;        // 若剩余部分属于 large bin 初始化 nextsize链表指针        remainder-&gt;fd_nextsize = NULL;        remainder-&gt;bk_nextsize = NULL;    &#125;    // 设置信息    set_head (victim, nb | PREV_INUSE | (av != &amp;main_arena ? NON_MAIN_ARENA : 0));    set_head (remainder, remainder_size | PREV_INUSE);    set_foot (remainder, remainder_size);&#125;check_malloced_chunk (av, victim, nb);// 返回给用户void *p = chunk2mem (victim);alloc_perturb (p, bytes);return p;\n3.3 bins 查询当上面的过程都没有找到合适的chunk，这里会遍历整个bins查找合适的chunk，查找bins链表中存在的chunk 正好大于用户请求尺寸的chunk 然后对其切割返回。这里涉及到的操作分为两部分 1. bins 链表的查询 2. 切割chunk，其中切割chunk部分的代码跟上一步large bin 的切割是一样的逻辑多出一个处理代码如下:\n123456789101112// ......remainder-&gt;bk = bck;remainder-&gt;fd = fwd;bck-&gt;fd = remainder;fwd-&gt;bk = remainder;// 若用户请求尺寸是在 small bin 的范围内 这时将 remainder 的地址会赋值给 arena 的 last_remainderif (in_smallbin_range (nb)) av-&gt;last_remainder = remainder;if (!in_smallbin_range (remainder_size)) &#123;    remainder-&gt;fd_nextsize = NULL;    remainder-&gt;bk_nextsize = NULL;&#125;// ......\n\n这里主要需要理解的代码是在查找上，这里使用 bitmap 算法来加快查询。arena结构中有一个属性 unsigned int bitmap[4] 用来表示 bitmap ，其分为4个数组 也就对应 bitmap 的四个段 ，每个段是一个 unsigned int int 需要4个字节 每个字节有8个bit，也就是 bitmap 每个段的长度是 8 * 4 = 32 bit。bitmap总共拥有的 bit 是 32 * 4 = 128 个 这也正对应arena 中的 bins，每个bin是一个chunk链表头部，bit 位用 1 表示 这个链表不空 0 表示链表为空，这样在查询的时候可以直接跳过了，以此实现加速查询，相关的宏如下：\n123456#define NBINS            128#define BINMAPSHIFT      5#define BITSPERMAP       (1U &lt;&lt; BINMAPSHIFT) // 2^5 = 32#define BINMAPSIZE       (NBINS / BITSPERMAP) // 128 / 32 = 4// 计算 bin 中索引对应的bitmap段 也就是 block#define idx2block(i)     ((i) &gt;&gt; BINMAPSHIFT) // i / 32\n还有一个相对要分析下 #define idx2bit(i)       ((1U &lt;&lt; ((i) &amp; ((1U &lt;&lt; BINMAPSHIFT) - 1)))) ，可以将其拆分成两部分 1U &lt;&lt; [express] 和[express]部分 i &amp; ((1U &lt;&lt; BINMAPSHIFT)-1) 。 [express] 部分其实就是相对于一个段对应bit的偏移量，然后 增加 1U &lt;&lt; [express] 就是偏移量的一种表示 方便下面代码的计算， 比如 偏移量 offset 是 7 则对应的变量bit的值就是  00000000 00000000 00000000 01000000代码逻辑如下\n123456789101112131415161718192021222324252627282930313233343536373839404142++idx;bin = bin_at (av, idx);block = idx2block (idx);map = av-&gt;binmap[block];bit = idx2bit (idx);for (;; ) &#123;    // 若 bit &gt; map 说明当前block中没有合适的链表    // bit 是以 32bit 中的一位为1表示偏移量 map 是整个block的bin链表的使用情况    // bit &gt; map 说明 bit所在的高位对应到 map 一定为 0 ，则这个block 一定没有合适的链表    if (bit &gt; map || bit == 0) &#123;        do &#123;            // 超出 bitmap 范围说明遍历的整个bins 链表都是空的 则直接到 use_top的逻辑            if (++block &gt;= BINMAPSIZE) goto use_top;        &#125; while ((map = av-&gt;binmap[block]) == 0); // 若整个bitmap的block都为0 说明整个block中的bin链表都是空的 需要向后再次查询        // 取出block中第一个 bin         bin = bin_at (av, (block &lt;&lt; BINMAPSHIFT));        bit = 1;    &#125;    // 这里一定会找到bin 整个block为空的情况 上一步操作会过滤掉 全为空的情况在上面就会 goto user_top;    // 这里其实循环遍历的是一个block的bin    while ((bit &amp; map) == 0) &#123; // bit 对应位置链表为空        // 向后遍历更大尺寸的 bin 同时移动bit位置        bin = next_bin (bin);        bit &lt;&lt;= 1;        assert (bit != 0);    &#125;    // 读取 bin 链表中的最后一个chunk    victim = last (bin);    // 若当前的bin 链表还是空的 bitmap的数据有误    if (victim == bin) &#123;        // 修复 bitmap的数据        av-&gt;binmap[block] = map &amp;= ~bit; /* Write through */        // 到下一个bin        bin = next_bin (bin);        bit &lt;&lt;= 1;    &#125;    else &#123;        // victim 切割    &#125;&#125;\n若 bit == 0 或 bit &gt; map 则以段的形式遍历整个bin 如果整个bin链表都是空的 (av-&gt;binmap[block] == 0) 则直接执行 use_top 的代码，若在向后遍历的过程中找到了合适的 block 段 则取出block开始的 bin 并 将bit设置为对应bin的位置(bit = 1) 其中 bit &gt; map 说明当前block中肯定找不到尺寸大于nb且bin链表不为空的链表了。然后就是在 block中进行遍历了 while((bit &amp; map) == 0) &#123;....&#125; ，bit &amp; map 说明bin为空链表 则 向后遍历 bin 这个循环过程是一定会找到合适的bin的。找到合适的bin后 取出链表最后一个 chunk ，这里还进行了判断 链表是否为空 (victim = last(bin)) == bin ，若为空 说明 bitmap 中对应的数据不准确 这时又对这个bitmap中的bit位的值做修复处理 av-bitmap[block] = map &amp; ~ bit 继续向后移动 bin\n找到合适的bin后 就做切割处理 这段的代码逻辑和 large bin 中的处理是一样的。\n4 切割 top chunk这一步通过对 top chunk 的切割来分配内存，若不够切割则通过函数 sysmalloc 分配新的 heap_info\n12345678910111213141516171819202122232425262728293031323334// 获取top chunk的其实地址victim = av-&gt;top;size = chunksize (victim);if (__glibc_unlikely (size &gt; av-&gt;system_mem)) malloc_printerr (&quot;malloc(): corrupted top size&quot;);// top chunk 的尺寸足够用来切割if ((unsigned long) (size) &gt;= (unsigned long) (nb + MINSIZE)) &#123;    // 切割top chunk 剩余部分作为新的 top chunk    remainder_size = size - nb;    remainder = chunk_at_offset (victim, nb);    av-&gt;top = remainder;    // 返回用户申请部分的chunk    set_head (victim, nb | PREV_INUSE | (av != &amp;main_arena ? NON_MAIN_ARENA : 0));    set_head (remainder, remainder_size | PREV_INUSE);    check_malloced_chunk (av, victim, nb);    void *p = chunk2mem (victim);    alloc_perturb (p, bytes);    return p;&#125;/* When we are using atomic ops to free fast chunks we can get here for all block sizes.  */// 还存在 fast binelse if (atomic_load_relaxed (&amp;av-&gt;have_fastchunks)) &#123;    // 合并fastbin中的chunks    malloc_consolidate (av);    /* restore original bin index */    if (in_smallbin_range (nb)) idx = smallbin_index (nb);    else idx = largebin_index (nb);&#125;/* Otherwise, relay to handle system-dependent cases */else &#123;    // top chunk 不够分配的话 调用函数 sysmalloc 增长 arena 的 heap_info     void *p = sysmalloc (nb, av);    if (p != NULL) alloc_perturb (p, bytes);    return p;&#125;\n\n\n","dateCreated":"2019-05-13T15:16:24+08:00","dateModified":"2019-05-21T14:13:43+08:00","datePublished":"2019-05-13T15:16:24+08:00","description":"上一篇讲了 ptmalloc 在初始化的过程中做的一些准备工作 主要是内存的申请，这里主要是基于初始化的数据格式对内存进行分配、回收管理。重点是 各种 bin的使用，其如同缓存 减少程序频繁的内存申请操作 对内核的调用(毕竟需要且到内核态执行代码)。","headline":"malloc源码分析-int_malloc与chunk合并","image":[],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-int-malloc%E4%B8%8Echunk%E5%90%88%E5%B9%B6/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-int-malloc%E4%B8%8Echunk%E5%90%88%E5%B9%B6/","keywords":"c, 内存, malloc, glibc, ptmalloc"}</script>
+    <meta name="description" content="上一篇讲了 ptmalloc 在初始化的过程中做的一些准备工作 主要是内存的申请，这里主要是基于初始化的数据格式对内存进行分配、回收管理。重点是 各种 bin的使用，其如同缓存 减少程序频繁的内存申请操作 对内核的调用(毕竟需要且到内核态执行代码)。">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="malloc源码分析-int_malloc与chunk合并">
+<meta property="og:url" content="https://fantiq.github.io/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-int-malloc%E4%B8%8Echunk%E5%90%88%E5%B9%B6/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="上一篇讲了 ptmalloc 在初始化的过程中做的一些准备工作 主要是内存的申请，这里主要是基于初始化的数据格式对内存进行分配、回收管理。重点是 各种 bin的使用，其如同缓存 减少程序频繁的内存申请操作 对内核的调用(毕竟需要且到内核态执行代码)。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fantiq.github.io/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-int-malloc%E4%B8%8Echunk%E5%90%88%E5%B9%B6/WX20190520-120619@2x.png">
+<meta property="og:image" content="https://fantiq.github.io/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-int-malloc%E4%B8%8Echunk%E5%90%88%E5%B9%B6/WX20190520-205347@2x.png">
+<meta property="article:published_time" content="2019-05-13T07:16:24.000Z">
+<meta property="article:modified_time" content="2019-05-21T06:13:43.876Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="c">
+<meta property="article:tag" content="内存">
+<meta property="article:tag" content="malloc">
+<meta property="article:tag" content="glibc">
+<meta property="article:tag" content="ptmalloc">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fantiq.github.io/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-int-malloc%E4%B8%8Echunk%E5%90%88%E5%B9%B6/WX20190520-120619@2x.png">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            malloc源码分析-int_malloc与chunk合并
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2019-05-13T15:16:24+08:00">
+	
+		    5月 13, 2019
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/%E5%86%85%E5%AD%98/">内存</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>上一篇讲了 ptmalloc 在初始化的过程中做的一些准备工作 主要是内存的申请，这里主要是基于初始化的数据格式对内存进行分配、回收管理。重点是 各种 bin的使用，其如同缓存 减少程序频繁的内存申请操作 对内核的调用(毕竟需要且到内核态执行代码)。</p>
+<span id="more"></span>
+<h2 id="1-0-int-malloc-代码结构"><a href="#1-0-int-malloc-代码结构" class="headerlink" title="1.0 _int_malloc 代码结构"></a>1.0 _int_malloc 代码结构</h2><p>函数 <code>_int_malloc</code> 的代码量很大，代码逻辑主要是基于 bins (fastbin smallbin largebin unsortedbin)查找合适的chunk，这里将函数 <code>_int_malloc</code> 中的代码分成多个部分分析，整个代码结构如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">static void * _int_malloc (mstate av, size_t bytes) &#123;</span><br><span class="line">    // 将用户请求的内存尺寸以 16byte 向上对齐</span><br><span class="line">    checked_request2size (bytes, nb);</span><br><span class="line">    if ((unsigned long) (nb) &lt;= (unsigned long) (get_max_fast ())) &#123;</span><br><span class="line">        //  #1.1 如果用户请求尺寸是在 fast bin 的尺寸范围 则在 fastbin 链表中找合适的chunk 并将地址返回给用户</span><br><span class="line">    &#125;</span><br><span class="line">    if (in_smallbin_range (nb)) &#123;</span><br><span class="line">        //  #1.2 如果用户请求尺寸是在 small bin 的尺寸范围 则在 fastbin 链表中找合适的chunk 并将地址返回给用户</span><br><span class="line">    &#125;</span><br><span class="line">    else &#123;</span><br><span class="line">        //  #1.3 如果用户请求尺寸是在 large bin 的尺寸范围 则调用函数 malloc_consolidate 对chunk进行处理</span><br><span class="line">        idx = largebin_index (nb);</span><br><span class="line">        if (atomic_load_relaxed (&amp;av-&gt;have_fastchunks)) malloc_consolidate (av);</span><br><span class="line">    &#125;</span><br><span class="line">    for (;; ) &#123;</span><br><span class="line">        int iters = 0;</span><br><span class="line">        while ((victim = unsorted_chunks (av)-&gt;bk) != unsorted_chunks (av)) &#123;</span><br><span class="line">            // #2.1 在 unsort bin 的链表中查找合适尺寸的chunk 找到的话将内存地址返回给用户</span><br><span class="line">        &#125;</span><br><span class="line">        if (!in_smallbin_range (nb)) &#123;</span><br><span class="line">            // #2.2 在large bin 中查找比用户请求尺寸大的 chunk ，找到后讲其切割，用户尺寸部分返回给用户 剩下的内存尺寸给 remainder_chunk</span><br><span class="line">        &#125;</span><br><span class="line">        // ......</span><br><span class="line">        for (;; ) &#123;</span><br><span class="line">            // #2.3 从整个bin里面查找，这里查找使用了 bitmap 他记录了所有的空闲bin 方便查找</span><br><span class="line">        &#125;</span><br><span class="line">        use_top:</span><br><span class="line">            // #2.4 整个bin里面都没有找到合适的chunk 就要对 top chunk 进行切割，切割下来的返回给用户，剩下的还是 top chunk</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>首先是对用户申请内存尺寸对齐计算的宏 <code>checked_request2size</code> ，这里涉及到多个宏，具体如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">#define INTERNAL_SIZE_T         size_t // unsigned long </span><br><span class="line">#define SIZE_SZ                 (sizeof (INTERNAL_SIZE_T)) // 在x64 架构上是 8</span><br><span class="line">// malloc 对齐尺寸 在 x64 上 这里是 2 * 8 = 16 byte</span><br><span class="line">#define MALLOC_ALIGNMENT        (2 * SIZE_SZ &lt; __alignof__ (long double) ? __alignof__ (long double) : 2 * SIZE_SZ) </span><br><span class="line">// malloc_chunk 偏移到 属性 fd_nextsize 需要移动的位置是 4 * 8 = 32 byte</span><br><span class="line">#define MIN_CHUNK_SIZE          (offsetof(struct malloc_chunk, fd_nextsize)) </span><br><span class="line">// 掩码 对齐值减一作为掩码是对齐计算中常用的方法 还要结合取反</span><br><span class="line">#define MALLOC_ALIGN_MASK       (MALLOC_ALIGNMENT - 1) </span><br><span class="line">// 最小尺寸 是需要与 MALLOC_ALIGN_MASK 对齐 也就是 32 byte</span><br><span class="line">#define MINSIZE                 (unsigned long)(((MIN_CHUNK_SIZE+MALLOC_ALIGN_MASK) &amp; ~MALLOC_ALIGN_MASK)) </span><br><span class="line">// 这里就是将 req 以 16字节向上对齐 req + SIZE_SZ ?</span><br><span class="line">#define request2size(req)       (((req) + SIZE_SZ + MALLOC_ALIGN_MASK &lt; MINSIZE) ? MINSIZE : ((req) + SIZE_SZ + MALLOC_ALIGN_MASK) &amp; ~MALLOC_ALIGN_MASK)</span><br><span class="line">// 用户申请的内存最大值不能超过的范围 ? -1 * MINSIZE 能明白 但为什么是 -2 呢</span><br><span class="line">#define REQUEST_OUT_OF_RANGE(req) ((unsigned long) (req) &gt;= (unsigned long) (INTERNAL_SIZE_T) (-2 * MINSIZE))</span><br><span class="line">// 处理用户申请的内存尺寸 并判断内存尺寸是否在允许范围内</span><br><span class="line">#define checked_request2size(req, sz) </span><br><span class="line">(&#123;</span><br><span class="line">    (sz) = request2size (req);</span><br><span class="line">    if (((sz) &lt; (req)) || REQUEST_OUT_OF_RANGE (sz)) &#123;</span><br><span class="line">        __set_errno (ENOMEM);</span><br><span class="line">        return 0;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<p>然后是一个判断，如果进程当前通过锁没有抢占到 arena 这里通过函数 <code>sysmalloc</code> 去申请</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">if (__glibc_unlikely (av == NULL)) &#123;</span><br><span class="line">    void *p = sysmalloc (nb, av);</span><br><span class="line">    if (p != NULL) alloc_perturb (p, bytes);</span><br><span class="line">    return p;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-快速直接的查询chunk"><a href="#2-快速直接的查询chunk" class="headerlink" title="2 快速直接的查询chunk"></a>2 快速直接的查询chunk</h2><p>malloc 会尝试先查找合适的chunk 这些chunk会被缓存到各个 bin中，这里先在 fast bin 与 small bin 中进行查询，找到则返回 找不到进入到下一步的处理</p>
+<h4 id="2-1-在-fast-bin-上查询合适的chunk"><a href="#2-1-在-fast-bin-上查询合适的chunk" class="headerlink" title="2.1 在 fast bin 上查询合适的chunk"></a>2.1 在 fast bin 上查询合适的chunk</h4><p>代码里使用的宏比较多，这里先展开宏 便于后面代码分析</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">#define REMOVE_FB(fb, victim, pp)</span><br><span class="line">    do &#123;</span><br><span class="line">        victim = pp;</span><br><span class="line">        if (victim == NULL)</span><br><span class="line">        break;</span><br><span class="line">    &#125;</span><br><span class="line">    while ((pp = catomic_compare_and_exchange_val_acq (fb, victim-&gt;fd, victim)) != victim);</span><br><span class="line">// idx = sz / 2^4 - 2 = sz / 16 - 2 sz 最小值是 MINSIZE 32 byte 当然 这个值是在 x64 系统上</span><br><span class="line">#define fastbin_index(sz)       ((((unsigned int) (sz)) &gt;&gt; (SIZE_SZ == 8 ? 4 : 3)) - 2)</span><br><span class="line">// 读取arena 对应索引的chunk </span><br><span class="line">#define fastbin(ar_ptr, idx)    ((ar_ptr)-&gt;fastbinsY[idx])</span><br><span class="line"></span><br><span class="line">// 类似掩码码的作用 00....111</span><br><span class="line">#define SIZE_BITS                   (PREV_INUSE | IS_MMAPPED | NON_MAIN_ARENA)</span><br><span class="line">#define chunksize_nomask(p)         ((p)-&gt;mchunk_size)</span><br><span class="line">// 通过掩码将 mchunk_size 底三位设置为 0 ，然后得出 chunk的真实大小</span><br><span class="line">#define chunksize(p)                (chunksize_nomask (p) &amp; ~(SIZE_BITS))</span><br><span class="line"></span><br><span class="line">// 往后偏移两个 chunk成员属性的位置</span><br><span class="line">#define chunk2mem(p)   ((void*)((char*)(p) + 2*SIZE_SZ))</span><br><span class="line">// 往前偏移两个 chunk成员属性的位置 也就是 回到 chunk 内存起始位置</span><br><span class="line">#define mem2chunk(mem) ((mchunkptr)((char*)(mem) - 2*SIZE_SZ))</span><br></pre></td></tr></table></figure>
+<p>基于 fast bin 查询 chunk</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">// 如果用户请求的尺寸在 fast bin 的缓存范围内，get_max_fast获取的值是 在 malloc_init_state 中设置的</span><br><span class="line">if ((unsigned long) (nb) &lt;= (unsigned long) (get_max_fast ())) &#123;</span><br><span class="line">    // 根据 尺寸计算出 对应在 fastbin 链表中的索引位置 idx</span><br><span class="line">    idx = fastbin_index (nb);</span><br><span class="line">    // 读取chunk 这里使用的是地址的地址 方便下面移动fd指针的时候 就将 victim 从链表中移除</span><br><span class="line">    mfastbinptr *fb = &amp;fastbin (av, idx);</span><br><span class="line">    mchunkptr pp;</span><br><span class="line">    victim = *fb;</span><br><span class="line"></span><br><span class="line">    if (victim != NULL) &#123; // 条件成功 说明victim不为空 可以返回给用户使用</span><br><span class="line">        // 这里移动fd指针 fd 是地址的地址 也就是移动后会将victim从链表中移除</span><br><span class="line">        if (SINGLE_THREAD_P) *fb = victim-&gt;fd;</span><br><span class="line">        else REMOVE_FB (fb, pp, victim);</span><br><span class="line">        if (__glibc_likely (victim != NULL)) &#123;</span><br><span class="line">            // 判断下尺寸对应的 fastbin 索引是否相等</span><br><span class="line">            size_t victim_idx = fastbin_index (chunksize (victim));</span><br><span class="line">            if (__builtin_expect (victim_idx != idx, 0)) malloc_printerr (&quot;malloc(): memory corruption (fast)&quot;);</span><br><span class="line">            // 调试信息</span><br><span class="line">            check_remalloced_chunk (av, victim, nb);</span><br><span class="line">            // 返回给用户的内存地址是从</span><br><span class="line">            void *p = chunk2mem (victim);</span><br><span class="line">            // 调试信息 通过 memset 初始化p内存中值(perturb_byte ^ 0xff)</span><br><span class="line">            alloc_perturb (p, bytes);</span><br><span class="line">            return p;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="2-2-在-small-bin-上查询合适的chunk"><a href="#2-2-在-small-bin-上查询合适的chunk" class="headerlink" title="2.2 在 small bin 上查询合适的chunk"></a>2.2 在 small bin 上查询合适的chunk</h4><p>直接在 small bin 的链表中查找合适的 chunk，常用宏展开</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">#define NSMALLBINS          64</span><br><span class="line">#define SMALLBIN_WIDTH      MALLOC_ALIGNMENT // 16 byte</span><br><span class="line">#define SMALLBIN_CORRECTION (MALLOC_ALIGNMENT &gt; 2 * SIZE_SZ)   </span><br><span class="line">// smallbin 最大值尺寸 64 * 16</span><br><span class="line">#define MIN_LARGE_SIZE    ((NSMALLBINS - SMALLBIN_CORRECTION) * SMALLBIN_WIDTH)</span><br><span class="line">// 比较是否用户尺寸小于 smallbin 的最大尺寸</span><br><span class="line">#define in_smallbin_range(sz) ((unsigned long) (sz) &lt; (unsigned long) MIN_LARGE_SIZE)</span><br><span class="line">//根据尺寸计算出对应索引 idx = sz / 16</span><br><span class="line">#define smallbin_index(sz)  ((SMALLBIN_WIDTH == 16 ? (((unsigned) (sz)) &gt;&gt; 4) : (((unsigned) (sz)) &gt;&gt; 3)) + SMALLBIN_CORRECTION)</span><br><span class="line"></span><br><span class="line">// 以 p 为起始地址 向上偏移 s 长度内存 对其设置 属性 mchunk_size 的 prev_inuse</span><br><span class="line">#define set_inuse_bit_at_offset(p, s) (((mchunkptr) (((char *) (p)) + (s)))-&gt;mchunk_size |= PREV_INUSE)</span><br><span class="line">#define PREV_INUSE      0x1</span><br><span class="line">#define IS_MMAPPED      0x2</span><br><span class="line">#define NON_MAIN_ARENA  0x4</span><br><span class="line">#define set_non_main_arena(p) ((p)-&gt;mchunk_size |= NON_MAIN_ARENA)</span><br></pre></td></tr></table></figure>
+<p>small bin 中查找chunk的代码逻辑</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">// 用户请求的尺寸是否在 smallbin 的尺寸范围内</span><br><span class="line">if (in_smallbin_range (nb)) &#123;</span><br><span class="line">    // 通过用户尺寸计算出 small bin 中对应尺寸的索引 idx</span><br><span class="line">    idx = smallbin_index (nb);</span><br><span class="line">    // 读取对应的bin</span><br><span class="line">    bin = bin_at (av, idx);</span><br><span class="line"></span><br><span class="line">    if ((victim = last (bin)) != bin) &#123; // 不等于他自身说明bin 不是空的 可以使用</span><br><span class="line">        // 将 查询到的合适的chunk。victim 从 small bin 的链表中祛除</span><br><span class="line">        bck = victim-&gt;bk;</span><br><span class="line">        if (__glibc_unlikely (bck-&gt;fd != victim)) malloc_printerr (&quot;malloc(): smallbin double linked list corrupted&quot;);</span><br><span class="line">        // 设置下一个chunk的 prev_inuse</span><br><span class="line">        set_inuse_bit_at_offset (victim, nb);</span><br><span class="line">        bin-&gt;bk = bck;</span><br><span class="line">        bck-&gt;fd = bin;</span><br><span class="line"></span><br><span class="line">        // 若不是主线程 设置size底三位的 NON_MAIN_AREAN</span><br><span class="line">        if (av != &amp;main_arena) set_non_main_arena (victim);</span><br><span class="line">        check_malloced_chunk (av, victim, nb);</span><br><span class="line">        // 转换内存地址为用户地址</span><br><span class="line">        void *p = chunk2mem (victim);</span><br><span class="line">        alloc_perturb (p, bytes);</span><br><span class="line">        return p;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="2-3-通过-consolidate-合并-空闲chunk"><a href="#2-3-通过-consolidate-合并-空闲chunk" class="headerlink" title="2.3 通过 consolidate 合并 空闲chunk"></a>2.3 通过 consolidate 合并 空闲chunk</h4><p>遍历整个fastbin，各个尺寸对应的链表。先查看上一个chunk 是否未使用，若未使用 将其从链表中移除，也就是与当前chunk合并（后续会通过size的形式实现）<br>然后是下一个chunk，若下一个chunk是top chunk 则是将 当前chunk与top chunk合并，若下一个chunk不是 top chunk，看下一个chunk是否未使用，若未使用则将其与当前chunk合并</p>
+<p>整个合并逻辑是在循环中进行的 这样就会将相邻的空闲chunk 合并为一个 最后放入 unsorted bin 或者 top chunk 中提供给后续的内存申请 使用</p>
+<p>常用宏：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">// 获取chunk的真实尺寸</span><br><span class="line">#define chunksize(p)                    (chunksize_nomask (p) &amp; ~(SIZE_BITS))</span><br><span class="line">// 将地址从 p 移动到 p+s</span><br><span class="line">#define chunk_at_offset(p, s)           ((mchunkptr) (((char *) (p)) + (s)))</span><br><span class="line">// p指向的chunk的prev_inuse值，上一个chunk是否在使用中</span><br><span class="line">#define prev_inuse(p)                   ((p)-&gt;mchunk_size &amp; PREV_INUSE)</span><br><span class="line">// p指向的chunk的prev_size</span><br><span class="line">#define prev_size(p)                    ((p)-&gt;mchunk_prev_size)</span><br><span class="line">// p + s 指向的chunk 将其中的 标志位 prev_inuse 设置为 0</span><br><span class="line">#define clear_inuse_bit_at_offset(p, s) (((mchunkptr) (((char *) (p)) + (s)))-&gt;mchunk_size &amp;= ~(PREV_INUSE))</span><br><span class="line">// p + s 指向的chunk 的 prev_inuse 的值</span><br><span class="line">#define inuse_bit_at_offset(p, s) (((mchunkptr) (((char *) (p)) + (s)))-&gt;mchunk_size &amp; PREV_INUSE)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>逻辑代码</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><span class="line">static void malloc_consolidate(mstate av) &#123;</span><br><span class="line">    // fast bin 结尾</span><br><span class="line">    maxfb = &amp;fastbin (av, NFASTBINS - 1);</span><br><span class="line">    // fast bin 开头</span><br><span class="line">    fb = &amp;fastbin (av, 0);</span><br><span class="line">    do &#123;</span><br><span class="line">        // p = fb;fb = NULL;</span><br><span class="line">        p = atomic_exchange_acq (fb, NULL);</span><br><span class="line">        if (p == 0) continue;</span><br><span class="line">        do &#123;</span><br><span class="line">            &#123;</span><br><span class="line">                unsigned int idx = fastbin_index (chunksize (p));</span><br><span class="line">                if ((&amp;fastbin (av, idx)) != fb) malloc_printerr (&quot;malloc_consolidate(): invalid chunk size&quot;);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            check_inuse_chunk(av, p);</span><br><span class="line">            // 获取下一个chunk的地址与尺寸</span><br><span class="line">            nextp = p-&gt;fd; // next chunk ptr</span><br><span class="line">            size = chunksize (p);</span><br><span class="line">            nextchunk = chunk_at_offset(p, size); // next chunk ptr</span><br><span class="line">            nextsize = chunksize(nextchunk); // next chunk size</span><br><span class="line">            // 上一个chunk 没有被使用 是空闲的</span><br><span class="line">            if (!prev_inuse(p)) &#123;</span><br><span class="line">                // 移动指针 p 到上一个 chunk 的内存地址</span><br><span class="line">                prevsize = prev_size (p);</span><br><span class="line">                size += prevsize;</span><br><span class="line">                p = chunk_at_offset(p, -((long) prevsize));</span><br><span class="line">                if (__glibc_unlikely (chunksize(p) != prevsize)) malloc_printerr (&quot;corrupted size vs. prev_size in fastbins&quot;);</span><br><span class="line">                // 将 p 从链表中取出 这时的p其实是 当前循环到的chunk 的上一个chunk prevchunk</span><br><span class="line">                unlink(av, p, bck, fwd);</span><br><span class="line">            &#125;</span><br><span class="line">            // 下一个chunk不是top</span><br><span class="line">            if (nextchunk != av-&gt;top) &#123;</span><br><span class="line">                // nextinuse 是nextchunk 是否被使用</span><br><span class="line">                nextinuse = inuse_bit_at_offset(nextchunk, nextsize);</span><br><span class="line">                // 若nextchunk未被使用 则将 nextchunk 从链表中取出</span><br><span class="line">                if (!nextinuse) &#123;</span><br><span class="line">                    size += nextsize;</span><br><span class="line">                    unlink(av, nextchunk, bck, fwd);</span><br><span class="line">                &#125;</span><br><span class="line">                // nextchunk 不是空闲的 则不合并，将其prev_inuse 设置为 0 </span><br><span class="line">                else clear_inuse_bit_at_offset(nextchunk, 0);</span><br><span class="line"></span><br><span class="line">                // 将切割下来的 p 加入到 unsorted bin 的列表头部</span><br><span class="line">                first_unsorted = unsorted_bin-&gt;fd;</span><br><span class="line">                unsorted_bin-&gt;fd = p;</span><br><span class="line">                first_unsorted-&gt;bk = p;</span><br><span class="line"></span><br><span class="line">                if (!in_smallbin_range (size)) &#123;</span><br><span class="line">                    p-&gt;fd_nextsize = NULL;</span><br><span class="line">                    p-&gt;bk_nextsize = NULL;</span><br><span class="line">                &#125;</span><br><span class="line">                // 设置 prev_inuse 为 1</span><br><span class="line">                set_head(p, size | PREV_INUSE);</span><br><span class="line">                p-&gt;bk = unsorted_bin;</span><br><span class="line">                p-&gt;fd = first_unsorted;</span><br><span class="line">                // 设置 size 这个size 其实是 prevchunk nextchunk 和chunksize 的和 以此实现 将这三个chunk合并的目的 合并后添加到了 unsorted bin 的头部</span><br><span class="line">                set_foot(p, size);</span><br><span class="line">            &#125;</span><br><span class="line">            else &#123; </span><br><span class="line">                // 如果 p 的下一个 chunk 是 top 将 当前chunk与他的上一个chunk合并到top里</span><br><span class="line">                size += nextsize;</span><br><span class="line">                set_head(p, size | PREV_INUSE);</span><br><span class="line">                av-&gt;top = p;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; while ( (p = nextp) != 0); // 遍历链表</span><br><span class="line">    &#125; while (fb++ != maxfb); // 遍历fastbin各个尺寸的chunk链表 移动fb指针 不到结尾则继续计算</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>将chunk从链表中移除的宏：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">#define unlink(AV, P, BK, FD) </span><br><span class="line">&#123;</span><br><span class="line">    // 当前的尺寸与下一个chunk中 prev_size 尺寸不相等 </span><br><span class="line">    if (__builtin_expect (chunksize(P) != prev_size (next_chunk(P)), 0)) malloc_printerr (&quot;corrupted size vs. prev_size&quot;);</span><br><span class="line">    // 将 p 从双向链表中移除</span><br><span class="line">    FD = P-&gt;fd;</span><br><span class="line">    BK = P-&gt;bk;</span><br><span class="line">    // 发现 fwd bck p 三者不连续</span><br><span class="line">    if (__builtin_expect (FD-&gt;bk != P || BK-&gt;fd != P, 0)) malloc_printerr (&quot;corrupted double-linked list&quot;);</span><br><span class="line">    else &#123;</span><br><span class="line">        FD-&gt;bk = BK;</span><br><span class="line">        BK-&gt;fd = FD;</span><br><span class="line">        // chunk是large bin 范围的 且 fd_nextsize 不空，说明 p 处在一个尺寸的 chunk 段中的最后一个</span><br><span class="line">        if (!in_smallbin_range (chunksize_nomask (P)) &amp;&amp; __builtin_expect (P-&gt;fd_nextsize != NULL, 0)) &#123;</span><br><span class="line">            if (__builtin_expect (P-&gt;fd_nextsize-&gt;bk_nextsize != P, 0) || __builtin_expect (P-&gt;bk_nextsize-&gt;fd_nextsize != P, 0)) malloc_printerr (&quot;corrupted double-linked list (not small)&quot;);</span><br><span class="line">            // large bin 是双向链表 这里需要在 nextsize 的链表中也将其移除</span><br><span class="line">            if (FD-&gt;fd_nextsize == NULL) &#123;</span><br><span class="line">                if (P-&gt;fd_nextsize == P)</span><br><span class="line">                  FD-&gt;fd_nextsize = FD-&gt;bk_nextsize = FD;</span><br><span class="line">                else &#123;</span><br><span class="line">                    FD-&gt;fd_nextsize = P-&gt;fd_nextsize;</span><br><span class="line">                    FD-&gt;bk_nextsize = P-&gt;bk_nextsize;</span><br><span class="line">                    P-&gt;fd_nextsize-&gt;bk_nextsize = FD;</span><br><span class="line">                    P-&gt;bk_nextsize-&gt;fd_nextsize = FD;</span><br><span class="line">                  &#125;</span><br><span class="line">              &#125; else &#123;</span><br><span class="line">                P-&gt;fd_nextsize-&gt;bk_nextsize = P-&gt;bk_nextsize;</span><br><span class="line">                P-&gt;bk_nextsize-&gt;fd_nextsize = P-&gt;fd_nextsize;</span><br><span class="line">              &#125;</span><br><span class="line">          &#125;</span><br><span class="line">      &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>下图是整个合并逻辑的流程图：<br><img src="WX20190520-120619@2x.png" alt="chunk合并流程图"></p>
+<h2 id="3-查询chunk-并对当前bin-中的chunk-做处理"><a href="#3-查询chunk-并对当前bin-中的chunk-做处理" class="headerlink" title="3 查询chunk 并对当前bin 中的chunk 做处理"></a>3 查询chunk 并对当前bin 中的chunk 做处理</h2><p>这里是接着上一步 #2 的工作继续进行的，这里不会仅仅对链表上的chunk 做尺寸比较，还会对chunk 做切割、移动的操作。上一步合并chunk到 unsorted bin 、top chunk 的chunk 在这一步里就会用到了。<br>主要逻辑结构如下：</p>
+<ol>
+<li>在unsorted bin 中查找 chunk</li>
+<li>在largebin 中查找大于等于size的chunk进行切割处理</li>
+<li>在所有的 bin 中查找大于等于size的chunk进行切割处理</li>
+<li>切割 top chunk 返回合适的chunk</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">for (;; ) &#123;</span><br><span class="line">    int iters = 0;</span><br><span class="line">    while ((victim = unsorted_chunks (av)-&gt;bk) != unsorted_chunks (av)) &#123;</span><br><span class="line">        // unsorted bin </span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    if (!in_smallbin_range (nb)) &#123;</span><br><span class="line">        // large bin </span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ++idx;</span><br><span class="line">    bin = bin_at (av, idx);</span><br><span class="line">    block = idx2block (idx);</span><br><span class="line">    map = av-&gt;binmap[block];</span><br><span class="line">    bit = idx2bit (idx);</span><br><span class="line"></span><br><span class="line">    for (;; ) &#123;</span><br><span class="line">        // all bins</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    use_top:</span><br><span class="line">        // cut top chunk</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-1-在-unsorted-bin-上查询合适的chunk"><a href="#3-1-在-unsorted-bin-上查询合适的chunk" class="headerlink" title="3.1 在 unsorted bin 上查询合适的chunk"></a>3.1 在 unsorted bin 上查询合适的chunk</h4><p>循环 unsorted bin ，若unsorted bin的链表中只有一个 chunk 且这个chunk还是last_remainder 尺寸还合适 （size &gt; nb + MINSIZE 这个条件的目的是方便切割 last_remainder）<br>满足条件会将 这个chunk 进行切割 一部分分会给用户 另一部分作为last_remainder </p>
+<p>然后就看下 unsorted bin 上面是否有正好满足尺寸的chunk 返回给用户 且要将这个chunk从链表中 移除</p>
+<p>在然后就是将这些 chunk 根据尺寸合并到对应的 small bin 或 large bin 对应链表的头部，代码逻辑如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br></pre></td><td class="code"><pre><span class="line">int iters = 0;</span><br><span class="line">// 遍历 unsorted bin 链表 ，unsorted bin 的循环是从链表底部开始的 </span><br><span class="line">// victim 会在下面代码中从列表中分割出去，以使这里的循环能够继续下去</span><br><span class="line">while ((victim = unsorted_chunks (av)-&gt;bk) != unsorted_chunks (av)) &#123;</span><br><span class="line">    // victim上一个chunk地址</span><br><span class="line">    bck = victim-&gt;bk;</span><br><span class="line">    size = chunksize (victim);</span><br><span class="line">    // victim 下一个chunk地址</span><br><span class="line">    mchunkptr next = chunk_at_offset (victim, size);</span><br><span class="line"></span><br><span class="line">    if (__glibc_unlikely (size &lt;= 2 * SIZE_SZ)|| __glibc_unlikely (size &gt; av-&gt;system_mem)) malloc_printerr (&quot;malloc(): invalid size (unsorted)&quot;);</span><br><span class="line">    if (__glibc_unlikely (chunksize_nomask (next) &lt; 2 * SIZE_SZ) || __glibc_unlikely (chunksize_nomask (next) &gt; av-&gt;system_mem)) malloc_printerr (&quot;malloc(): invalid next size (unsorted)&quot;);</span><br><span class="line">    if (__glibc_unlikely ((prev_size (next) &amp; ~(SIZE_BITS)) != size)) malloc_printerr (&quot;malloc(): mismatching next-&gt;prev_size (unsorted)&quot;);</span><br><span class="line">    if (__glibc_unlikely (bck-&gt;fd != victim) || __glibc_unlikely (victim-&gt;fd != unsorted_chunks (av))) malloc_printerr (&quot;malloc(): unsorted double linked list corrupted&quot;);</span><br><span class="line">    if (__glibc_unlikely (prev_inuse (next))) malloc_printerr (&quot;malloc(): invalid next-&gt;prev_inuse (unsorted)&quot;);</span><br><span class="line"></span><br><span class="line">    // 尺寸在small bin的范围 且 victim是unsorted bin 链表中的第一个chunk 且 victim 是 last_remainder 且 victim的尺寸大于用户请求的尺寸 + chunk的最小尺寸（目的是方便切割victim）</span><br><span class="line">    if (in_smallbin_range (nb) &amp;&amp; bck == unsorted_chunks (av) &amp;&amp; victim == av-&gt;last_remainder &amp;&amp; (unsigned long) (size) &gt; (unsigned long) (nb + MINSIZE)) &#123;</span><br><span class="line">        // 这里将 victim 分成两份 一份是用户请求的chunk 剩下一份是 remainder</span><br><span class="line">        remainder_size = size - nb; // 剩下部分尺寸</span><br><span class="line">        remainder = chunk_at_offset (victim, nb); // 剩下部分内存地址</span><br><span class="line">        // 由于victim是 unsorted bin 链表中唯一一个chunk 这里将 unsorted bin 这个双向链表的 bk fd 全指向 remainder </span><br><span class="line">        // 其实 这个操作也同时将victim 返回给用户的哪部分内存从链表中移除了</span><br><span class="line">        unsorted_chunks (av)-&gt;bk = unsorted_chunks (av)-&gt;fd = remainder; </span><br><span class="line">        av-&gt;last_remainder = remainder; // 剩余部分赋值给 arena 的 last_remainder</span><br><span class="line">        remainder-&gt;bk = remainder-&gt;fd = unsorted_chunks (av);</span><br><span class="line">        if (!in_smallbin_range (remainder_size)) &#123; // 如果剩余部分尺寸属于largin bin 需要将其内存中fd_nextsize bk_nextsize位置的数据清空</span><br><span class="line">            remainder-&gt;fd_nextsize = NULL;</span><br><span class="line">            remainder-&gt;bk_nextsize = NULL;</span><br><span class="line">        &#125;</span><br><span class="line">        // 设置 chunk 数据</span><br><span class="line">        set_head (victim, nb | PREV_INUSE | (av != &amp;main_arena ? NON_MAIN_ARENA : 0));</span><br><span class="line">        set_head (remainder, remainder_size | PREV_INUSE);</span><br><span class="line">        set_foot (remainder, remainder_size);</span><br><span class="line"></span><br><span class="line">        check_malloced_chunk (av, victim, nb);</span><br><span class="line">        // 将分割下来的用户部分返回给用户</span><br><span class="line">        void *p = chunk2mem (victim);</span><br><span class="line">        alloc_perturb (p, bytes);</span><br><span class="line">        return p;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // 将victim从 unsorted bin 的链表中移除</span><br><span class="line">    // unsorted bin 这个链表是 栈结构 先进后出的</span><br><span class="line">    if (__glibc_unlikely (bck-&gt;fd != victim)) malloc_printerr (&quot;malloc(): corrupted unsorted chunks 3&quot;);</span><br><span class="line">    unsorted_chunks (av)-&gt;bk = bck;</span><br><span class="line">    bck-&gt;fd = unsorted_chunks (av);</span><br><span class="line">    // 尺寸正合适 则可以直接返回给用户了</span><br><span class="line">    if (size == nb) &#123;</span><br><span class="line">        set_inuse_bit_at_offset (victim, size);</span><br><span class="line">        if (av != &amp;main_arena) set_non_main_arena (victim);</span><br><span class="line">        check_malloced_chunk (av, victim, nb);</span><br><span class="line">        void *p = chunk2mem (victim);</span><br><span class="line">        alloc_perturb (p, bytes);</span><br><span class="line">        return p;</span><br><span class="line">    &#125;</span><br><span class="line">    // 以下 将每次循环到的victim 重新分配到 small bin 或 large bin中 </span><br><span class="line">    // 这里逻辑先计算一些指针 方便下面合并操作</span><br><span class="line">    // victim的尺寸在 small bin的范围内</span><br><span class="line">    if (in_smallbin_range (size)) &#123;</span><br><span class="line">        victim_index = smallbin_index (size);</span><br><span class="line">        bck = bin_at (av, victim_index);</span><br><span class="line">        fwd = bck-&gt;fd;</span><br><span class="line">    &#125;</span><br><span class="line">    // victim的尺寸在 large bin的范围内</span><br><span class="line">    // 这里主要是需要先处理large bin 中的 nextsize 链表</span><br><span class="line">    else &#123;</span><br><span class="line">        victim_index = largebin_index (size);</span><br><span class="line">        bck = bin_at (av, victim_index);</span><br><span class="line">        fwd = bck-&gt;fd;</span><br><span class="line">        if (fwd != bck) &#123; // large bin 对应尺寸的链表不空</span><br><span class="line">            size |= PREV_INUSE;</span><br><span class="line">            assert (chunk_main_arena (bck-&gt;bk));</span><br><span class="line">            // 如果 victim尺寸比large bin 链表中最后一个chunk尺寸还小 （large bin 链表中的chunk按照从大到下 排列）</span><br><span class="line">            // 则可以将 victim 直接添加到 最后一个chunk的后面 这里只处理了 nextsize 链表 fd bk 的链表需要在下面统一处理</span><br><span class="line">            if ((unsigned long) (size) &lt; (unsigned long) chunksize_nomask (bck-&gt;bk)) &#123;</span><br><span class="line">                fwd = bck; // 第一个chunk</span><br><span class="line">                bck = bck-&gt;bk; // 最后一个chunk</span><br><span class="line"></span><br><span class="line">                victim-&gt;fd_nextsize = fwd-&gt;fd; // victim放在最后 形成 循环链表 他的fd 就是 fwd</span><br><span class="line">                victim-&gt;bk_nextsize = fwd-&gt;fd-&gt;bk_nextsize; // fwd-&gt;fd-&gt;bk_nextsize 的当前值就是 bck</span><br><span class="line">                fwd-&gt;fd-&gt;bk_nextsize = victim-&gt;bk_nextsize-&gt;fd_nextsize = victim;</span><br><span class="line">            &#125;</span><br><span class="line">            else &#123;</span><br><span class="line">                assert (chunk_main_arena (fwd));</span><br><span class="line">                // 循环查询 直到size &gt;= nextsize 段的尺寸</span><br><span class="line">                while ((unsigned long) size &lt; chunksize_nomask (fwd)) &#123;</span><br><span class="line">                    fwd = fwd-&gt;fd_nextsize;</span><br><span class="line">                    assert (chunk_main_arena (fwd));</span><br><span class="line">                &#125;</span><br><span class="line">                // 尺寸相等并没有处理 nextsize链表，因为这不是必须的，既然相等 那我们不要将其放在 相同尺寸链表中的头部就好了，这样不会影响 nextsize链表</span><br><span class="line">                // 此时只需要将fwd向下移动 然后将 bck 设置到之前fwd的位置 victim就会插入 few 与 bck 之间 ，victim的位置不会是在头部 这样就不影响 nextsize链表</span><br><span class="line">                if ((unsigned long) size == (unsigned long) chunksize_nomask (fwd)) fwd = fwd-&gt;fd;</span><br><span class="line">                else &#123;</span><br><span class="line">                    // 此时victim尺寸是不与当前链表nextsize中的任何尺寸相等的，将victim添加到 fwd的上面</span><br><span class="line">                    victim-&gt;fd_nextsize = fwd;</span><br><span class="line">                    victim-&gt;bk_nextsize = fwd-&gt;bk_nextsize;</span><br><span class="line">                    fwd-&gt;bk_nextsize = victim;</span><br><span class="line">                    victim-&gt;bk_nextsize-&gt;fd_nextsize = victim;</span><br><span class="line">                &#125;</span><br><span class="line">                bck = fwd-&gt;bk; // 便于下面逻辑处理</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        // 链表为空 victim 是这个链表的唯一一个chunk 所以 nextsize链表中的 fd bk 都指向自己</span><br><span class="line">        else victim-&gt;fd_nextsize = victim-&gt;bk_nextsize = victim;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    mark_bin (av, victim_index);</span><br><span class="line">    // 将victim添加到主链表中</span><br><span class="line">    victim-&gt;bk = bck;</span><br><span class="line">    victim-&gt;fd = fwd;</span><br><span class="line">    fwd-&gt;bk = victim;</span><br><span class="line">    bck-&gt;fd = victim;</span><br><span class="line"></span><br><span class="line">    // 考虑到性能 尝试不超过 10000 次</span><br><span class="line">    #define MAX_ITERS       10000</span><br><span class="line">    if (++iters &gt;= MAX_ITERS) break;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里有一部分代码需要分析下，当尺寸范围属于 large bin的时候 需要做一些额外的处理，因为 large bin的链表中的chunk尺寸并不相等，他们根据尺寸从大到小排列，为了便于搜索 large bin 的每个链表又维护了一个nextsize链表（fb_nextsize bk_nextsize）<br>这里的逻辑又分为两部分 若尺寸是最小的 则需要将其放在最下面 且重新建立 nextsize 链表的链接，其逻辑结构如下图：<br><img src="WX20190520-205347@2x.png" alt="nextsize 链表操作结构"></p>
+<p>若victim的尺寸并不是最小的，则需要遍历nextsize链表 <code>while ((unsigned long) size &lt; chunksize_nomask (fwd)) &#123;fwd = fwd-&gt;fd_nextsize;&#125;</code> 查找到合适的 <code>fwd</code> ，这个时候需要先判断尺寸是否相等 这种情况 如果将victim添加进链表 但是不添加到 一段相同尺寸chunk的头部 就不需要调整 <code>nextsize</code> 链表 ，nextsize链表中的 <code>fd_nextsize</code> <code>bk_nextsize</code> 存储的地址是 <code>一段相同尺寸链的头部和尾部 chunk</code> 所以有代码 <code>if ((unsigned long) size == (unsigned long) chunksize_nomask (fwd)) fwd = fwd-&gt;fd;</code></p>
+<p>其他情况的指针移动则相对简单了，通过 fwd 的地址 将 victim 的 nextsize 指针添加进 <code>fwd</code> 与 <code>fwd-&gt;bk</code> 之间。</p>
+<h4 id="3-2-large-bin-查询"><a href="#3-2-large-bin-查询" class="headerlink" title="3.2 large bin 查询"></a>3.2 large bin 查询</h4><p>这段主要是在large bin中循环查询，这个查询是倒叙的，查找到正好大于或等于 nb 的chunk 然后对其切割。切割的一部分返回给用户 另一部分remainder 添加到 unsorted bin 链表里，若剩余部分尺寸不够一个chunk最小尺寸 （MIN_SIZE） 则不进行切割 整个返回给用户<br>这里逻辑相对简单，代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">if (!in_smallbin_range (nb)) &#123;</span><br><span class="line">    bin = bin_at (av, idx);</span><br><span class="line">    // 在large bin 的链表中取第一个chunk 若这个chunk 不为头节点 则说明链表不空</span><br><span class="line">    // 且第一个chunk的尺寸要大于等于请求尺寸 因为第一个chunk是这个链表最大的chunk 若不然 这个链表中的所有chunk都不能满足条件</span><br><span class="line">    if ((victim = first (bin)) != bin &amp;&amp; (unsigned long) chunksize_nomask (victim) &gt;= (unsigned long) (nb)) &#123;</span><br><span class="line">        // 倒序 先从最小的 chunk开始</span><br><span class="line">        victim = victim-&gt;bk_nextsize;</span><br><span class="line">        // 循环 直到找到 victim 正好大于等于 nb 的 chunk段</span><br><span class="line">        while (((unsigned long) (size = chunksize (victim)) &lt; (unsigned long) (nb))) victim = victim-&gt;bk_nextsize;</span><br><span class="line">        /* Avoid removing the first entry for a size so that the skip list does not have to be rerouted.  */</span><br><span class="line">        // 若不是最后一个chunk 且 victim的下一个chunk尺寸与victim相等 则将victim指针移动到下一个 </span><br><span class="line">        // 这里的目的是避免用到第一个chunk 这样会破坏 nextsize链表 多出来重建链表的代码</span><br><span class="line">        if (victim != last (bin) &amp;&amp; chunksize_nomask (victim) == chunksize_nomask (victim-&gt;fd)) victim = victim-&gt;fd;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        // 这里 切割victim的代码单独抽离出来了 看下面</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>victim的切割</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">// 多余的尺寸</span><br><span class="line">remainder_size = size - nb;</span><br><span class="line">// 将victim从链表中移除</span><br><span class="line">unlink (av, victim, bck, fwd);</span><br><span class="line">// 剩下部分不够一个最小chunk 则不用切割 整个返回给用户</span><br><span class="line">if (remainder_size &lt; MINSIZE) &#123;</span><br><span class="line">    set_inuse_bit_at_offset (victim, size);</span><br><span class="line">    if (av != &amp;main_arena) set_non_main_arena (victim);</span><br><span class="line">&#125;</span><br><span class="line">else &#123; // 切割 victim</span><br><span class="line">    // 剩余chunk部分的地址</span><br><span class="line">    remainder = chunk_at_offset (victim, nb);</span><br><span class="line">    /* We cannot assume the unsorted list is empty and therefore have to perform a complete insert here.  */</span><br><span class="line">    // 将剩余部分添加到 unsorted bin 中</span><br><span class="line">    bck = unsorted_chunks (av);</span><br><span class="line">    fwd = bck-&gt;fd;</span><br><span class="line">    if (__glibc_unlikely (fwd-&gt;bk != bck)) malloc_printerr (&quot;malloc(): corrupted unsorted chunks&quot;);</span><br><span class="line">    remainder-&gt;bk = bck;</span><br><span class="line">    remainder-&gt;fd = fwd;</span><br><span class="line">    bck-&gt;fd = remainder;</span><br><span class="line">    fwd-&gt;bk = remainder;</span><br><span class="line">    if (!in_smallbin_range (remainder_size)) &#123;</span><br><span class="line">        // 若剩余部分属于 large bin 初始化 nextsize链表指针</span><br><span class="line">        remainder-&gt;fd_nextsize = NULL;</span><br><span class="line">        remainder-&gt;bk_nextsize = NULL;</span><br><span class="line">    &#125;</span><br><span class="line">    // 设置信息</span><br><span class="line">    set_head (victim, nb | PREV_INUSE | (av != &amp;main_arena ? NON_MAIN_ARENA : 0));</span><br><span class="line">    set_head (remainder, remainder_size | PREV_INUSE);</span><br><span class="line">    set_foot (remainder, remainder_size);</span><br><span class="line">&#125;</span><br><span class="line">check_malloced_chunk (av, victim, nb);</span><br><span class="line">// 返回给用户</span><br><span class="line">void *p = chunk2mem (victim);</span><br><span class="line">alloc_perturb (p, bytes);</span><br><span class="line">return p;</span><br></pre></td></tr></table></figure>
+<h4 id="3-3-bins-查询"><a href="#3-3-bins-查询" class="headerlink" title="3.3 bins 查询"></a>3.3 bins 查询</h4><p>当上面的过程都没有找到合适的chunk，这里会遍历整个bins查找合适的chunk，查找bins链表中存在的chunk 正好大于用户请求尺寸的chunk 然后对其切割返回。这里涉及到的操作分为两部分 1. bins 链表的查询 2. 切割chunk，其中切割chunk部分的代码跟上一步large bin 的切割是一样的逻辑<br>多出一个处理代码如下:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">// ......</span><br><span class="line">remainder-&gt;bk = bck;</span><br><span class="line">remainder-&gt;fd = fwd;</span><br><span class="line">bck-&gt;fd = remainder;</span><br><span class="line">fwd-&gt;bk = remainder;</span><br><span class="line">// 若用户请求尺寸是在 small bin 的范围内 这时将 remainder 的地址会赋值给 arena 的 last_remainder</span><br><span class="line">if (in_smallbin_range (nb)) av-&gt;last_remainder = remainder;</span><br><span class="line">if (!in_smallbin_range (remainder_size)) &#123;</span><br><span class="line">    remainder-&gt;fd_nextsize = NULL;</span><br><span class="line">    remainder-&gt;bk_nextsize = NULL;</span><br><span class="line">&#125;</span><br><span class="line">// ......</span><br></pre></td></tr></table></figure>
+
+<p>这里主要需要理解的代码是在查找上，这里使用 bitmap 算法来加快查询。arena结构中有一个属性 <code>unsigned int bitmap[4]</code> 用来表示 bitmap ，其分为4个数组 也就对应 bitmap 的四个段 ，每个段是一个 <code>unsigned int</code> int 需要4个字节 每个字节有8个bit，也就是 bitmap 每个段的长度是 <code>8 * 4 = 32 bit</code>。bitmap总共拥有的 bit 是 32 * 4 = 128 个 这也正对应arena 中的 bins，每个bin是一个chunk链表头部，bit 位用 1 表示 这个链表不空 0 表示链表为空，这样在查询的时候可以直接跳过了，以此实现加速查询，相关的宏如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">#define NBINS            128</span><br><span class="line">#define BINMAPSHIFT      5</span><br><span class="line">#define BITSPERMAP       (1U &lt;&lt; BINMAPSHIFT) // 2^5 = 32</span><br><span class="line">#define BINMAPSIZE       (NBINS / BITSPERMAP) // 128 / 32 = 4</span><br><span class="line">// 计算 bin 中索引对应的bitmap段 也就是 block</span><br><span class="line">#define idx2block(i)     ((i) &gt;&gt; BINMAPSHIFT) // i / 32</span><br></pre></td></tr></table></figure>
+<p>还有一个相对要分析下 <code>#define idx2bit(i)       ((1U &lt;&lt; ((i) &amp; ((1U &lt;&lt; BINMAPSHIFT) - 1)))) </code>，可以将其拆分成两部分 <code>1U &lt;&lt; [express]</code> 和[express]部分 <code>i &amp; ((1U &lt;&lt; BINMAPSHIFT)-1)</code> 。 [express] 部分其实就是相对于一个段对应bit的偏移量，然后 增加 <code>1U &lt;&lt; [express]</code> 就是偏移量的一种表示 方便下面代码的计算， 比如 偏移量 offset 是 7 则对应的变量bit的值就是  <code>00000000 00000000 00000000 01000000</code><br>代码逻辑如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">++idx;</span><br><span class="line">bin = bin_at (av, idx);</span><br><span class="line">block = idx2block (idx);</span><br><span class="line">map = av-&gt;binmap[block];</span><br><span class="line">bit = idx2bit (idx);</span><br><span class="line"></span><br><span class="line">for (;; ) &#123;</span><br><span class="line">    // 若 bit &gt; map 说明当前block中没有合适的链表</span><br><span class="line">    // bit 是以 32bit 中的一位为1表示偏移量 map 是整个block的bin链表的使用情况</span><br><span class="line">    // bit &gt; map 说明 bit所在的高位对应到 map 一定为 0 ，则这个block 一定没有合适的链表</span><br><span class="line">    if (bit &gt; map || bit == 0) &#123;</span><br><span class="line">        do &#123;</span><br><span class="line">            // 超出 bitmap 范围说明遍历的整个bins 链表都是空的 则直接到 use_top的逻辑</span><br><span class="line">            if (++block &gt;= BINMAPSIZE) goto use_top;</span><br><span class="line">        &#125; while ((map = av-&gt;binmap[block]) == 0); // 若整个bitmap的block都为0 说明整个block中的bin链表都是空的 需要向后再次查询</span><br><span class="line">        // 取出block中第一个 bin </span><br><span class="line">        bin = bin_at (av, (block &lt;&lt; BINMAPSHIFT));</span><br><span class="line">        bit = 1;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // 这里一定会找到bin 整个block为空的情况 上一步操作会过滤掉 全为空的情况在上面就会 goto user_top;</span><br><span class="line">    // 这里其实循环遍历的是一个block的bin</span><br><span class="line">    while ((bit &amp; map) == 0) &#123; // bit 对应位置链表为空</span><br><span class="line">        // 向后遍历更大尺寸的 bin 同时移动bit位置</span><br><span class="line">        bin = next_bin (bin);</span><br><span class="line">        bit &lt;&lt;= 1;</span><br><span class="line">        assert (bit != 0);</span><br><span class="line">    &#125;</span><br><span class="line">    // 读取 bin 链表中的最后一个chunk</span><br><span class="line">    victim = last (bin);</span><br><span class="line">    // 若当前的bin 链表还是空的 bitmap的数据有误</span><br><span class="line">    if (victim == bin) &#123;</span><br><span class="line">        // 修复 bitmap的数据</span><br><span class="line">        av-&gt;binmap[block] = map &amp;= ~bit; /* Write through */</span><br><span class="line">        // 到下一个bin</span><br><span class="line">        bin = next_bin (bin);</span><br><span class="line">        bit &lt;&lt;= 1;</span><br><span class="line">    &#125;</span><br><span class="line">    else &#123;</span><br><span class="line">        // victim 切割</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>若 bit == 0 或 bit &gt; map 则以段的形式遍历整个bin 如果整个bin链表都是空的 (av-&gt;binmap[block] == 0) 则直接执行 <code>use_top</code> 的代码，若在向后遍历的过程中找到了合适的 block 段 则取出block开始的 bin 并 将bit设置为对应bin的位置(bit = 1) 其中 bit &gt; map 说明当前block中肯定找不到尺寸大于nb且bin链表不为空的链表了。<br>然后就是在 block中进行遍历了 <code>while((bit &amp; map) == 0) &#123;....&#125;</code> ，<code>bit &amp; map</code> 说明bin为空链表 则 向后遍历 bin 这个循环过程是一定会找到合适的bin的。<br>找到合适的bin后 取出链表最后一个 chunk ，这里还进行了判断 链表是否为空 <code>(victim = last(bin)) == bin</code> ，若为空 说明 bitmap 中对应的数据不准确 这时又对这个bitmap中的bit位的值做修复处理 <code>av-bitmap[block] = map &amp; ~ bit</code> 继续向后移动 bin</p>
+<p>找到合适的bin后 就做切割处理 这段的代码逻辑和 large bin 中的处理是一样的。</p>
+<h2 id="4-切割-top-chunk"><a href="#4-切割-top-chunk" class="headerlink" title="4 切割 top chunk"></a>4 切割 top chunk</h2><p>这一步通过对 top chunk 的切割来分配内存，若不够切割则通过函数 <code>sysmalloc</code> 分配新的 heap_info</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">// 获取top chunk的其实地址</span><br><span class="line">victim = av-&gt;top;</span><br><span class="line">size = chunksize (victim);</span><br><span class="line">if (__glibc_unlikely (size &gt; av-&gt;system_mem)) malloc_printerr (&quot;malloc(): corrupted top size&quot;);</span><br><span class="line">// top chunk 的尺寸足够用来切割</span><br><span class="line">if ((unsigned long) (size) &gt;= (unsigned long) (nb + MINSIZE)) &#123;</span><br><span class="line">    // 切割top chunk 剩余部分作为新的 top chunk</span><br><span class="line">    remainder_size = size - nb;</span><br><span class="line">    remainder = chunk_at_offset (victim, nb);</span><br><span class="line">    av-&gt;top = remainder;</span><br><span class="line">    // 返回用户申请部分的chunk</span><br><span class="line">    set_head (victim, nb | PREV_INUSE | (av != &amp;main_arena ? NON_MAIN_ARENA : 0));</span><br><span class="line">    set_head (remainder, remainder_size | PREV_INUSE);</span><br><span class="line">    check_malloced_chunk (av, victim, nb);</span><br><span class="line">    void *p = chunk2mem (victim);</span><br><span class="line">    alloc_perturb (p, bytes);</span><br><span class="line">    return p;</span><br><span class="line">&#125;</span><br><span class="line">/* When we are using atomic ops to free fast chunks we can get here for all block sizes.  */</span><br><span class="line">// 还存在 fast bin</span><br><span class="line">else if (atomic_load_relaxed (&amp;av-&gt;have_fastchunks)) &#123;</span><br><span class="line">    // 合并fastbin中的chunks</span><br><span class="line">    malloc_consolidate (av);</span><br><span class="line">    /* restore original bin index */</span><br><span class="line">    if (in_smallbin_range (nb)) idx = smallbin_index (nb);</span><br><span class="line">    else idx = largebin_index (nb);</span><br><span class="line">&#125;</span><br><span class="line">/* Otherwise, relay to handle system-dependent cases */</span><br><span class="line">else &#123;</span><br><span class="line">    // top chunk 不够分配的话 调用函数 sysmalloc 增长 arena 的 heap_info </span><br><span class="line">    void *p = sysmalloc (nb, av);</span><br><span class="line">    if (p != NULL) alloc_perturb (p, bytes);</span><br><span class="line">    return p;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/c/" rel="tag">c</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/glibc/" rel="tag">glibc</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/malloc/" rel="tag">malloc</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/ptmalloc/" rel="tag">ptmalloc</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/%E5%86%85%E5%AD%98/" rel="tag">内存</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-sysmalloc%E5%88%9B%E5%BB%BA%E6%96%B0%E7%9A%84heap-info/"
+                    data-tooltip="malloc源码分析-sysmalloc创建新的heap_info"
+                    aria-label="上一篇: malloc源码分析-sysmalloc创建新的heap_info"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-%E5%88%9D%E5%A7%8B%E5%8C%96%E4%B8%8Earena%E7%9A%84%E5%88%9B%E5%BB%BA/"
+                    data-tooltip="malloc源码分析-初始化与arena的创建"
+                    aria-label="下一篇: malloc源码分析-初始化与arena的创建"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-int-malloc%E4%B8%8Echunk%E5%90%88%E5%B9%B6/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-int-malloc%E4%B8%8Echunk%E5%90%88%E5%B9%B6/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-int-malloc%E4%B8%8Echunk%E5%90%88%E5%B9%B6/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-sysmalloc%E5%88%9B%E5%BB%BA%E6%96%B0%E7%9A%84heap-info/"
+                    data-tooltip="malloc源码分析-sysmalloc创建新的heap_info"
+                    aria-label="上一篇: malloc源码分析-sysmalloc创建新的heap_info"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-%E5%88%9D%E5%A7%8B%E5%8C%96%E4%B8%8Earena%E7%9A%84%E5%88%9B%E5%BB%BA/"
+                    data-tooltip="malloc源码分析-初始化与arena的创建"
+                    aria-label="下一篇: malloc源码分析-初始化与arena的创建"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-int-malloc%E4%B8%8Echunk%E5%90%88%E5%B9%B6/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-int-malloc%E4%B8%8Echunk%E5%90%88%E5%B9%B6/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-int-malloc%E4%B8%8Echunk%E5%90%88%E5%B9%B6/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-int-malloc%E4%B8%8Echunk%E5%90%88%E5%B9%B6/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-int-malloc%E4%B8%8Echunk%E5%90%88%E5%B9%B6/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2019/05/13/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-int-malloc%E4%B8%8Echunk%E5%90%88%E5%B9%B6/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

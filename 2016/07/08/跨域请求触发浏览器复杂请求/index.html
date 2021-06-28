@@ -1,0 +1,646 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>跨域请求触发浏览器复杂请求 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"在做webapp的项目 常用的技术架构是 angularjs+api , 在调用api 的时候一般都是跨域请求手机端的高级浏览器对跨域的支持很好，但是在跨域的情况下还有需求意想不到的情况发送请求的时候 设置不同的响应头会导致浏览器不同的情况，发送一些头会导致浏览器发送一个复杂请求复杂请求中 会先发送一个 OPTIONS 的请求，这个请求并不是开发者代码中的主动发出 而是浏览器发送的\n\n\n在 移动3G 的网络情况下 ， OPTIONS 的响应数度很慢 虽然不会超时(60s)OPTIONS 是一个 预请求 , 目的是先请求下这个接口是否可请求 有权限读取，这是一个好的设计但是 从另一面来讲，多发送一个请求 性能上有损失，移动3G在对OPTIONS请求的传递响应巨慢\njs原生发送一个http请求ajax对象\n1var xhr = new XMLHttpRequest();\n\n开启连接口\n1234xhr.open(method, url, async)method 请求方法url    请求地址async  是否异步\n\n设置请求头\n1xhr.setRequestHeader(key, val)\n\n发送\n12xhr.send(data)data 如果是POST请求 data 就是body体的内容 其他情况为 null 就ok 了\n\n设置响应\n1234567xhr.onreadystatechange = function () &#123;    if (xhr.readyState == 4) &#123;        if (xhr.status == 200) &#123; // http 响应头的code            //         &#125;    &#125;&#125;\n\n\n一个原生ajax源码封装\n123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899100101102103104105106107108109110111112113114115116117118119120121122123124125126127128129130131132133134135136window.ajax = (function () &#123;    /**     * 实例化并返回ajax对象     * @return &#123;[type]&#125; [description]     */    var getXHR = function () &#123;        var xhr = null;        if (typeof XMLHttpRequest != &quot;undefined&quot;) &#123;            xhr = new XMLHttpRequest();        &#125;        else if (typeof ActiveObject != &quot;undefined&quot;) &#123;            var versions = [                &quot;MSXML2.XMLHttp.6.0&quot;,                &quot;MSXML2.XMLHttp.3.0&quot;,                &quot;MSXML2.XMLHttp&quot;,            ];            for (var i = 0; i &lt; versions.length; i++) &#123;                try &#123;                    xhr = new ActiveObject(versions[i]);                &#125;                catch (e) &#123;                    //                 &#125;            &#125;        &#125;        else &#123;            throw new Error(&#x27;浏览器不支持ajax&#x27;);        &#125;        return xhr;    &#125;    /**     * 设置发送请求是需要的参数     * @param  &#123;[type]&#125; options [description]     * @return &#123;[type]&#125;         [description]     */    var settings = function (options) &#123;        var opt = &#123;&#125;;        // method        opt.method = typeof options.method == &quot;undefined&quot; ? &quot;GET&quot; : options.method.toUpperCase();        if (!isAllowMethod(opt.method)) &#123;            opt.method = &quot;GET&quot;;        &#125;        // gateway         opt.url = options.url;        if (typeof opt.url == &quot;undefined&quot;) &#123;            throw new Error(&quot;请填写请求的地址&quot;);        &#125;        // data        opt.data = typeof options.data == &quot;undefined&quot; ? null : parseParams(options.data);        if (opt.method == &quot;GET&quot; &amp;&amp; opt.data != null) &#123;            opt.url = &#x27;?&#x27; + opt.data;        &#125;        return opt;    &#125;    /**     * 检查是否是允许的http请求方式     * @param  &#123;[type]&#125;  method [description]     * @return &#123;Boolean&#125;        [description]     */    var isAllowMethod = function (method) &#123;        var allows = [&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;HEAD&quot;, &quot;OPTIONS&quot;, &quot;DELETE&quot;, &quot;TRACE&quot;, &quot;CONNECT&quot;];        for (var i = 0; i &lt; allows.length; i++) &#123;            if (allows[i] == method) &#123;                return true;            &#125;        &#125;        return false;    &#125;    /**     * 处理请求是后的参数     * @param  &#123;[type]&#125; data [description]     * @return &#123;[type]&#125;      [description]     */    var parseParams = function (data) &#123;        var params = &#x27;&#x27;;        for (var key in data) &#123;            params += key + &#x27;=&#x27; + data[key] + &#x27;&amp;&#x27;;        &#125;        return params.substring(0, params.length - 1);    &#125;    /**     * 设置请求的头信息     * @param &#123;[type]&#125; xhr     [description]     * @param &#123;[type]&#125; headers [description]     */    var setHeaders = function (xhr, headers) &#123;        if (typeof headers != &quot;undefined&quot;) &#123;            for (var key in headers) &#123;                xhr.setRequestHeader(key, headers[key]);            &#125;        &#125;    &#125;    /**     * 对外可访问方法     */    return &#123;        run : function (options) &#123;            var xhr = getXHR();            var opts = settings(options);            // 打开链接            xhr.open(opts.method, opts.url);            // 设置请求头            setHeaders(xhr, options.headers);            // 发送请求            xhr.send(opts.data);            // 设置响应成功后的处理            xhr.onreadystatechange = function () &#123;                if (xhr.readyState == 4) &#123;                    if (xhr.status == 200) &#123;                        // console.log(xhr.responseText);                        options.success(xhr.responseText);                    &#125;                &#125;            &#125;        &#125;    &#125;&#125;)();// 使用举例ajax.run(&#123;    url : &#x27;data.txt&#x27;,    method : &#x27;post&#x27;,    data : &#123;        &quot;name&quot; : &quot;fantasy&quot;,        &quot;age&quot; : 12    &#125;,    headers : &#123;        &quot;Content-Type&quot; : &quot;application/json&quot;    &#125;,    success : function (data) &#123;        console.log(data);    &#125;&#125;);\n\n什么是跨域页面发送一个ajax请求的时候当前发送请求方叫做 Origin 叫做域 ，当请求一个资源的时候 资源的HOST就是他的域比如我们在 baidu.com/login.html 页面请求 baidu.com/list.php 这个资源 这里的源 就是域名 www.baidu.com如果请求其他的域名下的资源 www.360.com/corn.php 这个时候就存在跨域问题\n具体的跨域情况如下：\n|发送ajax请求所在页面的域|请求的资源地址|说明||–|–||http://www.baidu.com/index.html|http://www.360.com/list.php|不同域名|http://www.baidu.com/index.html|http://www.baidu.com:8081/list.php|同域名 不同端口|http://www.baidu.com/index.html|https://www.baidu.com/list.php|同域名 不同协议|http://www.baidu.com/index.html|http://115.239.210.27/list.php|域名与ip|http://login.baidu.com/index.html|http://lib.baidu.com/list.php|不同子域名|http://baidu.com/index.html|http://www.baidu.com/list.php|主域名与子域名\n如何跨域如下图：\n对象 XMLHttpRequest 报错了请求是从域 http://www.webcors.dev/ 发送到 域 http://www.cors1.dev ，这是一个明显的跨域问题但是看图我们可以看出来 其实这个请求已经发出去了，服务器也是将结果返回了，Content Download 这个是内容下载时间但是浏览器并没有将这个内容显示给我们 也就是说这是浏览器中的安全机制如何才能跨域 ？ 接着看这个错误\n1No &#x27;Access-Control-Allow-Origin&#x27; header is present on the requested resource.\n在响应中没有找到 Access-Control-Allow-Origin 这个响应头\n这说明我们需要在服务端设置响应头， 浏览器通过这个 HTML5 中的相应头 来决定这个跨域请求的数据是否有权显示这个内容\n其实跨域这块有几个地方是需要服务器添加响应头才能实现的，浏览器是需要通过读取响应头来决定是否显示的\nAccess-Control-Allow-Origin * 声名哪些源是允许跨域请求的 * 表示任何域都可以请求 你也可以指定一个允许的域名 只能指定一个不能写多个 *.baidu.com 这种的泛解析也是不行的 他是完全匹配\nAccess-Control-Allow-Headers Origin,Accept,... 声明哪些请求头是可以跨域请求的\nAccess-Control-Allow-Method GET,POST,HEAD 声明跨域请求允许的方法\nAccess-Control-Allow-Credentials true 跨域时候是否允许传递 cookie 当使用这个参数的时候 Access-Control-Allow-Origin 这个参数是不能设置成 * 的\n服务端如何设置跨域举例apache httpd.conf\n12345678&lt;Directory /&gt;    Options FollowSymLinks    AllowOverride All    Require all granted    Header set Access-Control-Allow-Origin *    Header set Access-Control-Allow-Method GET,POST,HEAD    Header set Access-Control-Allow-Origin Origin,Content-Type,Accept,X-Requested-With&lt;Directory&gt;\n\nnginx http.conf\n12345location / &#123;    add_header Access-Control-Allow-Origin *    add_header Access-Control-Allow-Method GET,POST,HEAD    add_header Access-Control-Allow-Origin Origin,Content-Type,Accept,X-Requested-With&#125;\n\n跨域相关链接参考\n复杂请求在上面讲到的跨域请求问题，这样的背景下 有时候你会发现 你只发出去了一个请求 但是在浏览器里面能看到发出去的却是两个 第一个是OPTIONS请求 第二个才是你要发送的\n出现这个现象是浏览器的一个 简单请求 复杂请求 的一个判断，复杂请求模式下 浏览器在发送请求前先发送一个 OPTIONS 形式的 预请求 ， 后面才会发送真正的请求\n浏览器是如何来区分 是 复杂请求 还是 简单请求的呢？\n简单请求：\nHTTP请求方式是 下列的一种\n123HEADGETPOST\n\nHTTP请求头仅包含下列选项\n123456789AcceptAccept-LanguageContent-LanguageLast-Event-IDContent-Type    Content-Type 的值只能是下列的一种    application/x-www-form-urlencoded    multipart/form-data    text/plain\n\n任何不满足上面要求的都会被当做复杂请求\n举例如下\n1234567891011var url = &quot;http://www.cors1.dev&quot;;ajax.run(&#123;    url : url,    method : &#x27;get&#x27;,    headers : &#123;        &quot;Content-Type&quot; : &quot;application/json&quot;    &#125;,    success : function (data) &#123;        console.log(data);    &#125;&#125;);\n虽然是 GET 请求但是 在请求头的 Content-Type 设置的并不是规定的三个的之一浏览器会当作复杂请求来处理\nangularjs 如何设置 Content-Typeangularjs 如何发送一个ajax请求\n12345678910111213141516171819202122232425262728&lt;div ng-app=&quot;app&quot; ng-controller=&quot;demoController&quot;&gt;    &lt;ul&gt;        &lt;li ng-repeat=&quot;x in names&quot;&gt;            &#123;&#123;x.id + &#x27; &#x27; + x.name&#125;&#125;        &lt;/li&gt;    &lt;/ul&gt;&lt;/div&gt;&lt;script src=&quot;http://apps.bdimg.com/libs/angular.js/1.4.6/angular.min.js&quot;&gt;&lt;/script&gt;&lt;script type=&quot;text/javascript&quot;&gt;    var url = &quot;http://newbijia.work.dev/getBrand?type=wap&quot;;    var app = angular.module(&#x27;app&#x27;, []);    var data = &#123;&#125;;    app.controller(&#x27;demoController&#x27;, function ($scope, $http) &#123;        app.config(function ($httpProvider) &#123;            $httpProvider.defaults.headers.post = &#123;&#125;        &#125;);    &#125;);    $http(&#123;        method : &quot;POST&quot;,        url : url,        headers : &#123;            &quot;Accept&quot; : &quot;test&quot;,            &quot;Content-Type&quot; : &quot;application/json&quot;,        &#125;,        data : data    &#125;);&lt;/script&gt;\nangularjs 里面可以设置 请求头其中 如果没设置 data数据的情况下 头信息设置 Content-Type  无效\n","dateCreated":"2016-07-08T14:53:44+08:00","dateModified":"2016-07-11T18:53:40+08:00","datePublished":"2016-07-08T14:53:44+08:00","description":"在做webapp的项目 常用的技术架构是 angularjs+api , 在调用api 的时候一般都是跨域请求手机端的高级浏览器对跨域的支持很好，但是在跨域的情况下还有需求意想不到的情况发送请求的时候 设置不同的响应头会导致浏览器不同的情况，发送一些头会导致浏览器发送一个复杂请求复杂请求中 会先发送一个 OPTIONS 的请求，这个请求并不是开发者代码中的主动发出 而是浏览器发送的","headline":"跨域请求触发浏览器复杂请求","image":[],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2016/07/08/%E8%B7%A8%E5%9F%9F%E8%AF%B7%E6%B1%82%E8%A7%A6%E5%8F%91%E6%B5%8F%E8%A7%88%E5%99%A8%E5%A4%8D%E6%9D%82%E8%AF%B7%E6%B1%82/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2016/07/08/%E8%B7%A8%E5%9F%9F%E8%AF%B7%E6%B1%82%E8%A7%A6%E5%8F%91%E6%B5%8F%E8%A7%88%E5%99%A8%E5%A4%8D%E6%9D%82%E8%AF%B7%E6%B1%82/","keywords":"浏览器, 跨域, js, ajax, angularjs"}</script>
+    <meta name="description" content="在做webapp的项目 常用的技术架构是 angularjs+api , 在调用api 的时候一般都是跨域请求手机端的高级浏览器对跨域的支持很好，但是在跨域的情况下还有需求意想不到的情况发送请求的时候 设置不同的响应头会导致浏览器不同的情况，发送一些头会导致浏览器发送一个复杂请求复杂请求中 会先发送一个 OPTIONS 的请求，这个请求并不是开发者代码中的主动发出 而是浏览器发送的">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="跨域请求触发浏览器复杂请求">
+<meta property="og:url" content="https://fantiq.github.io/2016/07/08/%E8%B7%A8%E5%9F%9F%E8%AF%B7%E6%B1%82%E8%A7%A6%E5%8F%91%E6%B5%8F%E8%A7%88%E5%99%A8%E5%A4%8D%E6%9D%82%E8%AF%B7%E6%B1%82/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="在做webapp的项目 常用的技术架构是 angularjs+api , 在调用api 的时候一般都是跨域请求手机端的高级浏览器对跨域的支持很好，但是在跨域的情况下还有需求意想不到的情况发送请求的时候 设置不同的响应头会导致浏览器不同的情况，发送一些头会导致浏览器发送一个复杂请求复杂请求中 会先发送一个 OPTIONS 的请求，这个请求并不是开发者代码中的主动发出 而是浏览器发送的">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fantiq.github.io/2016/07/08/%E8%B7%A8%E5%9F%9F%E8%AF%B7%E6%B1%82%E8%A7%A6%E5%8F%91%E6%B5%8F%E8%A7%88%E5%99%A8%E5%A4%8D%E6%9D%82%E8%AF%B7%E6%B1%82/2016-07-11_135957.png">
+<meta property="article:published_time" content="2016-07-08T06:53:44.000Z">
+<meta property="article:modified_time" content="2016-07-11T10:53:40.000Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="浏览器">
+<meta property="article:tag" content="跨域">
+<meta property="article:tag" content="js">
+<meta property="article:tag" content="ajax">
+<meta property="article:tag" content="angularjs">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fantiq.github.io/2016/07/08/%E8%B7%A8%E5%9F%9F%E8%AF%B7%E6%B1%82%E8%A7%A6%E5%8F%91%E6%B5%8F%E8%A7%88%E5%99%A8%E5%A4%8D%E6%9D%82%E8%AF%B7%E6%B1%82/2016-07-11_135957.png">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            跨域请求触发浏览器复杂请求
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2016-07-08T14:53:44+08:00">
+	
+		    7月 08, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/%E5%89%8D%E7%AB%AF/">前端</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>在做webapp的项目 常用的技术架构是 <code>angularjs+api</code> , 在调用api 的时候一般都是跨域请求<br>手机端的高级浏览器对跨域的支持很好，但是在跨域的情况下还有需求意想不到的情况<br>发送请求的时候 设置不同的响应头会导致浏览器不同的情况，发送一些头会导致浏览器发送一个复杂请求<br>复杂请求中 会先发送一个 <code>OPTIONS</code> 的请求，这个请求并不是开发者代码中的主动发出 而是浏览器发送的</p>
+<span id="more"></span>
+
+<p>在 <code>移动3G</code> 的网络情况下 ， <code>OPTIONS</code> 的响应数度很慢 虽然不会超时(60s)<br><code>OPTIONS</code> 是一个 <code>预请求</code> , 目的是先请求下这个接口是否可请求 有权限读取，这是一个好的设计<br>但是 从另一面来讲，多发送一个请求 性能上有损失，移动3G在对OPTIONS请求的传递响应巨慢</p>
+<h2 id="js原生发送一个http请求"><a href="#js原生发送一个http请求" class="headerlink" title="js原生发送一个http请求"></a>js原生发送一个http请求</h2><p>ajax对象</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">var xhr = new XMLHttpRequest();</span><br></pre></td></tr></table></figure>
+
+<p>开启连接口</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">xhr.open(method, url, async)</span><br><span class="line">method 请求方法</span><br><span class="line">url    请求地址</span><br><span class="line">async  是否异步</span><br></pre></td></tr></table></figure>
+
+<p>设置请求头</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">xhr.setRequestHeader(key, val)</span><br></pre></td></tr></table></figure>
+
+<p>发送</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">xhr.send(data)</span><br><span class="line">data 如果是POST请求 data 就是body体的内容 其他情况为 null 就ok 了</span><br></pre></td></tr></table></figure>
+
+<p>设置响应</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">xhr.onreadystatechange = function () &#123;</span><br><span class="line">    if (xhr.readyState == 4) &#123;</span><br><span class="line">        if (xhr.status == 200) &#123; // http 响应头的code</span><br><span class="line">            // </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<p>一个原生ajax源码封装</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br></pre></td><td class="code"><pre><span class="line">window.ajax = (function () &#123;</span><br><span class="line">    /**</span><br><span class="line">     * 实例化并返回ajax对象</span><br><span class="line">     * @return &#123;[type]&#125; [description]</span><br><span class="line">     */</span><br><span class="line">    var getXHR = function () &#123;</span><br><span class="line">        var xhr = null;</span><br><span class="line">        if (typeof XMLHttpRequest != &quot;undefined&quot;) &#123;</span><br><span class="line">            xhr = new XMLHttpRequest();</span><br><span class="line">        &#125;</span><br><span class="line">        else if (typeof ActiveObject != &quot;undefined&quot;) &#123;</span><br><span class="line">            var versions = [</span><br><span class="line">                &quot;MSXML2.XMLHttp.6.0&quot;,</span><br><span class="line">                &quot;MSXML2.XMLHttp.3.0&quot;,</span><br><span class="line">                &quot;MSXML2.XMLHttp&quot;,</span><br><span class="line">            ];</span><br><span class="line">            for (var i = 0; i &lt; versions.length; i++) &#123;</span><br><span class="line">                try &#123;</span><br><span class="line">                    xhr = new ActiveObject(versions[i]);</span><br><span class="line">                &#125;</span><br><span class="line">                catch (e) &#123;</span><br><span class="line">                    // </span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        else &#123;</span><br><span class="line">            throw new Error(&#x27;浏览器不支持ajax&#x27;);</span><br><span class="line">        &#125;</span><br><span class="line">        return xhr;</span><br><span class="line">    &#125;</span><br><span class="line">    /**</span><br><span class="line">     * 设置发送请求是需要的参数</span><br><span class="line">     * @param  &#123;[type]&#125; options [description]</span><br><span class="line">     * @return &#123;[type]&#125;         [description]</span><br><span class="line">     */</span><br><span class="line">    var settings = function (options) &#123;</span><br><span class="line">        var opt = &#123;&#125;;</span><br><span class="line">        // method</span><br><span class="line">        opt.method = typeof options.method == &quot;undefined&quot; ? &quot;GET&quot; : options.method.toUpperCase();</span><br><span class="line">        if (!isAllowMethod(opt.method)) &#123;</span><br><span class="line">            opt.method = &quot;GET&quot;;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // gateway </span><br><span class="line">        opt.url = options.url;</span><br><span class="line">        if (typeof opt.url == &quot;undefined&quot;) &#123;</span><br><span class="line">            throw new Error(&quot;请填写请求的地址&quot;);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // data</span><br><span class="line">        opt.data = typeof options.data == &quot;undefined&quot; ? null : parseParams(options.data);</span><br><span class="line">        if (opt.method == &quot;GET&quot; &amp;&amp; opt.data != null) &#123;</span><br><span class="line">            opt.url = &#x27;?&#x27; + opt.data;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        return opt;</span><br><span class="line">    &#125;</span><br><span class="line">    /**</span><br><span class="line">     * 检查是否是允许的http请求方式</span><br><span class="line">     * @param  &#123;[type]&#125;  method [description]</span><br><span class="line">     * @return &#123;Boolean&#125;        [description]</span><br><span class="line">     */</span><br><span class="line">    var isAllowMethod = function (method) &#123;</span><br><span class="line">        var allows = [&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;HEAD&quot;, &quot;OPTIONS&quot;, &quot;DELETE&quot;, &quot;TRACE&quot;, &quot;CONNECT&quot;];</span><br><span class="line">        for (var i = 0; i &lt; allows.length; i++) &#123;</span><br><span class="line">            if (allows[i] == method) &#123;</span><br><span class="line">                return true;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        return false;</span><br><span class="line">    &#125;</span><br><span class="line">    /**</span><br><span class="line">     * 处理请求是后的参数</span><br><span class="line">     * @param  &#123;[type]&#125; data [description]</span><br><span class="line">     * @return &#123;[type]&#125;      [description]</span><br><span class="line">     */</span><br><span class="line">    var parseParams = function (data) &#123;</span><br><span class="line">        var params = &#x27;&#x27;;</span><br><span class="line">        for (var key in data) &#123;</span><br><span class="line">            params += key + &#x27;=&#x27; + data[key] + &#x27;&amp;&#x27;;</span><br><span class="line">        &#125;</span><br><span class="line">        return params.substring(0, params.length - 1);</span><br><span class="line">    &#125;</span><br><span class="line">    /**</span><br><span class="line">     * 设置请求的头信息</span><br><span class="line">     * @param &#123;[type]&#125; xhr     [description]</span><br><span class="line">     * @param &#123;[type]&#125; headers [description]</span><br><span class="line">     */</span><br><span class="line">    var setHeaders = function (xhr, headers) &#123;</span><br><span class="line">        if (typeof headers != &quot;undefined&quot;) &#123;</span><br><span class="line">            for (var key in headers) &#123;</span><br><span class="line">                xhr.setRequestHeader(key, headers[key]);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    /**</span><br><span class="line">     * 对外可访问方法</span><br><span class="line">     */</span><br><span class="line">    return &#123;</span><br><span class="line">        run : function (options) &#123;</span><br><span class="line">            var xhr = getXHR();</span><br><span class="line">            var opts = settings(options);</span><br><span class="line">            // 打开链接</span><br><span class="line">            xhr.open(opts.method, opts.url);</span><br><span class="line">            // 设置请求头</span><br><span class="line">            setHeaders(xhr, options.headers);</span><br><span class="line">            // 发送请求</span><br><span class="line">            xhr.send(opts.data);</span><br><span class="line">            // 设置响应成功后的处理</span><br><span class="line">            xhr.onreadystatechange = function () &#123;</span><br><span class="line">                if (xhr.readyState == 4) &#123;</span><br><span class="line">                    if (xhr.status == 200) &#123;</span><br><span class="line">                        // console.log(xhr.responseText);</span><br><span class="line">                        options.success(xhr.responseText);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;)();</span><br><span class="line"></span><br><span class="line">// 使用举例</span><br><span class="line">ajax.run(&#123;</span><br><span class="line">    url : &#x27;data.txt&#x27;,</span><br><span class="line">    method : &#x27;post&#x27;,</span><br><span class="line">    data : &#123;</span><br><span class="line">        &quot;name&quot; : &quot;fantasy&quot;,</span><br><span class="line">        &quot;age&quot; : 12</span><br><span class="line">    &#125;,</span><br><span class="line">    headers : &#123;</span><br><span class="line">        &quot;Content-Type&quot; : &quot;application/json&quot;</span><br><span class="line">    &#125;,</span><br><span class="line">    success : function (data) &#123;</span><br><span class="line">        console.log(data);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<h2 id="什么是跨域"><a href="#什么是跨域" class="headerlink" title="什么是跨域"></a>什么是跨域</h2><p>页面发送一个ajax请求的时候<br>当前发送请求方叫做 <code>Origin</code> 叫做域 ，当请求一个资源的时候 资源的HOST就是他的域<br>比如我们在 <code>baidu.com/login.html</code> 页面请求 <code>baidu.com/list.php</code> 这个资源 这里的源 就是域名 <code>www.baidu.com</code><br>如果请求其他的域名下的资源 <code>www.360.com/corn.php</code> 这个时候就存在跨域问题</p>
+<p>具体的跨域情况如下：</p>
+<p>|发送ajax请求所在页面的域|请求的资源地址|说明|<br>|–|–|<br>|<a target="_blank" rel="noopener" href="http://www.baidu.com/index.html|http://www.360.com/list.php|%E4%B8%8D%E5%90%8C%E5%9F%9F%E5%90%8D">http://www.baidu.com/index.html|http://www.360.com/list.php|不同域名</a><br>|<a target="_blank" rel="noopener" href="http://www.baidu.com/index.html|http://www.baidu.com:8081/list.php|%E5%90%8C%E5%9F%9F%E5%90%8D">http://www.baidu.com/index.html|http://www.baidu.com:8081/list.php|同域名</a> 不同端口<br>|<a target="_blank" rel="noopener" href="http://www.baidu.com/index.html|https://www.baidu.com/list.php|%E5%90%8C%E5%9F%9F%E5%90%8D">http://www.baidu.com/index.html|https://www.baidu.com/list.php|同域名</a> 不同协议<br>|<a target="_blank" rel="noopener" href="http://www.baidu.com/index.html|http://115.239.210.27/list.php|%E5%9F%9F%E5%90%8D%E4%B8%8Eip">http://www.baidu.com/index.html|http://115.239.210.27/list.php|域名与ip</a><br>|<a target="_blank" rel="noopener" href="http://login.baidu.com/index.html|http://lib.baidu.com/list.php|%E4%B8%8D%E5%90%8C%E5%AD%90%E5%9F%9F%E5%90%8D">http://login.baidu.com/index.html|http://lib.baidu.com/list.php|不同子域名</a><br>|<a target="_blank" rel="noopener" href="http://baidu.com/index.html|http://www.baidu.com/list.php|%E4%B8%BB%E5%9F%9F%E5%90%8D%E4%B8%8E%E5%AD%90%E5%9F%9F%E5%90%8D">http://baidu.com/index.html|http://www.baidu.com/list.php|主域名与子域名</a></p>
+<h2 id="如何跨域"><a href="#如何跨域" class="headerlink" title="如何跨域"></a>如何跨域</h2><p>如下图：<br><img src="2016-07-11_135957.png"></p>
+<p>对象 <code>XMLHttpRequest</code> 报错了<br>请求是从域 <code>http://www.webcors.dev/</code> 发送到 域 <code>http://www.cors1.dev</code> ，这是一个明显的跨域问题<br>但是看图我们可以看出来 其实这个请求已经发出去了，服务器也是将结果返回了，<code>Content Download</code> 这个是内容下载时间<br>但是浏览器并没有将这个内容显示给我们 也就是说这是浏览器中的安全机制<br>如何才能跨域 ？ 接着看这个错误</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">No &#x27;Access-Control-Allow-Origin&#x27; header is present on the requested resource.</span><br></pre></td></tr></table></figure>
+<p>在响应中没有找到 <code>Access-Control-Allow-Origin</code> 这个响应头</p>
+<p>这说明我们需要在服务端设置响应头， 浏览器通过这个 HTML5 中的相应头 来决定这个跨域请求的数据是否有权显示这个内容</p>
+<p>其实跨域这块有几个地方是需要服务器添加响应头才能实现的，浏览器是需要通过读取响应头来决定是否显示的</p>
+<p><code>Access-Control-Allow-Origin *</code> 声名哪些源是允许跨域请求的 * 表示任何域都可以请求 你也可以指定一个允许的域名 只能指定一个不能写多个 *.baidu.com 这种的泛解析也是不行的 他是完全匹配</p>
+<p><code>Access-Control-Allow-Headers Origin,Accept,...</code> 声明哪些请求头是可以跨域请求的</p>
+<p><code>Access-Control-Allow-Method GET,POST,HEAD</code> 声明跨域请求允许的方法</p>
+<p><code>Access-Control-Allow-Credentials true</code> 跨域时候是否允许传递 cookie 当使用这个参数的时候 <code>Access-Control-Allow-Origin</code> 这个参数是不能设置成 <code>*</code> 的</p>
+<h2 id="服务端如何设置跨域"><a href="#服务端如何设置跨域" class="headerlink" title="服务端如何设置跨域"></a>服务端如何设置跨域</h2><p>举例<br>apache <code>httpd.conf</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&lt;Directory /&gt;</span><br><span class="line">    Options FollowSymLinks</span><br><span class="line">    AllowOverride All</span><br><span class="line">    Require all granted</span><br><span class="line">    Header set Access-Control-Allow-Origin *</span><br><span class="line">    Header set Access-Control-Allow-Method GET,POST,HEAD</span><br><span class="line">    Header set Access-Control-Allow-Origin Origin,Content-Type,Accept,X-Requested-With</span><br><span class="line">&lt;Directory&gt;</span><br></pre></td></tr></table></figure>
+
+<p>nginx <code>http.conf</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">location / &#123;</span><br><span class="line">    add_header Access-Control-Allow-Origin *</span><br><span class="line">    add_header Access-Control-Allow-Method GET,POST,HEAD</span><br><span class="line">    add_header Access-Control-Allow-Origin Origin,Content-Type,Accept,X-Requested-With</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Access_control_CORS">跨域相关链接参考</a></p>
+<h2 id="复杂请求"><a href="#复杂请求" class="headerlink" title="复杂请求"></a>复杂请求</h2><p>在上面讲到的跨域请求问题，这样的背景下 有时候你会发现 你只发出去了一个请求 但是在<br>浏览器里面能看到发出去的却是两个 第一个是<code>OPTIONS</code>请求 第二个才是你要发送的</p>
+<p>出现这个现象是浏览器的一个 <code>简单请求</code> <code>复杂请求</code> 的一个判断，复杂请求模式下 浏览器在发送请求前先<br>发送一个 <code>OPTIONS</code> 形式的 预请求 ， 后面才会发送真正的请求</p>
+<p>浏览器是如何来区分 是 复杂请求 还是 简单请求的呢？</p>
+<p>简单请求：</p>
+<p>HTTP请求方式是 下列的一种</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">HEAD</span><br><span class="line">GET</span><br><span class="line">POST</span><br></pre></td></tr></table></figure>
+
+<p>HTTP请求头仅包含下列选项</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Accept</span><br><span class="line">Accept-Language</span><br><span class="line">Content-Language</span><br><span class="line">Last-Event-ID</span><br><span class="line">Content-Type</span><br><span class="line">    Content-Type 的值只能是下列的一种</span><br><span class="line">    application/x-www-form-urlencoded</span><br><span class="line">    multipart/form-data</span><br><span class="line">    text/plain</span><br></pre></td></tr></table></figure>
+
+<p>任何不满足上面要求的都会被当做复杂请求</p>
+<p>举例如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">var url = &quot;http://www.cors1.dev&quot;;</span><br><span class="line">ajax.run(&#123;</span><br><span class="line">    url : url,</span><br><span class="line">    method : &#x27;get&#x27;,</span><br><span class="line">    headers : &#123;</span><br><span class="line">        &quot;Content-Type&quot; : &quot;application/json&quot;</span><br><span class="line">    &#125;,</span><br><span class="line">    success : function (data) &#123;</span><br><span class="line">        console.log(data);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<p>虽然是 GET 请求但是 在请求头的 Content-Type 设置的并不是规定的三个的之一<br>浏览器会当作复杂请求来处理</p>
+<h2 id="angularjs-如何设置-Content-Type"><a href="#angularjs-如何设置-Content-Type" class="headerlink" title="angularjs 如何设置 Content-Type"></a>angularjs 如何设置 <code>Content-Type</code></h2><p>angularjs 如何发送一个ajax请求</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">&lt;div ng-app=&quot;app&quot; ng-controller=&quot;demoController&quot;&gt;</span><br><span class="line">    &lt;ul&gt;</span><br><span class="line">        &lt;li ng-repeat=&quot;x in names&quot;&gt;</span><br><span class="line">            &#123;&#123;x.id + &#x27; &#x27; + x.name&#125;&#125;</span><br><span class="line">        &lt;/li&gt;</span><br><span class="line">    &lt;/ul&gt;</span><br><span class="line">&lt;/div&gt;</span><br><span class="line">&lt;script src=&quot;http://apps.bdimg.com/libs/angular.js/1.4.6/angular.min.js&quot;&gt;&lt;/script&gt;</span><br><span class="line">&lt;script type=&quot;text/javascript&quot;&gt;</span><br><span class="line">    var url = &quot;http://newbijia.work.dev/getBrand?type=wap&quot;;</span><br><span class="line">    var app = angular.module(&#x27;app&#x27;, []);</span><br><span class="line">    var data = &#123;&#125;;</span><br><span class="line"></span><br><span class="line">    app.controller(&#x27;demoController&#x27;, function ($scope, $http) &#123;</span><br><span class="line">        app.config(function ($httpProvider) &#123;</span><br><span class="line">            $httpProvider.defaults.headers.post = &#123;&#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;);</span><br><span class="line">    $http(&#123;</span><br><span class="line">        method : &quot;POST&quot;,</span><br><span class="line">        url : url,</span><br><span class="line">        headers : &#123;</span><br><span class="line">            &quot;Accept&quot; : &quot;test&quot;,</span><br><span class="line">            &quot;Content-Type&quot; : &quot;application/json&quot;,</span><br><span class="line">        &#125;,</span><br><span class="line">        data : data</span><br><span class="line">    &#125;);</span><br><span class="line">&lt;/script&gt;</span><br></pre></td></tr></table></figure>
+<p>angularjs 里面可以设置 请求头<br>其中 如果没设置 data数据的情况下 头信息设置 Content-Type  无效</p>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/ajax/" rel="tag">ajax</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/angularjs/" rel="tag">angularjs</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/js/" rel="tag">js</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/%E6%B5%8F%E8%A7%88%E5%99%A8/" rel="tag">浏览器</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/%E8%B7%A8%E5%9F%9F/" rel="tag">跨域</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/07/26/vagrant%E7%9A%84%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8/"
+                    data-tooltip="vagrant的安装与使用"
+                    aria-label="上一篇: vagrant的安装与使用"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/15/vim%E7%9A%84%E4%BD%BF%E7%94%A8%E4%BB%A5%E5%8F%8A%E9%85%8D%E7%BD%AE/"
+                    data-tooltip="vim的使用以及配置"
+                    aria-label="下一篇: vim的使用以及配置"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/07/08/%E8%B7%A8%E5%9F%9F%E8%AF%B7%E6%B1%82%E8%A7%A6%E5%8F%91%E6%B5%8F%E8%A7%88%E5%99%A8%E5%A4%8D%E6%9D%82%E8%AF%B7%E6%B1%82/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/07/08/%E8%B7%A8%E5%9F%9F%E8%AF%B7%E6%B1%82%E8%A7%A6%E5%8F%91%E6%B5%8F%E8%A7%88%E5%99%A8%E5%A4%8D%E6%9D%82%E8%AF%B7%E6%B1%82/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/07/08/%E8%B7%A8%E5%9F%9F%E8%AF%B7%E6%B1%82%E8%A7%A6%E5%8F%91%E6%B5%8F%E8%A7%88%E5%99%A8%E5%A4%8D%E6%9D%82%E8%AF%B7%E6%B1%82/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/07/26/vagrant%E7%9A%84%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8/"
+                    data-tooltip="vagrant的安装与使用"
+                    aria-label="上一篇: vagrant的安装与使用"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/15/vim%E7%9A%84%E4%BD%BF%E7%94%A8%E4%BB%A5%E5%8F%8A%E9%85%8D%E7%BD%AE/"
+                    data-tooltip="vim的使用以及配置"
+                    aria-label="下一篇: vim的使用以及配置"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/07/08/%E8%B7%A8%E5%9F%9F%E8%AF%B7%E6%B1%82%E8%A7%A6%E5%8F%91%E6%B5%8F%E8%A7%88%E5%99%A8%E5%A4%8D%E6%9D%82%E8%AF%B7%E6%B1%82/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/07/08/%E8%B7%A8%E5%9F%9F%E8%AF%B7%E6%B1%82%E8%A7%A6%E5%8F%91%E6%B5%8F%E8%A7%88%E5%99%A8%E5%A4%8D%E6%9D%82%E8%AF%B7%E6%B1%82/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/07/08/%E8%B7%A8%E5%9F%9F%E8%AF%B7%E6%B1%82%E8%A7%A6%E5%8F%91%E6%B5%8F%E8%A7%88%E5%99%A8%E5%A4%8D%E6%9D%82%E8%AF%B7%E6%B1%82/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/07/08/%E8%B7%A8%E5%9F%9F%E8%AF%B7%E6%B1%82%E8%A7%A6%E5%8F%91%E6%B5%8F%E8%A7%88%E5%99%A8%E5%A4%8D%E6%9D%82%E8%AF%B7%E6%B1%82/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/07/08/%E8%B7%A8%E5%9F%9F%E8%AF%B7%E6%B1%82%E8%A7%A6%E5%8F%91%E6%B5%8F%E8%A7%88%E5%99%A8%E5%A4%8D%E6%9D%82%E8%AF%B7%E6%B1%82/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2016/07/08/%E8%B7%A8%E5%9F%9F%E8%AF%B7%E6%B1%82%E8%A7%A6%E5%8F%91%E6%B5%8F%E8%A7%88%E5%99%A8%E5%A4%8D%E6%9D%82%E8%AF%B7%E6%B1%82/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

@@ -1,0 +1,600 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>linux centos 硬盘共享nfs使用总结 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"当我们多个服务器要共享同一块硬盘的时候 比如一些公共代码库 比如公共图片资源文件资源这时候就需要通过磁盘共享的方式来实现。通过nfs可以满足我们的这个需求 下面深入讲解下nfs的使用nfs = network file systemNFS 在文件共享传输的过程 依赖RPC(Remote Procedure Call)协议\n\n1 安装nfs1yum install nfs-utils -y\n参考这里查看是否安装成功\n1234rpm -qa | grep nfs#------- 下面这里表示安装成功 ---------nfs-utils-1.2.3-70.el6.x86_64nfs-utils-lib-1.1.5-11.el6.x86_64\n\n2 文件配置编辑配置文件\n1234vim /etc/exports#/foo/bar:client_ip(读写权限,同步或异步,)/root/share 192.168.30.*(rw,root_squash,sync)\n3 开启服务12service rpcbind startservice nfs start\n开启rpc服务可以\n123service rpcbind start# 或者/etc/init.d/rpcbind start\ncontos 5.x 版本使用的是portmapcentos 6.x 版本使用的是rpcbind\n4 权限配置编辑完配置文件需要重启nfs服务或者 \n1exportfs -rv\n重新加载权限\n5 挂载共享硬盘1mount -t nfs 192.168.30.52:/root/share /root/test\n注意挂载成功后需要你查看挂载路径的权限\n参考资料1参考资料2\n","dateCreated":"2016-06-07T22:35:57+08:00","dateModified":"2016-06-12T10:48:20+08:00","datePublished":"2016-06-07T22:35:57+08:00","description":"当我们多个服务器要共享同一块硬盘的时候 比如一些公共代码库 比如公共图片资源文件资源这时候就需要通过磁盘共享的方式来实现。通过nfs可以满足我们的这个需求 下面深入讲解下nfs的使用nfs = network file systemNFS 在文件共享传输的过程 依赖RPC(Remote Procedure Call)协议","headline":"linux centos 硬盘共享nfs使用总结","image":[],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/","keywords":"linux, centos, nfs"}</script>
+    <meta name="description" content="当我们多个服务器要共享同一块硬盘的时候 比如一些公共代码库 比如公共图片资源文件资源这时候就需要通过磁盘共享的方式来实现。通过nfs可以满足我们的这个需求 下面深入讲解下nfs的使用nfs &#x3D; network file systemNFS 在文件共享传输的过程 依赖RPC(Remote Procedure Call)协议">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="linux centos 硬盘共享nfs使用总结">
+<meta property="og:url" content="https://fantiq.github.io/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="当我们多个服务器要共享同一块硬盘的时候 比如一些公共代码库 比如公共图片资源文件资源这时候就需要通过磁盘共享的方式来实现。通过nfs可以满足我们的这个需求 下面深入讲解下nfs的使用nfs &#x3D; network file systemNFS 在文件共享传输的过程 依赖RPC(Remote Procedure Call)协议">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-06-07T14:35:57.000Z">
+<meta property="article:modified_time" content="2016-06-12T02:48:20.000Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="linux">
+<meta property="article:tag" content="centos">
+<meta property="article:tag" content="nfs">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="5"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            linux centos 硬盘共享nfs使用总结
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2016-06-07T22:35:57+08:00">
+	
+		    6月 07, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/%E8%BF%90%E7%BB%B4/">运维</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>当我们多个服务器要共享同一块硬盘的时候 比如一些公共代码库 比如公共图片资源文件资源<br>这时候就需要通过磁盘共享的方式来实现。通过nfs可以满足我们的这个需求 下面深入讲解下<br>nfs的使用<br>nfs = network file system<br>NFS 在文件共享传输的过程 依赖RPC(Remote Procedure Call)协议</p>
+<span id="more"></span>
+<h2 id="1-安装nfs"><a href="#1-安装nfs" class="headerlink" title="1 安装nfs"></a>1 安装nfs</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install nfs-utils -y</span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/argb/p/3438568.html">参考这里</a><br>查看是否安装成功</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">rpm -qa | grep nfs</span><br><span class="line">#------- 下面这里表示安装成功 ---------</span><br><span class="line">nfs-utils-1.2.3-70.el6.x86_64</span><br><span class="line">nfs-utils-lib-1.1.5-11.el6.x86_64</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-文件配置"><a href="#2-文件配置" class="headerlink" title="2 文件配置"></a>2 文件配置</h2><p>编辑配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/exports</span><br><span class="line"></span><br><span class="line">#/foo/bar:client_ip(读写权限,同步或异步,)</span><br><span class="line">/root/share 192.168.30.*(rw,root_squash,sync)</span><br></pre></td></tr></table></figure>
+<h2 id="3-开启服务"><a href="#3-开启服务" class="headerlink" title="3 开启服务"></a>3 开启服务</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">service rpcbind start</span><br><span class="line">service nfs start</span><br></pre></td></tr></table></figure>
+<p>开启<code>rpc</code>服务可以</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">service rpcbind start</span><br><span class="line"># 或者</span><br><span class="line">/etc/init.d/rpcbind start</span><br></pre></td></tr></table></figure>
+<p>contos 5.x 版本使用的是<code>portmap</code><br>centos 6.x 版本使用的是<code>rpcbind</code></p>
+<h2 id="4-权限配置"><a href="#4-权限配置" class="headerlink" title="4 权限配置"></a>4 权限配置</h2><p>编辑完配置文件需要重启nfs服务或者 </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">exportfs -rv</span><br></pre></td></tr></table></figure>
+<p>重新加载权限</p>
+<h2 id="5-挂载共享硬盘"><a href="#5-挂载共享硬盘" class="headerlink" title="5 挂载共享硬盘"></a>5 挂载共享硬盘</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mount -t nfs 192.168.30.52:/root/share /root/test</span><br></pre></td></tr></table></figure>
+<p><strong>注意</strong><br>挂载成功后需要你查看挂载路径的权限</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/mchina/archive/2013/01/03/2840040.html">参考资料1</a><br><a target="_blank" rel="noopener" href="http://www.360doc.com/content/14/0526/19/1123425_381208263.shtml">参考资料2</a></p>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/centos/" rel="tag">centos</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/linux/" rel="tag">linux</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/nfs/" rel="tag">nfs</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/07/html5%E4%B8%AD%E5%BC%95%E5%85%A5%E7%9A%84csp%E9%98%B2%E8%B7%A8%E5%9F%9F/"
+                    data-tooltip="html5中引入的csp防跨域"
+                    aria-label="上一篇: html5中引入的csp防跨域"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/07/linux-centos-supervisor%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E6%80%BB%E7%BB%93/"
+                    data-tooltip="linux centos supervisor守护进程总结"
+                    aria-label="下一篇: linux centos supervisor守护进程总结"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/07/html5%E4%B8%AD%E5%BC%95%E5%85%A5%E7%9A%84csp%E9%98%B2%E8%B7%A8%E5%9F%9F/"
+                    data-tooltip="html5中引入的csp防跨域"
+                    aria-label="上一篇: html5中引入的csp防跨域"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/07/linux-centos-supervisor%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E6%80%BB%E7%BB%93/"
+                    data-tooltip="linux centos supervisor守护进程总结"
+                    aria-label="下一篇: linux centos supervisor守护进程总结"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2016/06/07/linux-centos-%E7%A1%AC%E7%9B%98%E5%85%B1%E4%BA%ABnfs%E4%BD%BF%E7%94%A8%E6%80%BB%E7%BB%93/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>

@@ -1,0 +1,672 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗">
+    <title>linux centos 常用基本命令总结 - 代码狗</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg"},"articleBody":"linux centos 6.x 常用的一些命令总结这里不讲基本用法 多讲一些很有用的小技巧\n\n\n1 常用的文件操作123456789101112131415161718192021222324# change directory 切换目录cd dir# 列出当前文件加下的所有文件ls# 更细的列出文件夹下的所有文件 -a 可以列出隐藏文件ll -a# 拷贝文件 -r 拷贝一个目录cp -r source dist# 拷贝远程文件 远程文件地址 username@ip:/foo/barscp source dist# 移动文件 或者修改文件名称# -f 覆盖不询问 -n 覆盖询问 -b 文件在覆盖前做备份 (备份文件名末尾加 ~ )mv source dist# remove 删除文件 -r 删除文件夹 -f 强制删除不提示rm -rf# 创建一个快捷方式 软连接ln -s source dist \n\n2 文件包的安装1234567891011121314# 不用确认直接安装yum install pkgname -y# 查询已经安装的包yum list pkgname# yum搜索一个包yum search pkgname# 删除安装的包yum remove pkgname# 查询安装的包rpm -qa | grep pkgname# 查询安装包的详细信息rpm -ql | grep pkgname\n\n\n3 用户相关1234567# 当前登录用户whoamiid# 切换登录用户su username# 修改用户密码passwd username\n4 文件相关创建一个空文件\n123456# 创建一个空文件touch filename# 覆盖写入内容到一个文件 没有文件则创建echo &quot;&quot; &gt; filename# 追加写入内容到文件echo &quot;&quot; &gt;&gt; filename\n查看文件\n12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849# 查看全部文件cat filepath# 分页浏览文件# # more 翻页 快捷键#         上翻        下翻# 一行      -         回车# 一页      b         f 空格# q 退出# # more filepath# # less 翻页 快捷键#         上翻        下翻# 一行     y k         j 回车# 半页      u           d# 一页      b           f 空格# q 退出# 同样可以用vi的一同快捷键# j k 上下移动 gg 开头 G 结尾# ctrl+f 下翻一页  ctrl+b 上翻一页 f:front  b:back# ctrl+u 下翻半页  ctrl+d 上翻半页 u:up     d:dowmless filepath# 显示文件部分内容 并且内容是实时更新的# 显示文件开头 默认前10行# -c 显示前K字节的内容# -n 显示前n行的内容 默认10行# -q # -v 显示文件名称head filepath# 显示文件结尾 默认后10行# -c 显示前K字节的内容# -n 显示前n行的内容 默认10行# -q # -f # -F # -s 文件刷新的频率tail filepath# sedawk\n\n5 压缩与解压缩打包压缩过程打包的过程可以直接调用压缩程序处理文件\n打包1234567891011121314tar    -c 新建文档    -x 解压缩    -r 向压缩文档结尾追加文件    -u 更新原压缩文件中的文件    # 压缩 解压 都能用到的参数 但只能用其中一个参数    -z gzip    -j bzip2    -Z compress    -v 显示进程    -O 将文件解开到标准输出流    # 必须作为最后一个参数    -f 文档名称\n举例 解压一个文件 nginx.tar.gz\n12345# x 解压缩# z 解压算法 gzip# v 显示解压进程# f 指定文档tar -xzvf nginx.tar.gz\n\n举例 打包一个文件 nginx\n1234567# c 创建打包文件# z 选择文件压缩算法# v 显示进程# f 指定压缩后的文件名## tar -czvf 打包后的文件名 要打包的文件或文件夹tar -czvf my.tar.gz nginx\n\n\n压缩linux系统\n\n\n文件类型\n后缀\n压缩\n解压缩\n\n\n\ngzip\n.gz\ngzip file\ngzip -d / gunzip\n\n\nbzip2\n.bz2\nbzip2\nbunzip2\n\n\ncompress\n.Z\ncompress\nuncompress\n\n\nwindows系统\n\n\n文件类型\n后缀\n压缩\n解压缩\n\n\n\nzip\n.zip\nzip\nunzip\n\n\nrar\n.rar\nrar\nunrar\n\n\n6 其他常用12345678910111213141516171819202122232425# ssh登录ssh username@ip# 查看当前文件夹下面文件大小du -ha# 查看服务service servname [start|stop|restart]# 查看当前系统运行的服务ps -ef | grep servname# 查找一个文件# -name 查找文件名 -type 查找文件类型find path [option] name# 硬盘挂载mount -t nfs ip:/foo/bar dist# 取消挂载umount dist # 显示当前操作系统名称uname -a\nlinux命令大全 参考链接\n","dateCreated":"2016-05-31T19:53:02+08:00","dateModified":"2016-08-02T14:32:02+08:00","datePublished":"2016-05-31T19:53:02+08:00","description":"linux centos 6.x 常用的一些命令总结这里不讲基本用法 多讲一些很有用的小技巧","headline":"linux centos 常用基本命令总结","image":["logo.jpg","cover.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://fantiq.github.io/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/"},"publisher":{"@type":"Organization","name":"fantiq","sameAs":["https://github.com/fantiq"],"image":"avatar.jpg","logo":{"@type":"ImageObject","url":"avatar.jpg"}},"url":"https://fantiq.github.io/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/","keywords":"linux, centos","thumbnailUrl":"logo.jpg"}</script>
+    <meta name="description" content="linux centos 6.x 常用的一些命令总结这里不讲基本用法 多讲一些很有用的小技巧">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="linux centos 常用基本命令总结">
+<meta property="og:url" content="https://fantiq.github.io/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/index.html">
+<meta property="og:site_name" content="代码狗">
+<meta property="og:description" content="linux centos 6.x 常用的一些命令总结这里不讲基本用法 多讲一些很有用的小技巧">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-05-31T11:53:02.000Z">
+<meta property="article:modified_time" content="2016-08-02T06:32:02.000Z">
+<meta property="article:author" content="fantiq">
+<meta property="article:tag" content="linux">
+<meta property="article:tag" content="centos">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/assets/images/avatar.jpg"/>
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/logo.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="https://fantiq.github.io/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/logo.jpg"/>
+    
+    
+        <meta property="og:image" content="https://fantiq.github.io/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/cover.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="https://fantiq.github.io/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/cover.jpg"/>
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-bo1h1ya3kmjmd94f0k5yc43ngmshulfcyc8apgyrr2pfx48g1zk5lyp9do8g.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="5">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/"
+            aria-label=""
+        >
+            代码狗
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="5">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">fantiq</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/fantiq"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+        <div class="post-header-cover
+                    text-left
+                    "
+             style="background-image:url('/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/cover.jpg');"
+             data-behavior="5">
+            
+                <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            linux centos 常用基本命令总结
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2016-05-31T19:53:02+08:00">
+	
+		    5月 31, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/%E8%BF%90%E7%BB%B4/">运维</a>
+
+
+    
+</div>
+
+    
+</div>
+
+            
+        </div>
+
+            <div id="main" data-behavior="5"
+                 class="hasCover
+                        hasCoverMetaIn
+                        hasCoverCaption">
+                
+<article class="post">
+    
+        <span class="post-header-cover-caption caption">linux command</span>
+    
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>linux centos 6.x 常用的一些命令总结<br>这里不讲基本用法 多讲一些很有用的小技巧</p>
+<span id="more"></span>
+
+<h2 id="1-常用的文件操作"><a href="#1-常用的文件操作" class="headerlink" title="1 常用的文件操作"></a>1 常用的文件操作</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"># change directory 切换目录</span><br><span class="line">cd dir</span><br><span class="line"></span><br><span class="line"># 列出当前文件加下的所有文件</span><br><span class="line">ls</span><br><span class="line"></span><br><span class="line"># 更细的列出文件夹下的所有文件 -a 可以列出隐藏文件</span><br><span class="line">ll -a</span><br><span class="line"></span><br><span class="line"># 拷贝文件 -r 拷贝一个目录</span><br><span class="line">cp -r source dist</span><br><span class="line"></span><br><span class="line"># 拷贝远程文件 远程文件地址 username@ip:/foo/bar</span><br><span class="line">scp source dist</span><br><span class="line"></span><br><span class="line"># 移动文件 或者修改文件名称</span><br><span class="line"># -f 覆盖不询问 -n 覆盖询问 -b 文件在覆盖前做备份 (备份文件名末尾加 ~ )</span><br><span class="line">mv source dist</span><br><span class="line"></span><br><span class="line"># remove 删除文件 -r 删除文件夹 -f 强制删除不提示</span><br><span class="line">rm -rf</span><br><span class="line"></span><br><span class="line"># 创建一个快捷方式 软连接</span><br><span class="line">ln -s source dist </span><br></pre></td></tr></table></figure>
+
+<h2 id="2-文件包的安装"><a href="#2-文件包的安装" class="headerlink" title="2 文件包的安装"></a>2 文件包的安装</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"># 不用确认直接安装</span><br><span class="line">yum install pkgname -y</span><br><span class="line"># 查询已经安装的包</span><br><span class="line">yum list pkgname</span><br><span class="line"># yum搜索一个包</span><br><span class="line">yum search pkgname</span><br><span class="line"># 删除安装的包</span><br><span class="line">yum remove pkgname</span><br><span class="line"></span><br><span class="line"># 查询安装的包</span><br><span class="line">rpm -qa | grep pkgname</span><br><span class="line"># 查询安装包的详细信息</span><br><span class="line">rpm -ql | grep pkgname</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+<h2 id="3-用户相关"><a href="#3-用户相关" class="headerlink" title="3 用户相关"></a>3 用户相关</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># 当前登录用户</span><br><span class="line">whoami</span><br><span class="line">id</span><br><span class="line"># 切换登录用户</span><br><span class="line">su username</span><br><span class="line"># 修改用户密码</span><br><span class="line">passwd username</span><br></pre></td></tr></table></figure>
+<h2 id="4-文件相关"><a href="#4-文件相关" class="headerlink" title="4 文件相关"></a>4 文件相关</h2><p>创建一个空文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># 创建一个空文件</span><br><span class="line">touch filename</span><br><span class="line"># 覆盖写入内容到一个文件 没有文件则创建</span><br><span class="line">echo &quot;&quot; &gt; filename</span><br><span class="line"># 追加写入内容到文件</span><br><span class="line">echo &quot;&quot; &gt;&gt; filename</span><br></pre></td></tr></table></figure>
+<p>查看文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"># 查看全部文件</span><br><span class="line">cat filepath</span><br><span class="line"></span><br><span class="line"># 分页浏览文件</span><br><span class="line"></span><br><span class="line"># </span><br><span class="line"># more 翻页 快捷键</span><br><span class="line">#         上翻        下翻</span><br><span class="line"># 一行      -         回车</span><br><span class="line"># 一页      b         f 空格</span><br><span class="line"># q 退出</span><br><span class="line"># </span><br><span class="line"># </span><br><span class="line">more filepath</span><br><span class="line"></span><br><span class="line"># </span><br><span class="line"># less 翻页 快捷键</span><br><span class="line">#         上翻        下翻</span><br><span class="line"># 一行     y k         j 回车</span><br><span class="line"># 半页      u           d</span><br><span class="line"># 一页      b           f 空格</span><br><span class="line"># q 退出</span><br><span class="line"># 同样可以用vi的一同快捷键</span><br><span class="line"># j k 上下移动 gg 开头 G 结尾</span><br><span class="line"># ctrl+f 下翻一页  ctrl+b 上翻一页 f:front  b:back</span><br><span class="line"># ctrl+u 下翻半页  ctrl+d 上翻半页 u:up     d:dowm</span><br><span class="line"></span><br><span class="line">less filepath</span><br><span class="line"></span><br><span class="line"># 显示文件部分内容 并且内容是实时更新的</span><br><span class="line"></span><br><span class="line"># 显示文件开头 默认前10行</span><br><span class="line"># -c 显示前K字节的内容</span><br><span class="line"># -n 显示前n行的内容 默认10行</span><br><span class="line"># -q </span><br><span class="line"># -v 显示文件名称</span><br><span class="line">head filepath</span><br><span class="line"># 显示文件结尾 默认后10行</span><br><span class="line"># -c 显示前K字节的内容</span><br><span class="line"># -n 显示前n行的内容 默认10行</span><br><span class="line"># -q </span><br><span class="line"># -f </span><br><span class="line"># -F </span><br><span class="line"># -s 文件刷新的频率</span><br><span class="line">tail filepath</span><br><span class="line"></span><br><span class="line"># </span><br><span class="line">sed</span><br><span class="line">awk</span><br></pre></td></tr></table></figure>
+
+<h2 id="5-压缩与解压缩"><a href="#5-压缩与解压缩" class="headerlink" title="5 压缩与解压缩"></a>5 压缩与解压缩</h2><p>打包压缩过程<br>打包的过程可以直接调用压缩程序处理文件</p>
+<h4 id="打包"><a href="#打包" class="headerlink" title="打包"></a>打包</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">tar</span><br><span class="line">    -c 新建文档</span><br><span class="line">    -x 解压缩</span><br><span class="line">    -r 向压缩文档结尾追加文件</span><br><span class="line">    -u 更新原压缩文件中的文件</span><br><span class="line">    # 压缩 解压 都能用到的参数 但只能用其中一个参数</span><br><span class="line">    -z gzip</span><br><span class="line">    -j bzip2</span><br><span class="line">    -Z compress</span><br><span class="line">    -v 显示进程</span><br><span class="line">    -O 将文件解开到标准输出流</span><br><span class="line"></span><br><span class="line">    # 必须作为最后一个参数</span><br><span class="line">    -f 文档名称</span><br></pre></td></tr></table></figure>
+<p>举例 解压一个文件 <code>nginx.tar.gz</code></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> x 解压缩</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> z 解压算法 gzip</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> v 显示解压进程</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> f 指定文档</span></span><br><span class="line">tar -xzvf nginx.tar.gz</span><br></pre></td></tr></table></figure>
+
+<p>举例 打包一个文件 <code>nginx</code></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> c 创建打包文件</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> z 选择文件压缩算法</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> v 显示进程</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> f 指定压缩后的文件名</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="bash"><span class="comment"># tar -czvf 打包后的文件名 要打包的文件或文件夹</span></span></span><br><span class="line">tar -czvf my.tar.gz nginx</span><br></pre></td></tr></table></figure>
+
+
+<h4 id="压缩"><a href="#压缩" class="headerlink" title="压缩"></a>压缩</h4><h5 id="linux系统"><a href="#linux系统" class="headerlink" title="linux系统"></a>linux系统</h5><table>
+<thead>
+<tr>
+<th>文件类型</th>
+<th>后缀</th>
+<th>压缩</th>
+<th>解压缩</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>gzip</td>
+<td>.gz</td>
+<td>gzip file</td>
+<td>gzip -d / gunzip</td>
+</tr>
+<tr>
+<td>bzip2</td>
+<td>.bz2</td>
+<td>bzip2</td>
+<td>bunzip2</td>
+</tr>
+<tr>
+<td>compress</td>
+<td>.Z</td>
+<td>compress</td>
+<td>uncompress</td>
+</tr>
+</tbody></table>
+<h5 id="windows系统"><a href="#windows系统" class="headerlink" title="windows系统"></a>windows系统</h5><table>
+<thead>
+<tr>
+<th>文件类型</th>
+<th>后缀</th>
+<th>压缩</th>
+<th>解压缩</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>zip</td>
+<td>.zip</td>
+<td>zip</td>
+<td>unzip</td>
+</tr>
+<tr>
+<td>rar</td>
+<td>.rar</td>
+<td>rar</td>
+<td>unrar</td>
+</tr>
+</tbody></table>
+<h2 id="6-其他常用"><a href="#6-其他常用" class="headerlink" title="6 其他常用"></a>6 其他常用</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"># ssh登录</span><br><span class="line">ssh username@ip</span><br><span class="line"></span><br><span class="line"># 查看当前文件夹下面文件大小</span><br><span class="line">du -ha</span><br><span class="line"></span><br><span class="line"># 查看服务</span><br><span class="line">service servname [start|stop|restart]</span><br><span class="line"></span><br><span class="line"># 查看当前系统运行的服务</span><br><span class="line">ps -ef | grep servname</span><br><span class="line"></span><br><span class="line"># 查找一个文件</span><br><span class="line"># -name 查找文件名 -type 查找文件类型</span><br><span class="line">find path [option] name</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"># 硬盘挂载</span><br><span class="line">mount -t nfs ip:/foo/bar dist</span><br><span class="line"># 取消挂载</span><br><span class="line">umount dist </span><br><span class="line"></span><br><span class="line"># 显示当前操作系统名称</span><br><span class="line">uname -a</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="http://man.linuxde.net/">linux命令大全 参考链接</a></p>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-none-link" href="/tags/centos/" rel="tag">centos</a> <a class="tag tag--primary tag--small t-none-link" href="/tags/linux/" rel="tag">linux</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/07/linux-centos-samba-%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/"
+                    data-tooltip="linux centos samba 文件共享"
+                    aria-label="上一篇: linux centos samba 文件共享"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/05/31/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA%E8%BF%87%E7%A8%8B%E6%80%BB%E7%BB%93/"
+                    data-tooltip="博客搭建过程总结"
+                    aria-label="下一篇: 博客搭建过程总结"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="5">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/06/07/linux-centos-samba-%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB/"
+                    data-tooltip="linux centos samba 文件共享"
+                    aria-label="上一篇: linux centos samba 文件共享"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2016/05/31/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA%E8%BF%87%E7%A8%8B%E6%80%BB%E7%BB%93/"
+                    data-tooltip="博客搭建过程总结"
+                    aria-label="下一篇: 博客搭建过程总结"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://fantiq.github.io/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="5">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://fantiq.github.io/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://fantiq.github.io/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://fantiq.github.io/2016/05/31/linux-centos-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br/>
+                China HangZhou
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-ffzlst6ssezilzbbgybxfwuegfobjsmomzthas0h8hymsrrzox2o6dre4owp.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+
+    </body>
+</html>
