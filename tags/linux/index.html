@@ -1,0 +1,510 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>标签: linux - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta property="og:type" content="blog">
+<meta property="og:title" content="代码狗的狗窝">
+<meta property="og:url" content="/tags/linux/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:locale" content="zh-cn">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="代码狗的狗窝">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="1">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="1">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+            <div id="main" data-behavior="1"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+    
+
+<section class="postShorten-group main-content-wrap">
+    
+    
+    <article class="postShorten postShorten--thumbnailimg-right" itemscope itemType="http://schema.org/BlogPosting">
+        <div class="postShorten-wrap">
+            <div class="postShorten-header">
+                <h1 class="postShorten-title" itemprop="headline">
+                    
+                        <a class="link-unstyled" href="/2017/07/06/如何正确的删除软连接/">
+                            如何正确的删除软连接
+                        </a>
+                    
+                </h1>
+                <div class="postShorten-meta">
+    <time itemprop="datePublished" content="Thu Jul 06 2017 16:35:05 GMT+0800">
+	
+		    7月 06, 2017
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/运维/">运维</a>
+
+
+    
+</div>
+            </div>
+            
+            
+                <div class="postShorten-excerpt" itemprop="articleBody">
+                    <p>在 <code>linux</code> 系统，软连接相当与在<code>win</code>系统下的快捷方式。但是在 linux 下不正确的删除软连接可能造成灾难。一般删除软连接使用命令 <code>rm</code> ，有些使用 <code>rm -rf</code> 习惯的人在操作这个的时候会存在很大的危险性。正确删除 软连接 最安全的方式是使用 命令<code>unlink</code>。<br>
+                    
+                        <a href="/2017/07/06/如何正确的删除软连接/" class="postShorten-excerpt_link link">
+                            阅读全文
+                        </a>
+                        
+                    
+                </div>
+            
+        </div>
+        
+    </article>
+    
+    
+    <article class="postShorten postShorten--thumbnailimg-right" itemscope itemType="http://schema.org/BlogPosting">
+        <div class="postShorten-wrap">
+            <div class="postShorten-header">
+                <h1 class="postShorten-title" itemprop="headline">
+                    
+                        <a class="link-unstyled" href="/2016/06/07/linux-centos-硬盘共享nfs使用总结/">
+                            linux centos 硬盘共享nfs使用总结
+                        </a>
+                    
+                </h1>
+                <div class="postShorten-meta">
+    <time itemprop="datePublished" content="Tue Jun 07 2016 22:35:57 GMT+0800">
+	
+		    6月 07, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/运维/">运维</a>
+
+
+    
+</div>
+            </div>
+            
+            
+                <div class="postShorten-excerpt" itemprop="articleBody">
+                    <p>当我们多个服务器要共享同一块硬盘的时候 比如一些公共代码库 比如公共图片资源文件资源<br>这时候就需要通过磁盘共享的方式来实现。通过nfs可以满足我们的这个需求 下面深入讲解下<br>nfs的使用<br>nfs = network file system<br>NFS 在文件共享传输的过程 依赖RPC(Remote Procedure Call)协议<br>
+                    
+                        <a href="/2016/06/07/linux-centos-硬盘共享nfs使用总结/" class="postShorten-excerpt_link link">
+                            阅读全文
+                        </a>
+                        
+                    
+                </div>
+            
+        </div>
+        
+    </article>
+    
+    
+    <article class="postShorten postShorten--thumbnailimg-right" itemscope itemType="http://schema.org/BlogPosting">
+        <div class="postShorten-wrap">
+            <div class="postShorten-header">
+                <h1 class="postShorten-title" itemprop="headline">
+                    
+                        <a class="link-unstyled" href="/2016/06/07/linux-centos-supervisor守护进程总结/">
+                            linux centos supervisor守护进程总结
+                        </a>
+                    
+                </h1>
+                <div class="postShorten-meta">
+    <time itemprop="datePublished" content="Tue Jun 07 2016 22:35:30 GMT+0800">
+	
+		    6月 07, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/运维/">运维</a>
+
+
+    
+</div>
+            </div>
+            
+            
+                <div class="postShorten-excerpt" itemprop="articleBody">
+                    <p>有时候我们通过<code>screen</code> 可以让程序不会随着shell的关闭而关闭 ，虽然程序在执行 但是<br>在各种情况下 会有一些问题导致这个程序停止掉。在liunx上一些著名的开源程序提供一个<br>守护进程的方法 通过监听代码是否在执行 如果不再执行就自动重启他 从而保证服务的稳定<br>比如 <code>php-fpm</code> 这样的东西 ， 但是当我们开发一个需要一直执行的脚本 如何能有一个守护进程<br>来保证服务的稳定呢？自己开发守护进程的成本太高 linux有一个提供这个功能的开源程序<br><code>supervisor</code> 这里就总结下这个软件的使用</p>
+                    
+                        <a href="/2016/06/07/linux-centos-supervisor守护进程总结/" class="postShorten-excerpt_link link">
+                            阅读全文
+                        </a>
+                        
+                    
+                </div>
+            
+        </div>
+        
+    </article>
+    
+    
+    <article class="postShorten postShorten--thumbnailimg-right" itemscope itemType="http://schema.org/BlogPosting">
+        <div class="postShorten-wrap">
+            <div class="postShorten-header">
+                <h1 class="postShorten-title" itemprop="headline">
+                    
+                        <a class="link-unstyled" href="/2016/06/07/linux-centos-screen的使用总结/">
+                            linux centos screen的使用总结
+                        </a>
+                    
+                </h1>
+                <div class="postShorten-meta">
+    <time itemprop="datePublished" content="Tue Jun 07 2016 22:35:15 GMT+0800">
+	
+		    6月 07, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/运维/">运维</a>
+
+
+    
+</div>
+            </div>
+            
+            
+                <div class="postShorten-excerpt" itemprop="articleBody">
+                    <p>我们知道一些需要一直执行的命令如 <code>node app.js</code> <code>php artisan queue:work --daemon</code><br>如果我们在shell中来执行 当shell关闭这些线程会因此中断。因为他们是通过shell这个进程<br>来执行的 属于 shell进程的一个线程 ，当我们关闭shell 这个shell的进程也会随之关闭<br>当然shell这个进程维护的线程也同样会停止，怎样才能让这些命令像service一样不会因为<br>shell的关闭而停止呢？方法有三<br>
+                    
+                        <a href="/2016/06/07/linux-centos-screen的使用总结/" class="postShorten-excerpt_link link">
+                            阅读全文
+                        </a>
+                        
+                    
+                </div>
+            
+        </div>
+        
+    </article>
+    
+    
+    <article class="postShorten postShorten--thumbnailimg-right" itemscope itemType="http://schema.org/BlogPosting">
+        <div class="postShorten-wrap">
+            <div class="postShorten-header">
+                <h1 class="postShorten-title" itemprop="headline">
+                    
+                        <a class="link-unstyled" href="/2016/06/07/linux-centos-samba-文件共享/">
+                            linux centos samba 文件共享
+                        </a>
+                    
+                </h1>
+                <div class="postShorten-meta">
+    <time itemprop="datePublished" content="Tue Jun 07 2016 14:01:52 GMT+0800">
+	
+		    6月 07, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/运维/">运维</a>
+
+
+    
+</div>
+            </div>
+            
+            
+                <div class="postShorten-excerpt" itemprop="articleBody">
+                    <p>系统 linux centos<br>软件 samba</p>
+                    
+                        <a href="/2016/06/07/linux-centos-samba-文件共享/" class="postShorten-excerpt_link link">
+                            阅读全文
+                        </a>
+                        
+                    
+                </div>
+            
+        </div>
+        
+    </article>
+    
+    
+    <article class="postShorten postShorten--thumbnailimg-right" itemscope itemType="http://schema.org/BlogPosting">
+        <div class="postShorten-wrap">
+            <div class="postShorten-header">
+                <h1 class="postShorten-title" itemprop="headline">
+                    
+                        <a class="link-unstyled" href="/2016/05/31/linux-centos-常用基本命令/">
+                            linux centos 常用基本命令总结
+                        </a>
+                    
+                </h1>
+                <div class="postShorten-meta">
+    <time itemprop="datePublished" content="Tue May 31 2016 19:53:02 GMT+0800">
+	
+		    5月 31, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/运维/">运维</a>
+
+
+    
+</div>
+            </div>
+            
+            
+                <div class="postShorten-excerpt" itemprop="articleBody">
+                    <p>linux centos 6.x 常用的一些命令总结<br>这里不讲基本用法 多讲一些很有用的小技巧</p>
+                    
+                        <a href="/2016/05/31/linux-centos-常用基本命令/" class="postShorten-excerpt_link link">
+                            阅读全文
+                        </a>
+                        
+                    
+                </div>
+            
+        </div>
+        
+            <div class="postShorten-thumbnailimg">
+                <img alt="" itemprop="image" src="/2016/05/31/linux-centos-常用基本命令/logo.jpg"/>
+            </div>
+            
+        
+    </article>
+    
+    <div class="pagination-bar">
+    <ul class="pagination">
+        
+        
+        <li class="pagination-number">第 1 页 共 1 页</li>
+    </ul>
+</div>
+
+</section>
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2019 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><p> good at develop framework </p>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+
+
+</html>

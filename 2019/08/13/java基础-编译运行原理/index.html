@@ -1,0 +1,630 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>java基础-编译运行原理 - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta name="description" content="java的运行过程与c程序的运行过程非常相似，c程序由编译器将c源代码直接编译成了机器码（当然中间还有预处理 汇编的步骤），可以在操作系统中直接运行，java多了个中间字节码。java编译器将java源代码编译成字节码(xxx.class) 字节码是二进制文件，其格式类似于 c中的elf格式，elf格式是由操作系统识别的，java字节码是给 java的运行环境 jvm 识别的。 jvm 实现了字节">
+<meta name="keywords" content="java,编译原理">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="java基础-编译运行原理">
+<meta property="og:url" content="/2019/08/13/java基础-编译运行原理/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:description" content="java的运行过程与c程序的运行过程非常相似，c程序由编译器将c源代码直接编译成了机器码（当然中间还有预处理 汇编的步骤），可以在操作系统中直接运行，java多了个中间字节码。java编译器将java源代码编译成字节码(xxx.class) 字节码是二进制文件，其格式类似于 c中的elf格式，elf格式是由操作系统识别的，java字节码是给 java的运行环境 jvm 识别的。 jvm 实现了字节">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:updated_time" content="2019-08-14T11:44:10.309Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="java基础-编译运行原理">
+<meta name="twitter:description" content="java的运行过程与c程序的运行过程非常相似，c程序由编译器将c源代码直接编译成了机器码（当然中间还有预处理 汇编的步骤），可以在操作系统中直接运行，java多了个中间字节码。java编译器将java源代码编译成字节码(xxx.class) 字节码是二进制文件，其格式类似于 c中的elf格式，elf格式是由操作系统识别的，java字节码是给 java的运行环境 jvm 识别的。 jvm 实现了字节">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="3">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="3">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+            <div id="main" data-behavior="3"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title" itemprop="headline">
+            java基础-编译运行原理
+        </h1>
+    
+    <div class="post-meta">
+    <time itemprop="datePublished" content="Tue Aug 13 2019 14:55:46 GMT+0800">
+	
+		    8月 13, 2019
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/java/">java</a>
+
+
+    
+</div>
+</div>
+    
+    <div class="post-content markdown" itemprop="articleBody">
+        <div class="main-content-wrap">
+            <p>java的运行过程与c程序的运行过程非常相似，c程序由编译器将c源代码直接编译成了机器码（当然中间还有预处理 汇编的步骤），可以在操作系统中直接运行，java多了个中间字节码。java编译器将java源代码编译成字节码(xxx.class) 字节码是二进制文件，其格式类似于 c中的elf格式，elf格式是由操作系统识别的，java字节码是给 java的运行环境 jvm 识别的。 jvm 实现了字节码的运行环境，这样不依赖系统运行环境来实现跨平台，其实现形式类似操作系统的实现形式，都有程序运行需要的 指令存储、栈、堆 等内存段，jvm以多线程的模式运行程序（字节码），线程的调度依赖操作系统的调度算法，对硬件的操作还是要依赖操作系统提供的接口实现。<br><a id="more"></a></p>
+<h2 id="1-相关指令"><a href="#1-相关指令" class="headerlink" title="1. 相关指令"></a>1. 相关指令</h2><p>主要指令如下：<br>|指令名称|作用|<br>|–|–|<br>|javac|将java源代码编译成字节码|<br>|javap|反编译字节码|<br>|java|将字节码加载到jvm中运行|</p>
+<h2 id="1-编译过程"><a href="#1-编译过程" class="headerlink" title="1 编译过程"></a>1 编译过程</h2><h4 id="1-1-基本编译过程"><a href="#1-1-基本编译过程" class="headerlink" title="1.1 基本编译过程"></a>1.1 基本编译过程</h4><p>编译过程就是将 <code>.java</code> 源码编译成 <code>.class</code> 字节码，这个过程可以通过软件工具 <code>javac</code> 来实现，一个例子如下：创建源文件 <code>Stub.java</code>  内部定义一个类 <code>class Stub{}</code>，然后编译这个文件内容 执行命令 <code>javac Stub.java</code> 最后得到类文件 <code>Stub.class</code>。<br>以上是java源码编译的一个简单例子，这个定义中没有 <code>main</code> 方法，是不能使用 <code>java</code> 命令执行的。<br>需要注意的几个点：</p>
+<ol>
+<li>源代码文件名的后缀必须是 <code>.java</code> </li>
+<li>文件名不用必与内部定义的类名称一致</li>
+<li>文件中可以定义多个类 编译后内部定义的class会分别生成 <code>.class</code> 文件<br>以上可以看出，编译器对文件后缀有要求，对文件名称 内部定义的类 没有具体要求，编译器读取文件内容进行解析 针对每个类生成对应的字节文件 文件名称是定义的类名，文件后嘴使用 <code>.class</code></li>
+</ol>
+<p>命令 <code>javac</code> 可以使用参数 <code>-verbose</code> 看到具体的编译过程：<br><figure class="highlight crystal"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># javac -verbose Stub.java</span></span><br><span class="line">解析开始时间 RegularFileObject[Stub.java]]</span><br><span class="line">[解析已完成, 用时 <span class="number">16</span> 毫秒]</span><br><span class="line">[源文件的搜索路径: .]</span><br><span class="line">[类文件的搜索路径: xxxx/xxxx/xx.jar,xxxx,.]</span><br><span class="line">[正在加载ZipFileIndexFileObject[<span class="regexp">/Library/</span>Java/JavaVirtualMachines/jdk1.<span class="number">8.0_192</span>.jdk/Contents/Home/<span class="class"><span class="keyword">lib</span>/<span class="title">ct</span>.<span class="title">sym</span>(<span class="title">META</span>-<span class="title">INF</span>/<span class="title">sym</span>/<span class="title">rt</span>.<span class="title">jar</span>/<span class="title">jaang</span>/<span class="title">Object</span>.<span class="title">class</span>)]]</span></span><br><span class="line">[正在检查Stub]</span><br><span class="line">[正在加载ZipFileIndexFileObject[<span class="regexp">/Library/</span>Java/JavaVirtualMachines/jdk1.<span class="number">8.0_192</span>.jdk/Contents/Home/<span class="class"><span class="keyword">lib</span>/<span class="title">ct</span>.<span class="title">sym</span>(<span class="title">META</span>-<span class="title">INF</span>/<span class="title">sym</span>/<span class="title">rt</span>.<span class="title">jar</span>/<span class="title">jao</span>/<span class="title">Serializable</span>.<span class="title">class</span>)]]</span></span><br><span class="line">[正在加载ZipFileIndexFileObject[<span class="regexp">/Library/</span>Java/JavaVirtualMachines/jdk1.<span class="number">8.0_192</span>.jdk/Contents/Home/<span class="class"><span class="keyword">lib</span>/<span class="title">ct</span>.<span class="title">sym</span>(<span class="title">META</span>-<span class="title">INF</span>/<span class="title">sym</span>/<span class="title">rt</span>.<span class="title">jar</span>/<span class="title">jaang</span>/<span class="title">AutoCloseable</span>.<span class="title">class</span>)]]</span></span><br><span class="line">[已写入RegularFileObject[Stub.<span class="keyword">class</span>]]</span><br><span class="line">[共 <span class="number">176</span> 毫秒]</span><br></pre></td></tr></table></figure></p>
+<h4 id="1-2-包package-对编译结果的影响"><a href="#1-2-包package-对编译结果的影响" class="headerlink" title="1.2 包package 对编译结果的影响"></a>1.2 包package 对编译结果的影响</h4><p>先把上面的例子做下修改，给他加上 <code>main</code> 方法<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">Stub</span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span>(<span class="params">String[] args</span>)</span> &#123;</span><br><span class="line">        System.<span class="keyword">out</span>.println(<span class="string">"running..."</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>执行命令 <code>javac Stub.java</code> 得到字节文件 <code>Stub.class</code>，然后执行字节码文件 <code>java Stub</code> 得到结果 <code>running...</code> ，这个结果符合我们的预期。<br>对上面代码做进一步修改，给他加上包定义<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">package foo.bar.baz;</span><br><span class="line"><span class="keyword">class</span> <span class="title">Stub</span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span>(<span class="params">String[] args</span>)</span> &#123;</span><br><span class="line">        System.<span class="keyword">out</span>.println(<span class="string">"running..."</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>执行命令 <code>javac Stub.java</code> 编译通过并得到字节码文件<code>Stub.class</code> ，这说明 package 的定义并不是必须要根java源代码文件的文件夹结构一致的，为了方便管理目前项目会将 package与源文件的文件夹结构保持一致，但这并不是编译器的强制要求。</p>
+<p>然后尝试执行这个字节码文件 <code>java Stub</code> 结果报错 <code>错误: 找不到或无法加载主类 Stub</code>。分析这个错误能看出jvm并不能找到我们要他执行的类 <code>Stub</code>，这里有两点需要明确的</p>
+<ol>
+<li>java 命令的参数是一个字符串而不是一个文件名或文件路径，这个字符串是需要jvm执行的类全名</li>
+<li>类全名=包名称+类名称 类名称其实是需要加上包名称的，没有包名称的类才是 类名称与类全名相等</li>
+</ol>
+<p>以上可以分析出来 错误原因，<code>java</code> 命令的参数 是一个不存在的类 需要调整参数为 <code>java foo.bar.baz.Stub</code> ，再次执行发现还是找不到类 <code>错误: 找不到或无法加载主类 foo.bar.baz.Stub</code>。<br>虽然看起来这个错误跟上次的错误一样但是并不是相同的原因导致的错误：<br>当我们执行<code>java &lt;类名称&gt;</code> 的时候，jvm需要先去读取字节码文件，成功找到字节码文件将字节码文件内容读入并执行，执行的时候需要找到以字节码的文件格式定义的类，找到这个类的定义后才能进一步找到main方法作为指令执行地址。</p>
+<p>第一次报错的情况是这样的，执行命令 <code>java Stub</code>，给jvm的类名称是 <code>Stub</code> ，在加载的时候 jvm是能够找到文件 <code>Stub.class</code>的，但是当jvm读取字节码的内容后 并不能找到类 <code>Stub</code> 的定义，因为在源代码中定义了包名称 ，这个时候字节码中类的定义是 <code>foo.bar.baz.Stub</code> 所以会报错 。</p>
+<p>第二次报错的情况是这样的，执行命令的时候 参数给了正确的类名称，这个时候 jvm会根据这个类名称查找对应的字节码文件，其搜寻路径是 当前文件夹以及 classpath 定义的路径。这个类名称是<code>foo.bar.baz.Stub</code> jvm会在如下路径查找文件 <code>foo/bar/baz/Stub.class</code> ，在这个例子中自然是找不到的（找不到还会去 classpath 路径中查找），所以报错。</p>
+<p>所以想要执行成功需要将字节码文件 <code>Stub.class</code> 放到正确的能被 jvm 加载的路径 <code>foo/bar/baz/Stub.class</code> 中，调整文件夹结构如下：<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Stub.<span class="built_in">class</span></span><br><span class="line">foo</span><br><span class="line">    - bar</span><br><span class="line">        - baz</span><br><span class="line">            Stub.<span class="built_in">class</span></span><br></pre></td></tr></table></figure></p>
+<p>然后执行命令 <code>java foo.bar.baz.Stub</code> 得到了预期结果 <code>running...</code></p>
+<p>命令 <code>javac</code> 提供了参数 <code>-d</code> 指定生成的字节码存储的文件夹位置 并且 会以 jvm加载规则的文件组织形式生成字节码文件：<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"># mkdir <span class="keyword">bin</span></span><br><span class="line"><span class="keyword"># </span>javac -d <span class="keyword">bin </span>Stub.java</span><br><span class="line"># tree <span class="keyword">bin</span></span><br><span class="line"><span class="keyword">bin</span></span><br><span class="line"><span class="keyword">└── </span>foo</span><br><span class="line">    └── <span class="keyword">bar</span></span><br><span class="line"><span class="keyword"> </span>       └── <span class="keyword">baz</span></span><br><span class="line"><span class="keyword"> </span>           └── Stub.class</span><br><span class="line"># java -<span class="meta">cp</span> <span class="keyword">bin </span>foo.<span class="keyword">bar.baz.Stub</span></span><br><span class="line"><span class="keyword">running...</span></span><br></pre></td></tr></table></figure></p>
+<p>这里运行的时候需要参数 <code>-cp</code> 来指定 <code>classpath</code> ，告诉jvm搜索类的路径。</p>
+<h4 id="1-3-javac-常用参数"><a href="#1-3-javac-常用参数" class="headerlink" title="1.3 javac 常用参数"></a>1.3 javac 常用参数</h4><p>javac 主要参数说明</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-g</td>
+<td>编译的时候生成调试信息，这些信息会存储在class文件中，对代码断点调试的时候需要用到这些信息</td>
+</tr>
+<tr>
+<td>-verbose</td>
+<td>打印出编译过程产生的日志信息</td>
+</tr>
+<tr>
+<td>-classpath</td>
+<td>编译文件存在依赖的时候需要遍历哪些路径寻找 class文件</td>
+</tr>
+<tr>
+<td>-sourcepath</td>
+<td>编译文件存在依赖的时候需要遍历哪些路径寻找 java文件</td>
+</tr>
+<tr>
+<td>-d</td>
+<td>生成到字节码文件存储在哪个文件夹里</td>
+</tr>
+<tr>
+<td>-source</td>
+<td>指定输入到编译器的源代码符合哪个版本</td>
+</tr>
+<tr>
+<td>-target</td>
+<td>指定编译器输出的字节码对应jvm的版本</td>
+</tr>
+<tr>
+<td>-bootclasspath</td>
+<td>指定引导类jar包路径</td>
+</tr>
+<tr>
+<td>-extdirs</td>
+<td>指定扩展类jar包路径</td>
+</tr>
+<tr>
+<td>-processor</td>
+<td>指定编译过程需要调用的 注释处理程序 (AbstractProcessor)类全名</td>
+</tr>
+<tr>
+<td>-processorpath</td>
+<td>注视处理程序字节文件存储的路径</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1-4-将字节码文件打包成-jar"><a href="#1-4-将字节码文件打包成-jar" class="headerlink" title="1.4 将字节码文件打包成 jar"></a>1.4 将字节码文件打包成 jar</h4><p>一般的字节码编译后会按照类名称的组织形式存储在文件夹中，这种形式在发布 部署的时候不方便，java中提供一种jar格式可以对字节码进行压缩打包，并且jvm支持这种格式 只需要提供参数 <code>-jar</code> 声明就可以了。</p>
+<p>创建文件 <code>StubA.java</code> <code>StubB.java</code> 并使用包名称 <code>foo.bar.baz</code> ，创建存储字节码文件的文件夹 <code>mkdir bin</code>，编译文件 <code>javac -d bin StubB.java StubA.java</code>，此时可以执行 <code>java -cp bin foo.bar.baz.StubA</code> 运行字节码了，将字节码打包成jar包可以执行命令 <code>jar -cvf Demo.jar -C bin foo</code></p>
+<p>但是这样打包并不能通过 <code>java -jar Demo.jar</code> 来执行，是因为需要给jar包中创建配置文件 <code>MANIFEST.MF</code> ，其配置内容主要是配置项 <code>Main-Class</code> ， 用来指定需要执行的类名称，这里需要的配置项是 <code>Main-Class: foo.bar.baz.StubA</code>，通过命令 <code>jar -cvfm Demo.jar MANIFEST.MF -C bin com</code> 得到包 <code>Demo.jar</code> ，可以直接通过命令 <code>java -jar Demo.jar</code> 来执行了。<br><code>jar</code> 命令参数说明<br>|参数|作用|<br>|–|–|<br>|-c|创建jar文件|<br>|-x|解压jar文件|<br>|-v|显示创建/解压的过程细节|<br>|-f|指定文件名称|<br>|-m|指定配置文件|<br>|-C|指定字节码的路径|</p>
+<p>解压jar包可以执行 <code>jar -xvf xxx.jar</code> ，不过这个命令好像不能指定解压到的目录，不过jar本质上就是通过zip压缩得到的文件，可以通过 <code>unzip</code> 进行解压 然后通过参数 <code>-d</code> 指定解压到的目录。</p>
+<p>这里需要注意的是参数 -C 用来指定字节码所在的目录，层级要到 跟 包名称对应的文件夹结构那一层，然后后面的参数用来指定 包层级路径，则这个层级下的所有字节文件都会打包到 jar文件中。</p>
+<h2 id="2-执行过程"><a href="#2-执行过程" class="headerlink" title="2. 执行过程"></a>2. 执行过程</h2><h4 id="2-1-常用命令"><a href="#2-1-常用命令" class="headerlink" title="2.1 常用命令"></a>2.1 常用命令</h4><p>字节码的执行相对简单，可以使用命令 <code>java</code> 来启动jvm执行指定的类。java 命令的参数是类全名并不是文件名称，字节码文件的查询读取过程是 jvm 自动完成的，这点在 <code>1.2</code> 章节做了详细解释。<br>jvm在查询的过程中默认从当前文件夹开始搜索，也可以通过参数 <code>-cp</code> 或 <code>-classpath</code> 指定 jvm查询字节码的文件夹。<br>也可以通过参数 <code>-D</code> 传递参数到 jvm，在代码层面可以通过方法 <code>System.getProperty(&quot;name&quot;)</code> 获取值，在java中这个被称作系统(jvm)属性，举例如下：<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">Stub</span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span>(<span class="params">String[] args</span>)</span> &#123;</span><br><span class="line">        System.<span class="keyword">out</span>.println(System.getProperty(<span class="string">"foo"</span>));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>执行命令 <code>java -Dfoo=aa222bbb</code> 得到结果 <code>aa222bbb</code></p>
+<h4 id="2-2-JVM代理"><a href="#2-2-JVM代理" class="headerlink" title="2.2 JVM代理"></a>2.2 JVM代理</h4><p>jvm在执行的过程中提供了一系列的钩子，可以通过外部代码干预jvm的执行过程，这些外部代码的实现形式可以分为两种：<br>一种是 native 方法，通过c/c++代码实现，以动态链接库 （xxx.so）的形式提供给jvm，这种被称为 JVMTI（JVM Tool Interface）。<br>其中参数 <code>-agentlib</code> <code>-agentpath</code> 是用来配置动态链接库的。</p>
+<p>另一种是通过java代码的形式实现，需要通过 <code>instrumentation</code> 中的接口实现，这个代码以jar包的形式 在执行<code>java</code>命令的时候 以参数<code>-javaagent:agent.jar=OptionsString</code> 的形式指定，具体用法举例如下：<br>需要先制作jar包，创建文件 <code>MyJvmAgent.java</code> 并提供方法 <code>public static void premain(String agentOpt, Instrumentation instrumentation)</code> 提供给jvm调用，内容如下<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.lang.instrument.ClassFileTransformer;</span><br><span class="line"><span class="keyword">import</span> java.lang.instrument.IllegalClassFormatException;</span><br><span class="line"><span class="keyword">import</span> java.lang.instrument.Instrumentation;</span><br><span class="line"><span class="keyword">import</span> java.security.ProtectionDomain;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MyJvmAgent</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">premain</span><span class="params">(String agentOpt, Instrumentation instrumentation)</span> </span>&#123;</span><br><span class="line">        instrumentation.addTransformer(<span class="keyword">new</span> ClassFileTransformer() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">byte</span>[] transform(ClassLoader loader, String className, Class&lt;?&gt; classBeingRedefined, ProtectionDomain protectionDomain, <span class="keyword">byte</span>[] classfileBuffer) <span class="keyword">throws</span> IllegalClassFormatException &#123;</span><br><span class="line">                System.out.println(<span class="string">"class:"</span> + className);</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>方法中以匿名方法的形式实现了方法 <code>java.lang.instrument.Instrumentation.addTransformer()</code> 其中的参数意义如下：<br>|类型|作用|<br>|–|–|<br>|ClassLoader loader|加载类使用的 ClassLoader对象|<br>|String className|类名称|<br>|Class&lt;?&gt; classBeingRedefined|???|<br>|ProtectionDomain protectionDomain|???|<br>|byte[] classfileBuffer|类对应的字节码|</p>
+<p>然后将其打包成jar包，需要配置文件 <code>MANIFEST.MF</code><br><figure class="highlight monkey"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Premain-<span class="class"><span class="keyword">Class</span>: <span class="title">MyJvmAgent</span></span></span><br></pre></td></tr></table></figure></p>
+<p>打包命令 :<br><figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">javac </span>MyJvmAgent.<span class="keyword">java </span><span class="comment"># 编译成字节码</span></span><br><span class="line"><span class="keyword">jar </span>-cvfm MyJvmAgent.<span class="keyword">jar </span>MANIFEST.MF MyJvmAgent.class MyJvmAgent\$<span class="number">1</span>.class <span class="comment"># 打包成jar</span></span><br></pre></td></tr></table></figure></p>
+<p>需要一个执行类 <code>Stub.java</code><br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Stub</span> &#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span>(<span class="params">String[] args</span>)</span> &#123;</span><br><span class="line">        System.<span class="keyword">out</span>.println(<span class="string">"method : main"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>运行<br><figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">javac </span>Stub.<span class="keyword">java </span><span class="comment"># 编译对象</span></span><br><span class="line"><span class="keyword">java </span>-<span class="keyword">javaagent:MyJvmAgent.jar </span>Stub <span class="comment"># 指定代理程序执行</span></span><br></pre></td></tr></table></figure></p>
+<h4 id="2-3-运行资源参数设置"><a href="#2-3-运行资源参数设置" class="headerlink" title="2.3 运行资源参数设置"></a>2.3 运行资源参数设置</h4><p>-X</p>
+<h2 id="3-字节码分析"><a href="#3-字节码分析" class="headerlink" title="3. 字节码分析"></a>3. 字节码分析</h2><p>源代码经编译后生成的字节码是可以直接给jvm来执行的二进制文件，其内部以jvm规范的字节形式进行组织，可以使用命令 <code>javap</code> 对字节码进行分析（反编译），javap常用的参数如下：<br>|参数|作用|<br>|–|–|<br>|-v -verbose|输出反汇编后的详细信息|<br>|-c|对代码进行反编译|<br>|-p|显示所有类和成员|<br>|-l|输出行号 和 本地变量表|<br>|-cp|指定字节码文件的扫描路径|<br>|-bootclasspath|指定引导类字节码文件路径|</p>
+<p>创建一个简单类进行反编译<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">package</span> <span class="selector-tag">foo</span><span class="selector-class">.bar</span><span class="selector-class">.baz</span>;</span><br><span class="line"><span class="selector-tag">class</span> <span class="selector-tag">Stub</span>&#123; &#125;</span><br></pre></td></tr></table></figure></p>
+<p>进行编译 反编译操作 <code>javac Stub.java &amp;&amp; javap -v Stub</code> 得到如下结果<br><figure class="highlight clean"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">Classfile /workspace/tests/java/JavaStudy/tmp/Stub.<span class="keyword">class</span></span><br><span class="line">  Last modified <span class="number">2019</span><span class="number">-8</span><span class="number">-13</span>; size <span class="number">194</span> bytes</span><br><span class="line">  MD5 checksum <span class="number">3e33</span>fabc04ec68cecb1e6b6784bb552f</span><br><span class="line">  Compiled <span class="keyword">from</span> <span class="string">"Stub.java"</span></span><br><span class="line"><span class="keyword">class</span> foo.bar.baz.Stub</span><br><span class="line">  minor version: <span class="number">0</span></span><br><span class="line">  major version: <span class="number">52</span></span><br><span class="line">  flags: ACC_SUPER</span><br><span class="line">Constant pool:</span><br><span class="line">   #<span class="number">1</span> = Methodref          #<span class="number">3.</span>#<span class="number">10</span>         <span class="comment">// java/lang/Object."&lt;init&gt;":()V</span></span><br><span class="line">   #<span class="number">2</span> = Class              #<span class="number">11</span>            <span class="comment">// foo/bar/baz/Stub</span></span><br><span class="line">   #<span class="number">3</span> = Class              #<span class="number">12</span>            <span class="comment">// java/lang/Object</span></span><br><span class="line">   #<span class="number">4</span> = Utf8               &lt;init&gt;</span><br><span class="line">   #<span class="number">5</span> = Utf8               ()V</span><br><span class="line">   #<span class="number">6</span> = Utf8               Code</span><br><span class="line">   #<span class="number">7</span> = Utf8               LineNumberTable</span><br><span class="line">   #<span class="number">8</span> = Utf8               SourceFile</span><br><span class="line">   #<span class="number">9</span> = Utf8               Stub.java</span><br><span class="line">  #<span class="number">10</span> = NameAndType        #<span class="number">4</span>:#<span class="number">5</span>          <span class="comment">// "&lt;init&gt;":()V</span></span><br><span class="line">  #<span class="number">11</span> = Utf8               foo/bar/baz/Stub</span><br><span class="line">  #<span class="number">12</span> = Utf8               java/lang/Object</span><br><span class="line">&#123;</span><br><span class="line">  foo.bar.baz.Stub();</span><br><span class="line">    descriptor: ()V</span><br><span class="line">    flags:</span><br><span class="line">    Code:</span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">1</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: aload_0</span><br><span class="line">         <span class="number">1</span>: invokespecial #<span class="number">1</span>                  <span class="comment">// Method java/lang/Object."&lt;init&gt;":()V</span></span><br><span class="line">         <span class="number">4</span>: return</span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line <span class="number">2</span>: <span class="number">0</span></span><br><span class="line">&#125;</span><br><span class="line">SourceFile: <span class="string">"Stub.java"</span></span><br></pre></td></tr></table></figure></p>
+<p>这里面主要的部分是<br><figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Constant pool:</span><br><span class="line">    #1 = Methodref <span class="params">...</span><span class="params">...</span></span><br></pre></td></tr></table></figure></p>
+<p>和<br><figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="built_in">..</span><span class="built_in">..</span><span class="built_in">..</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>第一部分被称作 常量池 (<code>Constant pool</code>) , 这部分其实类似于 elf中的符号表，是对代码中的一些可以看作常量的内容统一管理起来了。重要的是第二部分，这里的例子中能看出来是一个方法 <code>foo.bar.baz.Stub()</code> 这个方法其实就是编译器自动帮我们加进去的构造方法，在源代码中并没有定义。然后 <code>descriptor</code> 定义了参数以及返回值，<code>code</code> 部分是jvm能够识别的汇编指令，这个就是方法中的代码了。</p>
+<p>使用一个丰富的数据进行查看：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> foo.bar.baz;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Stub</span></span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> String[] property;</span><br><span class="line"></span><br><span class="line">    Stub() &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">calc</span><span class="params">(<span class="keyword">int</span> num1, <span class="keyword">int</span> num2)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> num1 * num2;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>执行 <code>javac Stub.java &amp;&amp; javap -v Stub</code> 重点看下代码去的内容<br><figure class="highlight dts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  protected java.lang.String[] property; <span class="comment">// 属性定义 类似于c中的预处理</span></span><br><span class="line"><span class="symbol">    descriptor:</span> [Ljava<span class="meta-keyword">/lang/</span>String;      <span class="comment">// 属性类型的描述方式</span></span><br><span class="line"><span class="symbol">    flags:</span> ACC_PROTECTED                 <span class="comment">// 访问权限</span></span><br><span class="line"></span><br><span class="line">  foo.bar.baz.Stub();                    <span class="comment">// 自定义的构造方法</span></span><br><span class="line"><span class="symbol">    descriptor:</span> ()V</span><br><span class="line"><span class="symbol">    flags:</span></span><br><span class="line"><span class="symbol">    Code:</span></span><br><span class="line">      stack=<span class="number">1</span>, locals=<span class="number">1</span>, args_size=<span class="number">1</span></span><br><span class="line">         <span class="number">0</span>: aload_0</span><br><span class="line">         <span class="number">1</span>: invokespecial <span class="meta">#1                  <span class="comment">// Method java/lang/Object."&lt;init&gt;":()V</span></span></span><br><span class="line">         <span class="number">4</span>: return</span><br><span class="line"><span class="symbol">      LineNumberTable:</span>                  <span class="comment">// 对应的源代码行数</span></span><br><span class="line">        line <span class="number">5</span>: <span class="number">0</span></span><br><span class="line">        line <span class="number">6</span>: <span class="number">4</span></span><br><span class="line"></span><br><span class="line">  public int calc(int, int);                <span class="comment">// 方法定义</span></span><br><span class="line"><span class="symbol">    descriptor:</span> (II)I                       <span class="comment">// 参数 返回值类型</span></span><br><span class="line"><span class="symbol">    flags:</span> ACC_PUBLIC                       <span class="comment">// 访问权限</span></span><br><span class="line"><span class="symbol">    Code:</span></span><br><span class="line">      stack=<span class="number">2</span>, locals=<span class="number">2</span>, args_size=<span class="number">2</span>        <span class="comment">// 对应指令</span></span><br><span class="line">         <span class="number">0</span>: iload_1</span><br><span class="line">         <span class="number">1</span>: iconst_2</span><br><span class="line">         <span class="number">2</span>: imul</span><br><span class="line">         <span class="number">3</span>: ireturn</span><br><span class="line"><span class="symbol">      LineNumberTable:</span></span><br><span class="line">        line <span class="number">9</span>: <span class="number">0</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>几个关键标志：<br><code>descriptor</code> 标明数据类型，若是对象类型则替换为对象类名称，若是基本类型则有对应基本类型的标识 如下表：<br>|描述符|代码|<br>|–|–|<br>|B|byte|<br>|C|char|<br>|S|short|<br>|I|int|<br>|J|long|<br>|F|float|<br>|D|double|<br>|Z|boolean|<br>|V|void|<br>|L&lt;…&gt;;|对象|<br>|[&lt;…&gt;|数组|</p>
+<p>其中对象的表示方式 <code>L&lt;...&gt;;</code> 其 <code>&lt;...&gt;</code> 代表对象的类名称，比如参数类型是 <code>java.lang.String</code> 则其表示形式是 <code>Ljava/lang/String;</code><br>其中数组的表示方式 <code>[&lt;...&gt;</code> 其 <code>&lt;...&gt;</code> 代表类型描述符，必须源代码定义形式 <code>int[]</code> 对应的表示形式是 <code>[I</code> ，对象 <code>foo.bar.Baz[]</code> 的表示形式是 <code>[Lfoo/bar/Baz;</code></p>
+<p>若是属性 其 <code>descriptor</code> 只需要标明属性的类型。<br>若是方法 其 <code>descriptor</code> 需要标明 参数类型和返回类型，其形式如下 <code>(参数类型...)返回类型</code>。</p>
+<p><code>flags</code> 标明数据的修饰情况，其与源码的对应形式如下表：</p>
+<table>
+<thead>
+<tr>
+<th>标志名</th>
+<th>源码名</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ACC_PUBLIC</td>
+<td>public</td>
+<td>访问权限</td>
+</tr>
+<tr>
+<td>ACC_PROTECTED</td>
+<td>protected</td>
+<td>访问权限</td>
+</tr>
+<tr>
+<td>ACC_PRIVATE</td>
+<td>private</td>
+<td>访问权限</td>
+</tr>
+<tr>
+<td>ACC_FINAL</td>
+<td>final</td>
+<td>常量</td>
+</tr>
+<tr>
+<td>ACC_STATIC</td>
+<td>static</td>
+<td>静态</td>
+</tr>
+<tr>
+<td>ACC_INTERFACE</td>
+<td>interface</td>
+<td>接口</td>
+</tr>
+<tr>
+<td>ACC_ABSTRACT</td>
+<td>abstract</td>
+<td>抽象</td>
+</tr>
+<tr>
+<td>ACC_ENUM</td>
+<td>enum</td>
+<td>枚举</td>
+</tr>
+<tr>
+<td>ACC_ANNOTATION</td>
+<td>annotation</td>
+<td>注解</td>
+</tr>
+<tr>
+<td>ACC_SUPER</td>
+<td></td>
+<td>兼容</td>
+</tr>
+<tr>
+<td>ACC_SYNTHETIC</td>
+<td></td>
+<td>编译器产生</td>
+</tr>
+</tbody>
+</table>
+<p><code>Code</code> 标明方法中的代码部分，其主要内容是jvm标准的汇编指令，其中也标明了函数运行所需要的栈信息<br>|||<br>|–|–|<br>|stack|运行这段代码所需栈大小|<br>|locals|临时变量所需内存|<br>|args_size|函数参数个数 若是非静态方法 jvm还会默认添加参数 this进来|</p>
+<p>编译器其实会做很多优化工作，比如定义一个 privet 属性，但是这个属性在内部并没有被使用，编译器会将这个属性移除。</p>
+<h2 id="4-jvm内存布局"><a href="#4-jvm内存布局" class="headerlink" title="4. jvm内存布局"></a>4. jvm内存布局</h2>
+            
+                
+
+            
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/java/">java</a> <a class="tag tag--primary tag--small t-link" href="/tags/编译原理/">编译原理</a>
+
+            </div>
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/08/13/java基础-面向对象/"  data-tooltip="java基础-面向对象">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/08/06/spring-beans使用/" data-tooltip="spring-beans使用">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2019/08/13/java基础-编译运行原理/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2019/08/13/java基础-编译运行原理/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2019/08/13/java基础-编译运行原理/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+            
+                <div id="ds-thread" class="ds-thread" data-thread-key="2019/08/13/java基础-编译运行原理/"
+     data-title="java基础-编译运行原理" data-url="/2019/08/13/java基础-编译运行原理/">
+</div>
+
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2019 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="3">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/08/13/java基础-面向对象/"  data-tooltip="java基础-面向对象">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/08/06/spring-beans使用/" data-tooltip="spring-beans使用">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2019/08/13/java基础-编译运行原理/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2019/08/13/java基础-编译运行原理/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2019/08/13/java基础-编译运行原理/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="3">
+    <ul class="share-options">
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=/2019/08/13/java基础-编译运行原理/">
+                <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2019/08/13/java基础-编译运行原理/">
+                <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=/2019/08/13/java基础-编译运行原理/">
+                <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><p> good at develop framework </p>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+        <script type="text/javascript">
+            var duoshuoQuery = {short_name:'fantiq'};
+            (function() {
+                var ds = document.createElement('script');
+                ds.type = 'text/javascript';ds.async = true;
+                ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+                ds.charset = 'UTF-8';
+                (document.getElementsByTagName('head')[0]
+                || document.getElementsByTagName('body')[0]).appendChild(ds);
+            })();
+        </script>
+    
+
+
+
+</html>

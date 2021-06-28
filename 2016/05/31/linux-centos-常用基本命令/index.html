@@ -1,0 +1,542 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>linux centos 常用基本命令总结 - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta name="description" content="linux centos 6.x 常用的一些命令总结这里不讲基本用法 多讲一些很有用的小技巧">
+<meta name="keywords" content="linux,centos">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="linux centos 常用基本命令总结">
+<meta property="og:url" content="/2016/05/31/linux-centos-常用基本命令/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:description" content="linux centos 6.x 常用的一些命令总结这里不讲基本用法 多讲一些很有用的小技巧">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:updated_time" content="2016-08-02T06:32:02.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="linux centos 常用基本命令总结">
+<meta name="twitter:description" content="linux centos 6.x 常用的一些命令总结这里不讲基本用法 多讲一些很有用的小技巧">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
+    
+    
+        <meta property="og:image" content="/2016/05/31/linux-centos-常用基本命令/logo.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="/2016/05/31/linux-centos-常用基本命令/logo.jpg" />
+    
+    
+        <meta property="og:image" content="/2016/05/31/linux-centos-常用基本命令/cover.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="/2016/05/31/linux-centos-常用基本命令/cover.jpg" />
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="3">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="3">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+        <div class="post-header-cover
+                    text-left
+                    "
+             style="background-image:url('/2016/05/31/linux-centos-常用基本命令/cover.jpg');"
+             data-behavior="3">
+            
+                <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title" itemprop="headline">
+            linux centos 常用基本命令总结
+        </h1>
+    
+    <div class="post-meta">
+    <time itemprop="datePublished" content="Tue May 31 2016 19:53:02 GMT+0800">
+	
+		    5月 31, 2016
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/运维/">运维</a>
+
+
+    
+</div>
+</div>
+            
+        </div>
+
+            <div id="main" data-behavior="3"
+                 class="hasCover
+                        hasCoverMetaIn
+                        hasCoverCaption">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+        <span class="post-header-cover-caption caption">linux command</span>
+    
+    
+    <div class="post-content markdown" itemprop="articleBody">
+        <div class="main-content-wrap">
+            <p>linux centos 6.x 常用的一些命令总结<br>这里不讲基本用法 多讲一些很有用的小技巧</p>
+<a id="more"></a>
+<h2 id="1-常用的文件操作"><a href="#1-常用的文件操作" class="headerlink" title="1 常用的文件操作"></a>1 常用的文件操作</h2><figure class="highlight vala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"># change directory 切换目录</span></span><br><span class="line">cd dir</span><br><span class="line"></span><br><span class="line"><span class="meta"># 列出当前文件加下的所有文件</span></span><br><span class="line">ls</span><br><span class="line"></span><br><span class="line"><span class="meta"># 更细的列出文件夹下的所有文件 -a 可以列出隐藏文件</span></span><br><span class="line">ll -a</span><br><span class="line"></span><br><span class="line"><span class="meta"># 拷贝文件 -r 拷贝一个目录</span></span><br><span class="line">cp -r source dist</span><br><span class="line"></span><br><span class="line"><span class="meta"># 拷贝远程文件 远程文件地址 username@ip:/foo/bar</span></span><br><span class="line">scp source dist</span><br><span class="line"></span><br><span class="line"><span class="meta"># 移动文件 或者修改文件名称</span></span><br><span class="line"><span class="meta"># -f 覆盖不询问 -n 覆盖询问 -b 文件在覆盖前做备份 (备份文件名末尾加 ~ )</span></span><br><span class="line">mv source dist</span><br><span class="line"></span><br><span class="line"><span class="meta"># remove 删除文件 -r 删除文件夹 -f 强制删除不提示</span></span><br><span class="line">rm -rf</span><br><span class="line"></span><br><span class="line"><span class="meta"># 创建一个快捷方式 软连接</span></span><br><span class="line">ln -s source dist</span><br></pre></td></tr></table></figure>
+<h2 id="2-文件包的安装"><a href="#2-文件包的安装" class="headerlink" title="2 文件包的安装"></a>2 文件包的安装</h2><figure class="highlight vala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"># 不用确认直接安装</span></span><br><span class="line">yum install pkgname -y</span><br><span class="line"><span class="meta"># 查询已经安装的包</span></span><br><span class="line">yum list pkgname</span><br><span class="line"><span class="meta"># yum搜索一个包</span></span><br><span class="line">yum search pkgname</span><br><span class="line"><span class="meta"># 删除安装的包</span></span><br><span class="line">yum remove pkgname</span><br><span class="line"></span><br><span class="line"><span class="meta"># 查询安装的包</span></span><br><span class="line">rpm -qa | grep pkgname</span><br><span class="line"><span class="meta"># 查询安装包的详细信息</span></span><br><span class="line">rpm -ql | grep pkgname</span><br></pre></td></tr></table></figure>
+<h2 id="3-用户相关"><a href="#3-用户相关" class="headerlink" title="3 用户相关"></a>3 用户相关</h2><figure class="highlight vala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"># 当前登录用户</span></span><br><span class="line">whoami</span><br><span class="line">id</span><br><span class="line"><span class="meta"># 切换登录用户</span></span><br><span class="line">su username</span><br><span class="line"><span class="meta"># 修改用户密码</span></span><br><span class="line">passwd username</span><br></pre></td></tr></table></figure>
+<h2 id="4-文件相关"><a href="#4-文件相关" class="headerlink" title="4 文件相关"></a>4 文件相关</h2><p>创建一个空文件</p>
+<figure class="highlight tcl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建一个空文件</span></span><br><span class="line">touch <span class="keyword">filename</span></span><br><span class="line"><span class="comment"># 覆盖写入内容到一个文件 没有文件则创建</span></span><br><span class="line">echo <span class="string">""</span> &gt; <span class="keyword">filename</span></span><br><span class="line"><span class="comment"># 追加写入内容到文件</span></span><br><span class="line">echo <span class="string">""</span> &gt;&gt; <span class="keyword">filename</span></span><br></pre></td></tr></table></figure>
+<p>查看文件<br><figure class="highlight vala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"># 查看全部文件</span></span><br><span class="line">cat filepath</span><br><span class="line"></span><br><span class="line"><span class="meta"># 分页浏览文件</span></span><br><span class="line"></span><br><span class="line"><span class="meta"># </span></span><br><span class="line"><span class="meta"># more 翻页 快捷键</span></span><br><span class="line"><span class="meta">#         上翻        下翻</span></span><br><span class="line"><span class="meta"># 一行      -         回车</span></span><br><span class="line"><span class="meta"># 一页      b         f 空格</span></span><br><span class="line"><span class="meta"># q 退出</span></span><br><span class="line"><span class="meta"># </span></span><br><span class="line"><span class="meta"># </span></span><br><span class="line">more filepath</span><br><span class="line"></span><br><span class="line"><span class="meta"># </span></span><br><span class="line"><span class="meta"># less 翻页 快捷键</span></span><br><span class="line"><span class="meta">#         上翻        下翻</span></span><br><span class="line"><span class="meta"># 一行     y k         j 回车</span></span><br><span class="line"><span class="meta"># 半页      u           d</span></span><br><span class="line"><span class="meta"># 一页      b           f 空格</span></span><br><span class="line"><span class="meta"># q 退出</span></span><br><span class="line"><span class="meta"># 同样可以用vi的一同快捷键</span></span><br><span class="line"><span class="meta"># j k 上下移动 gg 开头 G 结尾</span></span><br><span class="line"><span class="meta"># ctrl+f 下翻一页  ctrl+b 上翻一页 f:front  b:back</span></span><br><span class="line"><span class="meta"># ctrl+u 下翻半页  ctrl+d 上翻半页 u:up     d:dowm</span></span><br><span class="line"></span><br><span class="line">less filepath</span><br><span class="line"></span><br><span class="line"><span class="meta"># 显示文件部分内容 并且内容是实时更新的</span></span><br><span class="line"></span><br><span class="line"><span class="meta"># 显示文件开头 默认前10行</span></span><br><span class="line"><span class="meta"># -c 显示前K字节的内容</span></span><br><span class="line"><span class="meta"># -n 显示前n行的内容 默认10行</span></span><br><span class="line"><span class="meta"># -q </span></span><br><span class="line"><span class="meta"># -v 显示文件名称</span></span><br><span class="line">head filepath</span><br><span class="line"><span class="meta"># 显示文件结尾 默认后10行</span></span><br><span class="line"><span class="meta"># -c 显示前K字节的内容</span></span><br><span class="line"><span class="meta"># -n 显示前n行的内容 默认10行</span></span><br><span class="line"><span class="meta"># -q </span></span><br><span class="line"><span class="meta"># -f </span></span><br><span class="line"><span class="meta"># -F </span></span><br><span class="line"><span class="meta"># -s 文件刷新的频率</span></span><br><span class="line">tail filepath</span><br><span class="line"></span><br><span class="line"><span class="meta"># </span></span><br><span class="line">sed</span><br><span class="line">awk</span><br></pre></td></tr></table></figure></p>
+<h2 id="5-压缩与解压缩"><a href="#5-压缩与解压缩" class="headerlink" title="5 压缩与解压缩"></a>5 压缩与解压缩</h2><p>打包压缩过程<br>打包的过程可以直接调用压缩程序处理文件</p>
+<h4 id="打包"><a href="#打包" class="headerlink" title="打包"></a>打包</h4><figure class="highlight haml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">tar</span><br><span class="line">    -<span class="ruby">c 新建文档</span></span><br><span class="line"><span class="ruby">    -x 解压缩</span></span><br><span class="line"><span class="ruby">    -r 向压缩文档结尾追加文件</span></span><br><span class="line"><span class="ruby">    -u 更新原压缩文件中的文件</span></span><br><span class="line"><span class="ruby">    <span class="comment"># 压缩 解压 都能用到的参数 但只能用其中一个参数</span></span></span><br><span class="line"><span class="ruby">    -z gzip</span></span><br><span class="line"><span class="ruby">    -j bzip2</span></span><br><span class="line"><span class="ruby">    -Z compress</span></span><br><span class="line"><span class="ruby">    -v 显示进程</span></span><br><span class="line"><span class="ruby">    -O 将文件解开到标准输出流</span></span><br><span class="line"><span class="ruby"></span></span><br><span class="line"><span class="ruby">    <span class="comment"># 必须作为最后一个参数</span></span></span><br><span class="line"><span class="ruby">    -f 文档名称</span></span><br></pre></td></tr></table></figure>
+<p>举例 解压一个文件 <code>nginx.tar.gz</code></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> x 解压缩</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> z 解压算法 gzip</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> v 显示解压进程</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> f 指定文档</span></span><br><span class="line">tar -xzvf nginx.tar.gz</span><br></pre></td></tr></table></figure>
+<p>举例 打包一个文件 <code>nginx</code></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> c 创建打包文件</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> z 选择文件压缩算法</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> v 显示进程</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> f 指定压缩后的文件名</span></span><br><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> tar -czvf 打包后的文件名 要打包的文件或文件夹</span></span><br><span class="line">tar -czvf my.tar.gz nginx</span><br></pre></td></tr></table></figure>
+<h4 id="压缩"><a href="#压缩" class="headerlink" title="压缩"></a>压缩</h4><h5 id="linux系统"><a href="#linux系统" class="headerlink" title="linux系统"></a>linux系统</h5><table>
+<thead>
+<tr>
+<th>文件类型</th>
+<th>后缀</th>
+<th>压缩</th>
+<th>解压缩</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>gzip</td>
+<td>.gz</td>
+<td>gzip file</td>
+<td>gzip -d / gunzip</td>
+</tr>
+<tr>
+<td>bzip2</td>
+<td>.bz2</td>
+<td>bzip2</td>
+<td>bunzip2</td>
+</tr>
+<tr>
+<td>compress</td>
+<td>.Z</td>
+<td>compress</td>
+<td>uncompress</td>
+</tr>
+</tbody>
+</table>
+<h5 id="windows系统"><a href="#windows系统" class="headerlink" title="windows系统"></a>windows系统</h5><table>
+<thead>
+<tr>
+<th>文件类型</th>
+<th>后缀</th>
+<th>压缩</th>
+<th>解压缩</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>zip</td>
+<td>.zip</td>
+<td>zip</td>
+<td>unzip</td>
+</tr>
+<tr>
+<td>rar</td>
+<td>.rar</td>
+<td>rar</td>
+<td>unrar</td>
+</tr>
+</tbody>
+</table>
+<h2 id="6-其他常用"><a href="#6-其他常用" class="headerlink" title="6 其他常用"></a>6 其他常用</h2><figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ssh登录</span></span><br><span class="line">ssh username@ip</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看当前文件夹下面文件大小</span></span><br><span class="line">du -ha</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看服务</span></span><br><span class="line">service servname [start|stop|restart]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看当前系统运行的服务</span></span><br><span class="line">ps -ef | grep servname</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查找一个文件</span></span><br><span class="line"><span class="comment"># -name 查找文件名 -type 查找文件类型</span></span><br><span class="line"><span class="builtin-name">find</span> path [option] name</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 硬盘挂载</span></span><br><span class="line">mount -t nfs ip:/foo/bar dist</span><br><span class="line"><span class="comment"># 取消挂载</span></span><br><span class="line">umount dist </span><br><span class="line"></span><br><span class="line"><span class="comment"># 显示当前操作系统名称</span></span><br><span class="line">uname -a</span><br></pre></td></tr></table></figure>
+<p><a href="http://man.linuxde.net/" target="_blank" rel="noopener">linux命令大全 参考链接</a></p>
+
+            
+                
+
+            
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/centos/">centos</a> <a class="tag tag--primary tag--small t-link" href="/tags/linux/">linux</a>
+
+            </div>
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2016/06/07/linux-centos-samba-文件共享/"  data-tooltip="linux centos samba 文件共享">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2016/05/31/博客搭建过程总结/" data-tooltip="博客搭建过程总结">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2016/05/31/linux-centos-常用基本命令/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2016/05/31/linux-centos-常用基本命令/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2016/05/31/linux-centos-常用基本命令/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+            
+                <div id="ds-thread" class="ds-thread" data-thread-key="2016/05/31/linux-centos-常用基本命令/"
+     data-title="linux centos 常用基本命令总结" data-url="/2016/05/31/linux-centos-常用基本命令/">
+</div>
+
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2019 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="3">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2016/06/07/linux-centos-samba-文件共享/"  data-tooltip="linux centos samba 文件共享">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2016/05/31/博客搭建过程总结/" data-tooltip="博客搭建过程总结">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2016/05/31/linux-centos-常用基本命令/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2016/05/31/linux-centos-常用基本命令/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2016/05/31/linux-centos-常用基本命令/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="3">
+    <ul class="share-options">
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=/2016/05/31/linux-centos-常用基本命令/">
+                <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2016/05/31/linux-centos-常用基本命令/">
+                <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=/2016/05/31/linux-centos-常用基本命令/">
+                <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><p> good at develop framework </p>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+        <script type="text/javascript">
+            var duoshuoQuery = {short_name:'fantiq'};
+            (function() {
+                var ds = document.createElement('script');
+                ds.type = 'text/javascript';ds.async = true;
+                ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+                ds.charset = 'UTF-8';
+                (document.getElementsByTagName('head')[0]
+                || document.getElementsByTagName('body')[0]).appendChild(ds);
+            })();
+        </script>
+    
+
+
+
+</html>

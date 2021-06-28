@@ -1,0 +1,494 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>晶体管的工作原理 - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta name="description" content="计算机中对二进制的表达、实现逻辑计算 是通过电路的电流多少来实现的，对电流的控制是技术实现的关键，晶体管的特性使得他适合用于对电路电流的控制。">
+<meta name="keywords" content="计算机原理,计算机电路">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="晶体管的工作原理">
+<meta property="og:url" content="/2019/03/14/晶体管的工作原理/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:description" content="计算机中对二进制的表达、实现逻辑计算 是通过电路的电流多少来实现的，对电流的控制是技术实现的关键，晶体管的特性使得他适合用于对电路电流的控制。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="/2019/03/14/晶体管的工作原理/WX20190314-164708@2x.png">
+<meta property="og:image" content="/2019/03/14/晶体管的工作原理/WX20190314-172210@2x.png">
+<meta property="og:image" content="/2019/03/14/晶体管的工作原理/1_2036580ipxc1cc0lpc3llc.gif">
+<meta property="og:image" content="/2019/03/14/晶体管的工作原理/WX20190314-220700@2x.png">
+<meta property="og:image" content="/2019/03/14/晶体管的工作原理/2_203659un503x5u7rxfy09m.gif">
+<meta property="og:image" content="/2019/03/14/晶体管的工作原理/3_203452o7757o566omr7777.gif">
+<meta property="og:image" content="/2019/03/14/晶体管的工作原理/4_203449wxbu4tr2birwzqxn.gif">
+<meta property="og:image" content="/2019/03/14/晶体管的工作原理/5_203449isxbz7llf7plj7pp.gif">
+<meta property="og:image" content="/2019/03/14/晶体管的工作原理/6_203447rgw5gw1cwcwm3mg5.gif">
+<meta property="og:updated_time" content="2019-03-18T06:27:08.810Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="晶体管的工作原理">
+<meta name="twitter:description" content="计算机中对二进制的表达、实现逻辑计算 是通过电路的电流多少来实现的，对电流的控制是技术实现的关键，晶体管的特性使得他适合用于对电路电流的控制。">
+<meta name="twitter:image" content="/2019/03/14/晶体管的工作原理/WX20190314-164708@2x.png">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="3">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="3">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+            <div id="main" data-behavior="3"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title" itemprop="headline">
+            晶体管的工作原理
+        </h1>
+    
+    <div class="post-meta">
+    <time itemprop="datePublished" content="Thu Mar 14 2019 14:54:58 GMT+0800">
+	
+		    3月 14, 2019
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/计算机原理/">计算机原理</a>
+
+
+    
+</div>
+</div>
+    
+    <div class="post-content markdown" itemprop="articleBody">
+        <div class="main-content-wrap">
+            <p>计算机中对二进制的表达、实现逻辑计算 是通过电路的电流多少来实现的，对电流的控制是技术实现的关键，晶体管的特性使得他适合用于对电路电流的控制。<br><a id="more"></a><br>这里的每个模块展开都是一个很大的知识领域，目的只是想要让思路逻辑连贯，不对每个模块过多展开。</p>
+<p>要先搞清电路 才能知道 晶体管是如何控制电路的</p>
+<h2 id="1-电流原理"><a href="#1-电流原理" class="headerlink" title="1. 电流原理"></a>1. 电流原理</h2><p>电流是电子的运动，那什么是电子?<br>电子是原子中的外层粒子，那什么是原子?<br>好吧</p>
+<p>组成物质的是分子 如纯净的水 是由水分子<code>H2O</code> 组成的。分子又是有原子组成，如水分子是由 <code>H</code> <code>O</code> 两个元素所组成，元素算是原子的实例化吧。(元素的分类其实是按照 原子中的 <code>电子</code> 或 <code>质子</code> 数来区分的，但是元素也存在同位素的情况 比如 氕 氘 氚 他们的<code>电子</code> 或 <code>质子</code>相等，但不同的是 <code>中子</code>的数量..)</p>
+<p>原子是由 <code>原子核</code> 与 <code>电子</code> 组成，<code>电子</code>在 <code>原子核</code> 外层运动, <code>原子核</code> 中又包括 <code>中子</code> 与 <code>质子</code> ，也就是说 <code>原子</code> 由 <code>电子</code> <code>中子</code> <code>质子</code> 三者组成。其中 <code>电子</code> 带负电  ，<code>中子</code> 不带电， <code>质子</code> 带正电。也就是说原子默认是不带电的，<code>电子</code>与<code>质子</code>之间的相互吸引力 使电势能达到平衡。</p>
+<p><img src="WX20190314-164708@2x.png" alt="物质-分子-原子-电子"></p>
+<p><code>分子</code>是多个<code>原子</code>组成的，这个组成也是原子之间通过 <code>电子</code> 与 <code>质子</code>的引力实现的。当通过外力使这种平衡打破，比如在一端加入一个吸引力很大的 <code>质子</code> 这个时候 <code>原子</code>内部的电子就会在这个引力的作用下位移，一旦<code>电子</code>运动起来，电流就形成了。(当然 电子 的运动也要准守能量守恒的，必定的有电子的流入才会有电子的流出的。比如日常使用的电 是通过机械运动使导体切割磁感线，通过磁感线的驱动下让电子运动的) 每个原子是能获取一个电子才会失去一个电子的。</p>
+<p><img src="WX20190314-172210@2x.png" alt="电子的运动"></p>
+<h2 id="2-二极管"><a href="#2-二极管" class="headerlink" title="2. 二极管"></a>2. 二极管</h2><p>由上面基础知识可知，如果想要对电流进行干预，是需要在电流的导体之间做一些改变。<strong><code>二极管</code> <code>三极管</code> 统称为 <code>晶体管</code></strong>，晶体管泛指使用晶体实现的特殊导体，如我们常用的硅晶体 (Si)。</p>
+<p>二极管的特点是，正向导电 反向不导电，也就是说 只有一个方向上的电流才会通过，而反方向的话则不能通过，这里的情况是在一定电压范围下的，如果电压足够大(击穿电压) 还是能导电的。</p>
+<p>基于二极管的特性 二极管主要用作整流，当然 这个特性也能用与计算机中的电路来表示 <code>0</code> <code>1</code>，他就像一个开关一样。但是他是由电流方向决定的，要区分出来这些<code>0</code> <code>1</code> 状态，我们不得不对电流方向进行改变，而这个改变需要通过机械的形式，也就是说 <code>二极管</code> 的开关功能 并不能通过简单的非机械的形式来控制他的开关状态。三极管通过引入一个外部的电流实现了对开关的控制，也是对电流流向的控制。</p>
+<p>三级管也是在二极管的基础之上实现的，先看二极管的实现，如何能够做到单项导电这个功能。电子存在导体材料中，如果要去控制电子的流动，则要在导体上做变动。目前的二极管是以 <code>PN结</code> 的形式来实现的, 何为 <code>PN结</code> ?</p>
+<p>二极管的构造由三个部分组成 <code>P极</code> <code>N极</code> <code>PN结</code> , 其中的 <code>PN结</code> 是电子扩散自动产生的，二极管以稳定的 <code>Si</code>  硅元素作为主要导电介质，在硅元素的两端分别参杂一些其他元素形成两个极，其中 <code>P极</code> 掺杂的元素是 <code>硼</code> ，<code>硼</code> 元素最外层是 3 个电子 与 <code>硅</code>元素的最外层的 4 个电子形成共价键 由于<code>硼</code>的外层电子少一个 则会形成一个 <code>空穴</code>, 这个参杂后的区域则为 <code>P极</code> 且 <code>P级</code> 对电子是有易得性 P = Positive，但是这里是没有多余电子的，因为每个元素的外层电子与内部质子相等。<code>N极</code> 掺杂的杂质是 <code>磷</code>，<code>磷</code> 的最外层电子是 5个，与 硅的 4 个 外层电子形成共价键后 还有一个 电子，这个电子存在易失性 N = Negative 同样 <code>N极</code> 也是不带电的。<br>由于 <code>P级</code> 对电子有易得性 <code>N极</code> 对电子有易失性，将这两个区域放在一起的时候，最接近的两个地方的电子就会有一部分从 <code>N极</code> 偏移到 <code>P极</code> ，这样 <code>P极</code> <code>N极</code> 的中间部分就形成了一个新的区域 叫 <code>PN结</code></p>
+<h5 id="PN结的电子分布情况"><a href="#PN结的电子分布情况" class="headerlink" title="PN结的电子分布情况"></a>PN结的电子分布情况</h5><p>由于 <code>P极</code> <code>N极</code> 相邻的位置处，电子在引力的作用下会发生位置偏移，<code>N极</code> 的电子进入<code>P极</code>区域，这个过程仅仅在相邻区域的一定宽度内形成 电子的扩散。扩散过程如下图：<br><img src="1_2036580ipxc1cc0lpc3llc.gif" alt></p>
+<p>最终形成的是下图这样的一个布局，这样在 <code>PN结</code> 区域形成了一个跟 <code>P-N</code> 区域相反的电场，这样就有办法处理电流的流向了。<br><img src="WX20190314-220700@2x.png" alt></p>
+<p>在电场力的作用下，电子还会流向 <code>N极</code> 方向，然后又在 <code>P-N</code> 电场力的作用下 流向 <code>P极</code>，所以 其实 <code>PN结</code> 中的电子是运动的，如下图一样，不过实际的电子移动并没有途中那样规律<br><img src="2_203659un503x5u7rxfy09m.gif" alt="PN结 电场 削弱"></p>
+<h5 id="PN-结构是如何控制单向电流"><a href="#PN-结构是如何控制单向电流" class="headerlink" title="PN 结构是如何控制单向电流"></a>PN 结构是如何控制单向电流</h5><p>当对二极管的 <code>P极</code> 加正电， 在外力的作用下 电子 会向 <code>P极</code> 流动，<code>PN结</code> 区域形成的电场力就会被削弱(电子减少，平衡被打破)，最后大量的电子会定向运动 形成电流 导致通电。<br>PN结 电场 削弱<br><img src="3_203452o7757o566omr7777.gif" alt="PN结 电场 削弱"><br><img src="4_203449wxbu4tr2birwzqxn.gif" alt="大量电子流向P极"><br>大量电子流向P极</p>
+<p>当反转外部电流，将电压加到 <code>N极</code> <code>N极</code> 电子会流出 外部电压又把电流输入到 <code>P极</code> 进而导致<code>PN结</code>的电场力争强，最终只会有很少量的电子流向 <code>N极</code> 电路中只会形成微弱的电流<br><img src="5_203449isxbz7llf7plj7pp.gif" alt><br><img src="6_203447rgw5gw1cwcwm3mg5.gif" alt></p>
+<p>终于 解释了 二极管的工作原理</p>
+<p><strong>本来以为将二极管的电子运动原理搞清楚，就能轻松推算出来三极管中的电子运动规律，进而解释三极管实现开关以及电路放大的原理。但是是我太年轻了，<strong><em>上面二极管的电子运动过程并不是真实的</em></strong>，而是为了方便理解 人为脑补的运动过程。<br><strong><em>目前的技术 至今无法观察到电子的运动轨迹</em></strong>，然后我又花了几天的时间，搞明白了电子的发现过程。汤姆逊发现电子的过程是在 <code>阴极射线管</code>中观察到 在二极管中增加电压时 二极管中会出现光束，并通过一系列实现证实，这个光束不是<code>光子</code> ，因为光子不会受磁场的影响，而这里的光束会受磁场影响，并通过风车实现证实这个组成光束的粒子是有质量的，然后这些粒子还受到电场的影响。<br>所以，这里并不能通过电子的运动分析 <code>二极管</code> <code>三极管</code> 的原理</strong></p>
+<p>当然 这些原理都是来自于 <code>阴极射线管</code> 的原理，这里对电子运动的大概推测也是可信的，他可以由力学知识支持。</p>
+<h2 id="3-三极管"><a href="#3-三极管" class="headerlink" title="3. 三极管"></a>3. 三极管</h2><p>三极管又有多种分类，其中在CPU中使用多的是 <code>场效应管</code>，这里只看这个。刚才提到的 二极管 的功能是能够通过 <code>N-&gt;P</code> 的电流 阻止 <code>P-&gt;N</code> 的电流，将二极管作为CPU逻辑计算中的开关 需要不断变换电流方向，这相对麻烦。三极管相对方便，他在二极管的基础上提供了一个外部电压，用外部电压改变<code>PN结</code>形成的电场力 从而达到 利用这跟外部线来决定 晶体管所在电路中的<code>通</code> <code>断</code>。</p>
+<hr>
+<p><strong><em>其实由于我们并不能对电子的运动规律进行详细的研究，也就很难通过电子的运动 去解释三极管的工作原理。这里对三极管的工作形式应该通过电场的角度去分析</em></strong></p>
+<p>对于三极管的工作原理我又从新梳理了一遍 请参考这里<br><a href="/2019/03/17/深入分析电子以及三极管的工作形式/">深入分析电子以及三极管的工作形式</a></p>
+<blockquote>
+<p>参考链接<br><a href="http://blog.sciencenet.cn/blog-729147-1033899.html" target="_blank" rel="noopener">感谢动图</a><br><a href="https://www.youtube.com/watch?v=wDl97w0lAdQ" target="_blank" rel="noopener">晶体管是如何运作的</a><br><a href="https://www.youtube.com/watch?v=ifQTQysUPZs" target="_blank" rel="noopener">电子的发现过程</a></p>
+</blockquote>
+
+            
+                
+
+            
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/计算机原理/">计算机原理</a> <a class="tag tag--primary tag--small t-link" href="/tags/计算机电路/">计算机电路</a>
+
+            </div>
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/03/14/CPU-的工作原理/"  data-tooltip="CPU 的工作原理">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/03/11/c语言对内存的操作/" data-tooltip="c语言对内存的操作">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2019/03/14/晶体管的工作原理/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2019/03/14/晶体管的工作原理/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2019/03/14/晶体管的工作原理/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+            
+                <div id="ds-thread" class="ds-thread" data-thread-key="2019/03/14/晶体管的工作原理/"
+     data-title="晶体管的工作原理" data-url="/2019/03/14/晶体管的工作原理/">
+</div>
+
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2019 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="3">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/03/14/CPU-的工作原理/"  data-tooltip="CPU 的工作原理">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2019/03/11/c语言对内存的操作/" data-tooltip="c语言对内存的操作">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2019/03/14/晶体管的工作原理/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2019/03/14/晶体管的工作原理/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2019/03/14/晶体管的工作原理/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="3">
+    <ul class="share-options">
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=/2019/03/14/晶体管的工作原理/">
+                <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2019/03/14/晶体管的工作原理/">
+                <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=/2019/03/14/晶体管的工作原理/">
+                <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><p> good at develop framework </p>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+        <script type="text/javascript">
+            var duoshuoQuery = {short_name:'fantiq'};
+            (function() {
+                var ds = document.createElement('script');
+                ds.type = 'text/javascript';ds.async = true;
+                ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+                ds.charset = 'UTF-8';
+                (document.getElementsByTagName('head')[0]
+                || document.getElementsByTagName('body')[0]).appendChild(ds);
+            })();
+        </script>
+    
+
+
+
+</html>

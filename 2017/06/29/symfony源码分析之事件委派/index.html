@@ -1,0 +1,461 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>symfony源码分析之事件委派 - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta name="description" content="symfony中的事件委派是一个比较经典的设计模式，这个机制对代码的解耦有很大的帮助。理解事件委派的机制有助于对源代码的理解，比如路由的解析就是基于事件委派来实现的。">
+<meta name="keywords" content="symfony,php框架,源码分析">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="symfony源码分析之事件委派">
+<meta property="og:url" content="/2017/06/29/symfony源码分析之事件委派/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:description" content="symfony中的事件委派是一个比较经典的设计模式，这个机制对代码的解耦有很大的帮助。理解事件委派的机制有助于对源代码的理解，比如路由的解析就是基于事件委派来实现的。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:updated_time" content="2017-07-01T16:10:02.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="symfony源码分析之事件委派">
+<meta name="twitter:description" content="symfony中的事件委派是一个比较经典的设计模式，这个机制对代码的解耦有很大的帮助。理解事件委派的机制有助于对源代码的理解，比如路由的解析就是基于事件委派来实现的。">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="3">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="3">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+            <div id="main" data-behavior="3"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title" itemprop="headline">
+            symfony源码分析之事件委派
+        </h1>
+    
+    <div class="post-meta">
+    <time itemprop="datePublished" content="Thu Jun 29 2017 20:51:20 GMT+0800">
+	
+		    6月 29, 2017
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/symfony源码分析/">symfony源码分析</a>
+
+
+    
+</div>
+</div>
+    
+    <div class="post-content markdown" itemprop="articleBody">
+        <div class="main-content-wrap">
+            <p>symfony中的事件委派是一个比较经典的设计模式，这个机制对代码的解耦有很大的帮助。理解事件委派的机制有助于对源代码的理解，比如路由的解析就是基于事件委派来实现的。<br><a id="more"></a></p>
+<h1 id="事件触发"><a href="#事件触发" class="headerlink" title="事件触发"></a>事件触发</h1><p>这里是事件触发的代码，从这个代码作为切入点进行代码调用逻辑的梳理<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Symfony\Component\HttpKernel\HttpKernel</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">function</span> <span class="title">handleRaw</span><span class="params">(Request $request, $type = self::MASTER_REQUEST)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	$event = <span class="keyword">new</span> GetResponseEvent(<span class="keyword">$this</span>, $request, $type);</span><br><span class="line">	<span class="comment">// 触发事件</span></span><br><span class="line">	<span class="keyword">$this</span>-&gt;dispatcher-&gt;dispatch(KernelEvents::REQUEST, $event);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="委派器以及Listener"><a href="#委派器以及Listener" class="headerlink" title="委派器以及Listener"></a>委派器以及Listener</h1><p>以上代码的<code>$this-&gt;dispatcher</code>是需要从容器里查找 在创建 <code>HttpKernel</code> 这个类的时候初始化了哪些参数。<br>从容器代码中查找分析，委派器类的实例化以及对事件增加 Listebner 的代码。</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># var/cache/prod/appProdProjectContainer.php </span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">getHttpKernelService</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;services[<span class="string">'http_kernel'</span>] = <span class="keyword">new</span> \Symfony\Component\HttpKernel\HttpKernel(</span><br><span class="line">    	<span class="comment">// 这里是dispatcher参数 还是要在容器里取</span></span><br><span class="line">    	$&#123;($_ = <span class="keyword">isset</span>(<span class="keyword">$this</span>-&gt;services[<span class="string">'event_dispatcher'</span>]) ? <span class="keyword">$this</span>-&gt;services[<span class="string">'event_dispatcher'</span>] : <span class="keyword">$this</span>-&gt;get(<span class="string">'event_dispatcher'</span>)) &amp;&amp; <span class="keyword">false</span> ?: <span class="string">'_'</span>&#125;, </span><br><span class="line">    	<span class="comment">// ......</span></span><br><span class="line">    );</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">getEventDispatcherService</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// 实例化 dispatcher</span></span><br><span class="line">    <span class="keyword">$this</span>-&gt;services[<span class="string">'event_dispatcher'</span>] = $instance = <span class="keyword">new</span> \Symfony\Component\EventDispatcher\ContainerAwareEventDispatcher(<span class="keyword">$this</span>);</span><br><span class="line">    <span class="comment">// 添加事件</span></span><br><span class="line">    <span class="comment">// 添加的是</span></span><br><span class="line">    $instance-&gt;addListener(<span class="string">'kernel.response'</span>, <span class="function"><span class="keyword">function</span> <span class="params">(\Symfony\Component\HttpKernel\Event\GetResponseEvent $event)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> $&#123;(</span><br><span class="line">	        	$_ = <span class="keyword">isset</span>(<span class="keyword">$this</span>-&gt;services[<span class="string">'session_listener'</span>]) ? </span><br><span class="line">	        	<span class="keyword">$this</span>-&gt;services[<span class="string">'session_listener'</span>] : </span><br><span class="line">	        	<span class="keyword">$this</span>-&gt;get(<span class="string">'session_listener'</span>)</span><br><span class="line">        	) &amp;&amp; <span class="keyword">false</span> ?: <span class="string">'_'</span>&#125;-&gt;onKernelRequest($event);</span><br><span class="line">    &#125;, <span class="number">128</span>);</span><br><span class="line">    $instance-&gt;addListener(<span class="string">'kernel.request'</span>, <span class="comment">/* ...... */</span>);</span><br><span class="line">    $instance-&gt;addListener(<span class="string">'kernel.finish_request'</span>, <span class="comment">/* ...... */</span>);</span><br><span class="line">    $instance-&gt;addListener(<span class="string">'console.terminate'</span>, <span class="comment">/* ...... */</span>);</span><br><span class="line">    <span class="comment">// ......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="委派器的工作方式"><a href="#委派器的工作方式" class="headerlink" title="委派器的工作方式"></a>委派器的工作方式</h1><p>从上面的代码可以看出，委派器的Listener触发方式 <code>$this-&gt;dispatcher-&gt;dispatch(KernelEvents::REQUEST, $event);</code>。基于此对委派器工作的逻辑代码进行跟中<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Symfony\Component\EventDispatcher\ContainerAwareEventDispatcher</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">getListeners</span><span class="params">($eventName = null)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">null</span> === $eventName) &#123;</span><br><span class="line">        <span class="keyword">foreach</span> (<span class="keyword">$this</span>-&gt;listenerIds <span class="keyword">as</span> $serviceEventName =&gt; $args) &#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;lazyLoad($serviceEventName);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;lazyLoad($eventName);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">parent</span>::getListeners($eventName);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment"># Symfony\Component\EventDispatcher\EventDispatcher</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">dispatch</span><span class="params">($eventName, Event $event = null)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">null</span> === $event) &#123;</span><br><span class="line">        $event = <span class="keyword">new</span> Event();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 针对委派器查询获取 对应的 Listener</span></span><br><span class="line">    <span class="keyword">if</span> ($listeners = <span class="keyword">$this</span>-&gt;getListeners($eventName)) &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;doDispatch($listeners, $eventName, $event);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> $event;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">getListeners</span><span class="params">($eventName = null)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// 对Listeners的处理 排序 过滤等操作</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">null</span> !== $eventName) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!<span class="keyword">isset</span>(<span class="keyword">$this</span>-&gt;listeners[$eventName])) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">array</span>();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!<span class="keyword">isset</span>(<span class="keyword">$this</span>-&gt;sorted[$eventName])) &#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;sortListeners($eventName);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;sorted[$eventName];</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">foreach</span> (<span class="keyword">$this</span>-&gt;listeners <span class="keyword">as</span> $eventName =&gt; $eventListeners) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!<span class="keyword">isset</span>(<span class="keyword">$this</span>-&gt;sorted[$eventName])) &#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;sortListeners($eventName);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> array_filter(<span class="keyword">$this</span>-&gt;sorted);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">doDispatch</span><span class="params">($listeners, $eventName, Event $event)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// 对委派器绑定的Listeners循环处理</span></span><br><span class="line">    <span class="keyword">foreach</span> ($listeners <span class="keyword">as</span> $listener) &#123;</span><br><span class="line">        <span class="keyword">if</span> ($event-&gt;isPropagationStopped()) &#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// Listener绑定的是匿名函数，这里调用匿名函数，做到延迟加载</span></span><br><span class="line">        call_user_func($listener, $event, $eventName, <span class="keyword">$this</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+
+            
+                
+
+            
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/php框架/">php框架</a> <a class="tag tag--primary tag--small t-link" href="/tags/symfony/">symfony</a> <a class="tag tag--primary tag--small t-link" href="/tags/源码分析/">源码分析</a>
+
+            </div>
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/07/06/如何正确的删除软连接/"  data-tooltip="如何正确的删除软连接">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/06/29/symfony源码分析之配置文件加载/" data-tooltip="symfony源码分析之配置文件加载">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2017/06/29/symfony源码分析之事件委派/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2017/06/29/symfony源码分析之事件委派/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2017/06/29/symfony源码分析之事件委派/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+            
+                <div id="ds-thread" class="ds-thread" data-thread-key="2017/06/29/symfony源码分析之事件委派/"
+     data-title="symfony源码分析之事件委派" data-url="/2017/06/29/symfony源码分析之事件委派/">
+</div>
+
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2019 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="3">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/07/06/如何正确的删除软连接/"  data-tooltip="如何正确的删除软连接">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/06/29/symfony源码分析之配置文件加载/" data-tooltip="symfony源码分析之配置文件加载">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2017/06/29/symfony源码分析之事件委派/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2017/06/29/symfony源码分析之事件委派/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2017/06/29/symfony源码分析之事件委派/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="3">
+    <ul class="share-options">
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=/2017/06/29/symfony源码分析之事件委派/">
+                <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2017/06/29/symfony源码分析之事件委派/">
+                <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=/2017/06/29/symfony源码分析之事件委派/">
+                <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><p> good at develop framework </p>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+        <script type="text/javascript">
+            var duoshuoQuery = {short_name:'fantiq'};
+            (function() {
+                var ds = document.createElement('script');
+                ds.type = 'text/javascript';ds.async = true;
+                ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+                ds.charset = 'UTF-8';
+                (document.getElementsByTagName('head')[0]
+                || document.getElementsByTagName('body')[0]).appendChild(ds);
+            })();
+        </script>
+    
+
+
+
+</html>

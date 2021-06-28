@@ -1,0 +1,463 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>symfony源码分析之路由的生成 - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta name="description" content="路由主要有两部分组成，一部分是路由的匹配过程，一部分是路由表的生成过程，这里通过跟中代码看下路由表的生成过程。symfony中的路由是通过 标注(annotation)的形式进行定义的，symfony是通过配置文件进行查找进行路由的解析，最终将路由存储到缓存文件 var/cache/prod/appProdProjectContainerUrlMatcher.php 中。">
+<meta name="keywords" content="symfony,php框架,源码分析">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="symfony源码分析之路由的生成">
+<meta property="og:url" content="/2017/06/29/symfony源码分析之路由的生成/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:description" content="路由主要有两部分组成，一部分是路由的匹配过程，一部分是路由表的生成过程，这里通过跟中代码看下路由表的生成过程。symfony中的路由是通过 标注(annotation)的形式进行定义的，symfony是通过配置文件进行查找进行路由的解析，最终将路由存储到缓存文件 var/cache/prod/appProdProjectContainerUrlMatcher.php 中。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:updated_time" content="2017-06-30T14:13:18.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="symfony源码分析之路由的生成">
+<meta name="twitter:description" content="路由主要有两部分组成，一部分是路由的匹配过程，一部分是路由表的生成过程，这里通过跟中代码看下路由表的生成过程。symfony中的路由是通过 标注(annotation)的形式进行定义的，symfony是通过配置文件进行查找进行路由的解析，最终将路由存储到缓存文件 var/cache/prod/appProdProjectContainerUrlMatcher.php 中。">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="3">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="3">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+            <div id="main" data-behavior="3"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title" itemprop="headline">
+            symfony源码分析之路由的生成
+        </h1>
+    
+    <div class="post-meta">
+    <time itemprop="datePublished" content="Thu Jun 29 2017 20:50:59 GMT+0800">
+	
+		    6月 29, 2017
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/symfony源码分析/">symfony源码分析</a>
+
+
+    
+</div>
+</div>
+    
+    <div class="post-content markdown" itemprop="articleBody">
+        <div class="main-content-wrap">
+            <p>路由主要有两部分组成，一部分是路由的匹配过程，一部分是路由表的生成过程，这里通过跟中代码看下路由表的生成过程。<br>symfony中的路由是通过 标注(annotation)的形式进行定义的，symfony是通过配置文件进行查找进行路由的解析，最终将路由存储到缓存文件 <code>var/cache/prod/appProdProjectContainerUrlMatcher.php</code> 中。</p>
+<a id="more"></a>
+<h1 id="路由调用"><a href="#路由调用" class="headerlink" title="路由调用"></a>路由调用</h1><p>在事件中触发路由的匹配 且将匹配的结果存入 request 中<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Symfony\Component\HttpKernel\EventListener\RouterListener</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">onKernelRequest</span><span class="params">(GetResponseEvent $event)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">$this</span>-&gt;matcher <span class="keyword">instanceof</span> RequestMatcherInterface) &#123;</span><br><span class="line">            <span class="comment">//$this-&gt;matcher 就是 Symfony\Bundle\FrameworkBundle\Routing\Router</span></span><br><span class="line">            <span class="comment">// 这里代码进行路由匹配 以及 路由缓存文件的生成</span></span><br><span class="line">            $parameters = <span class="keyword">$this</span>-&gt;matcher-&gt;matchRequest($request);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            $parameters = <span class="keyword">$this</span>-&gt;matcher-&gt;match($request-&gt;getPathInfo());</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//在事件的这里会将分析出来的参数添加到 request 的 attributes属性中</span></span><br><span class="line">        <span class="comment">// 进行匹配的时候也会读取 request的attributes 属性进行匹配</span></span><br><span class="line">        $request-&gt;attributes-&gt;add($parameters);</span><br><span class="line">        <span class="keyword">unset</span>($parameters[<span class="string">'_route'</span>], $parameters[<span class="string">'_controller'</span>]);</span><br><span class="line">        $request-&gt;attributes-&gt;set(<span class="string">'_route_params'</span>, $parameters);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (ResourceNotFoundException $e) &#123;</span><br><span class="line">        <span class="comment">// ......</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (MethodNotAllowedException $e) &#123;</span><br><span class="line">    	<span class="comment">// ......</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>对路由进行匹配 如果没有路由缓存文件 则生成<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Symfony\Component\Routing\Router</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">getMatcher</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 加载路由缓存文件 var/cache/prod/appProdProjectContainerUrlMatcher.php</span></span><br><span class="line">    $cache = <span class="keyword">$this</span>-&gt;getConfigCacheFactory()-&gt;cache(<span class="keyword">$this</span>-&gt;options[<span class="string">'cache_dir'</span>].<span class="string">'/'</span>.<span class="keyword">$this</span>-&gt;options[<span class="string">'matcher_cache_class'</span>].<span class="string">'.php'</span>,</span><br><span class="line">        <span class="function"><span class="keyword">function</span> <span class="params">(ConfigCacheInterface $cache)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">            <span class="comment">//当路由文件没有生成的时候 这个匿名方法执行，通过配置文件生成路由到缓存文件</span></span><br><span class="line">            $dumper = <span class="keyword">$this</span>-&gt;getMatcherDumperInstance();</span><br><span class="line">            <span class="comment">// ......</span></span><br><span class="line"></span><br><span class="line">            <span class="comment">//这里getRouteCollection 调用的是子类的方法 如下</span></span><br><span class="line">            <span class="comment">//$this-&gt;collection = $this-&gt;container-&gt;get('routing.loader')-&gt;load($this-&gt;resource, $this-&gt;options['resource_type']);</span></span><br><span class="line">            $cache-&gt;write($dumper-&gt;dump($options), <span class="keyword">$this</span>-&gt;getRouteCollection()-&gt;getResources());</span><br><span class="line">        &#125;</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">    <span class="keyword">require_once</span> $cache-&gt;getPath();</span><br><span class="line">    <span class="comment">//这里实例化了缓存的路由信息 var/cache/dev/appDevDebugProjectContainerUrlMatcher.php</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;matcher = <span class="keyword">new</span> <span class="keyword">$this</span>-&gt;options[<span class="string">'matcher_cache_class'</span>](<span class="keyword">$this</span>-&gt;context);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment"># Symfony\Bundle\FrameworkBundle\Routing\Router</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">getRouteCollection</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">null</span> === <span class="keyword">$this</span>-&gt;collection) &#123;</span><br><span class="line">        <span class="comment">//routeCollection 数据主要是在这里获取的，主要是容器 routing.loader =&gt; Symfony\Bundle\FrameworkBundle\Routing\DelegatingLoader();</span></span><br><span class="line">        <span class="keyword">$this</span>-&gt;collection = <span class="keyword">$this</span>-&gt;container-&gt;get(<span class="string">'routing.loader'</span>)-&gt;load(<span class="keyword">$this</span>-&gt;resource, <span class="keyword">$this</span>-&gt;options[<span class="string">'resource_type'</span>]);</span><br><span class="line">        <span class="comment">// ......</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;collection;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="路由缓存文件生成"><a href="#路由缓存文件生成" class="headerlink" title="路由缓存文件生成"></a>路由缓存文件生成</h1><p>如果要生成路由信息会执行如下代码流程<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Symfony\Bundle\FrameworkBundle\Routing\DelegatingLoader</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">load</span><span class="params">($resource, $type = null)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">//获取route collection</span></span><br><span class="line">        $collection = <span class="keyword">parent</span>::load($resource, $type);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;loading = <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">foreach</span> ($collection-&gt;all() <span class="keyword">as</span> $route) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            $controller = <span class="keyword">$this</span>-&gt;parser-&gt;parse($controller);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (\InvalidArgumentException $e) &#123;</span><br><span class="line">            <span class="comment">// unable to optimize unknown notation</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        $route-&gt;setDefault(<span class="string">'_controller'</span>, $controller);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> $collection;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment"># Symfony\Component\Config\Loader\DelegatingLoader</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">load</span><span class="params">($resource, $type = null)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// $loader =&gt; Syfmony\Component\Routing\Loader\YamlFileLoader</span></span><br><span class="line">	<span class="keyword">return</span> $loader-&gt;load($resource, $type);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>重点在 <code>Symfony\Component\Routing\Loader\YamlFileLoader::load</code> 中的代码处理<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Symfony\Component\Routing\Loader\YamlFileLoader</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">load</span><span class="params">($file, $type = null)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 将yaml格式解析成 php 数组</span></span><br><span class="line">        $parsedConfig = <span class="keyword">$this</span>-&gt;yamlParser-&gt;parse(file_get_contents($path), Yaml::PARSE_KEYS_AS_STRINGS);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (ParseException $e) &#123;</span><br><span class="line">    	<span class="comment">// ......</span></span><br><span class="line">    &#125;</span><br><span class="line">    $collection = <span class="keyword">new</span> RouteCollection();</span><br><span class="line">    <span class="comment">// ......</span></span><br><span class="line">    <span class="keyword">foreach</span> ($parsedConfig <span class="keyword">as</span> $name =&gt; $config) &#123;</span><br><span class="line">    	<span class="comment">// 如果路由配置中存在key  resource</span></span><br><span class="line">    	<span class="comment">// 对resource指定的文件目录中的路由定义进行处理</span></span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">isset</span>($config[<span class="string">'resource'</span>])) &#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;parseImport($collection, $config, $path, $file);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        	<span class="comment">// 不存在直接进行路由解析</span></span><br><span class="line">            <span class="keyword">$this</span>-&gt;parseRoute($collection, $name, $config, $path);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">parseImport</span><span class="params">(RouteCollection $collection, array $config, $path, $file)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	$subCollection = <span class="keyword">$this</span>-&gt;import($config[<span class="string">'resource'</span>], $type, <span class="keyword">false</span>, $file);</span><br><span class="line">	$collection-&gt;addCollection($subCollection);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">import</span><span class="params">($resource, $type = null, $ignoreErrors = false, $sourceResource = null)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;doImport($resource, $type, $ignoreErrors, $sourceResource);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">function</span> <span class="title">doImport</span><span class="params">($resource, $type = null, $ignoreErrors = false, $sourceResource = null)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// $loader = \Symfony\Component\Routing\Loader\AnnotationDirectoryLoader</span></span><br><span class="line">        $loader = <span class="keyword">$this</span>-&gt;resolve($resource, $type);</span><br><span class="line">        <span class="comment">// ......</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">        	<span class="comment">// 执行Loader中的 load 方法</span></span><br><span class="line">            $ret = $loader-&gt;load($resource, $type);</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        	<span class="comment">// ......</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> $ret;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (FileLoaderImportCircularReferenceException $e) &#123;</span><br><span class="line">    	<span class="comment">// ......</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (\<span class="keyword">Exception</span> $e) &#123;</span><br><span class="line">    	<span class="comment">// ......</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>通过分析类文件中的标注解析出路由定义<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Syfmony\Component\Routing\Loader\AnnotationLoader</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">load</span><span class="params">($path, $type = null)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    $collection = <span class="keyword">new</span> RouteCollection();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 这里读取 route中 resource 命名空间指定目录的所有文件</span></span><br><span class="line">    $files = iterator_to_array(<span class="keyword">new</span> \RecursiveIteratorIterator(</span><br><span class="line">    	<span class="comment">// 这里使用了php处理目录文件的迭代器</span></span><br><span class="line">        <span class="keyword">new</span> \RecursiveCallbackFilterIterator(</span><br><span class="line">            <span class="keyword">new</span> \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS),</span><br><span class="line">            <span class="function"><span class="keyword">function</span> <span class="params">(\SplFileInfo $current)</span> </span>&#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="string">'.'</span> !== substr($current-&gt;getBasename(), <span class="number">0</span>, <span class="number">1</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        ),</span><br><span class="line">        \RecursiveIteratorIterator::LEAVES_ONLY</span><br><span class="line">    ));</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">foreach</span> ($files <span class="keyword">as</span> $file) &#123;</span><br><span class="line">		<span class="comment">// ......</span></span><br><span class="line">        <span class="keyword">if</span> ($class = <span class="keyword">$this</span>-&gt;findClass($file)) &#123;</span><br><span class="line">            <span class="comment">// 对控制器进行反射处理 如果是absrtact的则不会add到collection</span></span><br><span class="line">            $refl = <span class="keyword">new</span> \ReflectionClass($class);</span><br><span class="line">            <span class="keyword">if</span> ($refl-&gt;isAbstract()) &#123;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 这里的loader对class的标注进行了解析 且 将路由解析的结果封装到RouteCollection返回</span></span><br><span class="line">            $collection-&gt;addCollection(<span class="keyword">$this</span>-&gt;loader-&gt;load($class, $type));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> $collection;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment"># Symfony\Component\Routing\Loader\AnnotationClassLoader</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">load</span><span class="params">($class, $type = null)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">    $class = <span class="keyword">new</span> \ReflectionClass($class);</span><br><span class="line">    <span class="keyword">if</span> ($class-&gt;isAbstract()) &#123;</span><br><span class="line">    	<span class="comment">// 如果是抽象类 抛出异常</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 实例化了 RouteCollection</span></span><br><span class="line">    $collection = <span class="keyword">new</span> RouteCollection();</span><br><span class="line">    $collection-&gt;addResource(<span class="keyword">new</span> FileResource($class-&gt;getFileName()));</span><br><span class="line">    <span class="comment">// 遍历类中的方法</span></span><br><span class="line">    <span class="keyword">foreach</span> ($class-&gt;getMethods() <span class="keyword">as</span> $method) &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;defaultRouteIndex = <span class="number">0</span>;</span><br><span class="line">        <span class="comment">// 对其中的标注进行解析</span></span><br><span class="line">        <span class="keyword">foreach</span> (<span class="keyword">$this</span>-&gt;reader-&gt;getMethodAnnotations($method) <span class="keyword">as</span> $annot) &#123;</span><br><span class="line">            <span class="keyword">if</span> ($annot <span class="keyword">instanceof</span> <span class="keyword">$this</span>-&gt;routeAnnotationClass) &#123;</span><br><span class="line">            	<span class="comment">// 解析结果 addRoute 中添加到$collection</span></span><br><span class="line">                <span class="keyword">$this</span>-&gt;addRoute($collection, $annot, $globals, $class, $method);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// ......</span></span><br><span class="line">    <span class="keyword">return</span> $collection;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment"># Doctrine\Common\Annotations\CachedReader</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">getMethodAnnotations</span><span class="params">(\ReflectionMethod $method)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">false</span> === ($annots = <span class="keyword">$this</span>-&gt;fetchFromCache($cacheKey, $class))) &#123;</span><br><span class="line">    	<span class="comment">// 获取方法中的注释</span></span><br><span class="line">        $annots = <span class="keyword">$this</span>-&gt;delegate-&gt;getMethodAnnotations($method);</span><br><span class="line">        <span class="keyword">$this</span>-&gt;saveToCache($cacheKey, $annots);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;loadedAnnotations[$cacheKey] = $annots;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+
+            
+                
+
+            
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/php框架/">php框架</a> <a class="tag tag--primary tag--small t-link" href="/tags/symfony/">symfony</a> <a class="tag tag--primary tag--small t-link" href="/tags/源码分析/">源码分析</a>
+
+            </div>
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/06/29/symfony源码分析之配置文件加载/"  data-tooltip="symfony源码分析之配置文件加载">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/06/29/symfony源码分析之容器的生成与使用/" data-tooltip="symfony源码分析之容器的生成与使用">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2017/06/29/symfony源码分析之路由的生成/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2017/06/29/symfony源码分析之路由的生成/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2017/06/29/symfony源码分析之路由的生成/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+            
+                <div id="ds-thread" class="ds-thread" data-thread-key="2017/06/29/symfony源码分析之路由的生成/"
+     data-title="symfony源码分析之路由的生成" data-url="/2017/06/29/symfony源码分析之路由的生成/">
+</div>
+
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2019 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="3">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/06/29/symfony源码分析之配置文件加载/"  data-tooltip="symfony源码分析之配置文件加载">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/06/29/symfony源码分析之容器的生成与使用/" data-tooltip="symfony源码分析之容器的生成与使用">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2017/06/29/symfony源码分析之路由的生成/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2017/06/29/symfony源码分析之路由的生成/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2017/06/29/symfony源码分析之路由的生成/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="3">
+    <ul class="share-options">
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=/2017/06/29/symfony源码分析之路由的生成/">
+                <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2017/06/29/symfony源码分析之路由的生成/">
+                <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=/2017/06/29/symfony源码分析之路由的生成/">
+                <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><p> good at develop framework </p>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+        <script type="text/javascript">
+            var duoshuoQuery = {short_name:'fantiq'};
+            (function() {
+                var ds = document.createElement('script');
+                ds.type = 'text/javascript';ds.async = true;
+                ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+                ds.charset = 'UTF-8';
+                (document.getElementsByTagName('head')[0]
+                || document.getElementsByTagName('body')[0]).appendChild(ds);
+            })();
+        </script>
+    
+
+
+
+</html>

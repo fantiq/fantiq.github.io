@@ -1,0 +1,460 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>symfony源码分析之配置文件加载 - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta name="description" content="syfmony框架支持多种形式的配置文件 yaml xml php array ，理解框架的配置加载解析逻辑有利于对框架源代码的理解。这里可以通过框架对config.yaml 的解析过程进行分析来梳理框架对配置文件的解析逻辑。">
+<meta name="keywords" content="symfony,php框架,源码分析">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="symfony源码分析之配置文件加载">
+<meta property="og:url" content="/2017/06/29/symfony源码分析之配置文件加载/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:description" content="syfmony框架支持多种形式的配置文件 yaml xml php array ，理解框架的配置加载解析逻辑有利于对框架源代码的理解。这里可以通过框架对config.yaml 的解析过程进行分析来梳理框架对配置文件的解析逻辑。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:updated_time" content="2017-06-30T15:20:42.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="symfony源码分析之配置文件加载">
+<meta name="twitter:description" content="syfmony框架支持多种形式的配置文件 yaml xml php array ，理解框架的配置加载解析逻辑有利于对框架源代码的理解。这里可以通过框架对config.yaml 的解析过程进行分析来梳理框架对配置文件的解析逻辑。">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="3">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="3">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+            <div id="main" data-behavior="3"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title" itemprop="headline">
+            symfony源码分析之配置文件加载
+        </h1>
+    
+    <div class="post-meta">
+    <time itemprop="datePublished" content="Thu Jun 29 2017 20:51:13 GMT+0800">
+	
+		    6月 29, 2017
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/symfony源码分析/">symfony源码分析</a>
+
+
+    
+</div>
+</div>
+    
+    <div class="post-content markdown" itemprop="articleBody">
+        <div class="main-content-wrap">
+            <p>syfmony框架支持多种形式的配置文件 <code>yaml</code> <code>xml</code> <code>php array</code> ，理解框架的配置加载解析逻辑有利于对框架源代码的理解。这里可以通过框架对config.yaml 的解析过程进行分析来梳理框架对配置文件的解析逻辑。<br><a id="more"></a></p>
+<p>在初始化容器的时候 框架会对 <code>app/config/config.yml</code> 进行处理<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Symfony\Component\HttpKernel\Kernel</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">buildContainer</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (<span class="keyword">null</span> !== $cont = <span class="keyword">$this</span>-&gt;registerContainerConfiguration(<span class="keyword">$this</span>-&gt;getContainerLoader($container))) &#123;</span><br><span class="line">	    $container-&gt;merge($cont);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">getContainerLoader</span><span class="params">(ContainerInterface $container)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    $locator = <span class="keyword">new</span> FileLocator(<span class="keyword">$this</span>);</span><br><span class="line">    $resolver = <span class="keyword">new</span> LoaderResolver(<span class="keyword">array</span>(</span><br><span class="line">        <span class="keyword">new</span> XmlFileLoader($container, $locator),</span><br><span class="line">        <span class="keyword">new</span> YamlFileLoader($container, $locator),</span><br><span class="line">        <span class="keyword">new</span> IniFileLoader($container, $locator),</span><br><span class="line">        <span class="keyword">new</span> PhpFileLoader($container, $locator),</span><br><span class="line">        <span class="keyword">new</span> GlobFileLoader($locator),</span><br><span class="line">        <span class="keyword">new</span> DirectoryLoader($container, $locator),</span><br><span class="line">        <span class="keyword">new</span> ClosureLoader($container),</span><br><span class="line">    ));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> DelegatingLoader($resolver);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment"># AppKernel</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">registerContainerConfiguration</span><span class="params">(LoaderInterface $loader)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    $loader-&gt;load(<span class="keyword">$this</span>-&gt;getRootDir().<span class="string">'/config/config_'</span>.<span class="keyword">$this</span>-&gt;getEnvironment().<span class="string">'.yml'</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>对以上代码进行顺序梳理<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">$loader = <span class="keyword">new</span> DelegatingLoader(</span><br><span class="line">	<span class="keyword">new</span> LoaderResolver([</span><br><span class="line">	    <span class="keyword">new</span> XmlFileLoader($container, $locator),</span><br><span class="line">	    <span class="keyword">new</span> YamlFileLoader($container, $locator),</span><br><span class="line">	    <span class="keyword">new</span> IniFileLoader($container, $locator),</span><br><span class="line">	    <span class="keyword">new</span> PhpFileLoader($container, $locator),</span><br><span class="line">	    <span class="keyword">new</span> GlobFileLoader($locator),</span><br><span class="line">	    <span class="keyword">new</span> DirectoryLoader($container, $locator),</span><br><span class="line">	    <span class="keyword">new</span> ClosureLoader($container),</span><br><span class="line">	])</span><br><span class="line">);</span><br><span class="line">$loader-&gt;load(<span class="keyword">$this</span>-&gt;getRootDir().<span class="string">'/config/config_'</span>.<span class="keyword">$this</span>-&gt;getEnvironment().<span class="string">'.yml'</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment"># Symfony\Component\Config\Loader\DelegatingLoader</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">load</span><span class="params">($resource, $type = null)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// $resolver =&gt; Symfony\Component\Config\Loader\LoaderResolver</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">false</span> === $loader = <span class="keyword">$this</span>-&gt;resolver-&gt;resolve($resource, $type)) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> FileLoaderLoadException($resource, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="keyword">null</span>, $type);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 执行 支持配置文件格式的 loader </span></span><br><span class="line">    <span class="keyword">return</span> $loader-&gt;load($resource, $type);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment"># Symfony\Component\Config\Loader\LoaderResolver</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">resolve</span><span class="params">($resource, $type = null)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	$this-&gt;loaders =&gt; [</span></span><br><span class="line"><span class="comment">		new XmlFileLoader($container, $locator),</span></span><br><span class="line"><span class="comment">	    new YamlFileLoader($container, $locator),</span></span><br><span class="line"><span class="comment">	    new IniFileLoader($container, $locator),</span></span><br><span class="line"><span class="comment">	    new PhpFileLoader($container, $locator),</span></span><br><span class="line"><span class="comment">	    new GlobFileLoader($locator),</span></span><br><span class="line"><span class="comment">	    new DirectoryLoader($container, $locator),</span></span><br><span class="line"><span class="comment">	    new ClosureLoader($container),</span></span><br><span class="line"><span class="comment">	]</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">    <span class="keyword">foreach</span> (<span class="keyword">$this</span>-&gt;loaders <span class="keyword">as</span> $loader) &#123;</span><br><span class="line">    	<span class="comment">// 调用每个loader的 support方法 检查 loader是否支持配置文件的类型</span></span><br><span class="line">        <span class="keyword">if</span> ($loader-&gt;supports($resource, $type)) &#123;</span><br><span class="line">            <span class="keyword">return</span> $loader;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>其实在实例化这些loader的时候是针对当前处理的业务逻辑的<br>比如 实例化容器的时候要用到的Loader <code>Symfony\Component\DependencyInjection\Loader\*</code><br>比如 路由匹配的时候用到的Loader <code>Symfony\Component\Routing\Loader\*</code></p>
+
+            
+                
+
+            
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/php框架/">php框架</a> <a class="tag tag--primary tag--small t-link" href="/tags/symfony/">symfony</a> <a class="tag tag--primary tag--small t-link" href="/tags/源码分析/">源码分析</a>
+
+            </div>
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/06/29/symfony源码分析之事件委派/"  data-tooltip="symfony源码分析之事件委派">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/06/29/symfony源码分析之路由的生成/" data-tooltip="symfony源码分析之路由的生成">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2017/06/29/symfony源码分析之配置文件加载/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2017/06/29/symfony源码分析之配置文件加载/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2017/06/29/symfony源码分析之配置文件加载/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+            
+                <div id="ds-thread" class="ds-thread" data-thread-key="2017/06/29/symfony源码分析之配置文件加载/"
+     data-title="symfony源码分析之配置文件加载" data-url="/2017/06/29/symfony源码分析之配置文件加载/">
+</div>
+
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2019 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="3">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/06/29/symfony源码分析之事件委派/"  data-tooltip="symfony源码分析之事件委派">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017/06/29/symfony源码分析之路由的生成/" data-tooltip="symfony源码分析之路由的生成">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2017/06/29/symfony源码分析之配置文件加载/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2017/06/29/symfony源码分析之配置文件加载/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2017/06/29/symfony源码分析之配置文件加载/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="3">
+    <ul class="share-options">
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=/2017/06/29/symfony源码分析之配置文件加载/">
+                <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2017/06/29/symfony源码分析之配置文件加载/">
+                <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=/2017/06/29/symfony源码分析之配置文件加载/">
+                <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><p> good at develop framework </p>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+        <script type="text/javascript">
+            var duoshuoQuery = {short_name:'fantiq'};
+            (function() {
+                var ds = document.createElement('script');
+                ds.type = 'text/javascript';ds.async = true;
+                ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+                ds.charset = 'UTF-8';
+                (document.getElementsByTagName('head')[0]
+                || document.getElementsByTagName('body')[0]).appendChild(ds);
+            })();
+        </script>
+    
+
+
+
+</html>
