@@ -1,0 +1,527 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>JAVA基础语法特性 - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta name="description" content="总结下JAVA语法方面的特点，JAVA在强类型的前提下实现了较为丰富的语法表达能力，这两点给软件开发提供了强大的工程能力。">
+<meta name="keywords" content="JAVA">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="JAVA基础语法特性">
+<meta property="og:url" content="/2021/05/31/JAVA基础语法特性/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:description" content="总结下JAVA语法方面的特点，JAVA在强类型的前提下实现了较为丰富的语法表达能力，这两点给软件开发提供了强大的工程能力。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:updated_time" content="2021-06-01T09:07:40.392Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="JAVA基础语法特性">
+<meta name="twitter:description" content="总结下JAVA语法方面的特点，JAVA在强类型的前提下实现了较为丰富的语法表达能力，这两点给软件开发提供了强大的工程能力。">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="3">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="3">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+            <div id="main" data-behavior="3"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title" itemprop="headline">
+            JAVA基础语法特性
+        </h1>
+    
+    <div class="post-meta">
+    <time itemprop="datePublished" content="Mon May 31 2021 20:45:22 GMT+0800">
+	
+		    5月 31, 2021
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/JAVA/">JAVA</a>
+
+
+    
+</div>
+</div>
+    
+    <div class="post-content markdown" itemprop="articleBody">
+        <div class="main-content-wrap">
+            <p>总结下JAVA语法方面的特点，JAVA在强类型的前提下实现了较为丰富的语法表达能力，这两点给软件开发提供了强大的工程能力。</p>
+<a id="more"></a>
+<h2 id="基本数据类型"><a href="#基本数据类型" class="headerlink" title="基本数据类型"></a>基本数据类型</h2><h4 id="接口-注解"><a href="#接口-注解" class="headerlink" title="接口 / 注解"></a>接口 / 注解</h4><h6 id="接口的定义"><a href="#接口的定义" class="headerlink" title="接口的定义"></a>接口的定义</h6><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">interface</span> <span class="title">MyInterface</span> &#123;</span><br><span class="line">    <span class="keyword">int</span> attr = <span class="number">0</span>; <span class="comment">// 接口里定义的属性 默认是 public static</span></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">method</span>(<span class="params"></span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>接口中定义的属性默认是 <strong>public static</strong></p>
+<p>接口定义的方法只能是 <strong>抽象</strong> <strong>非静态</strong> 方法</p>
+<p>接口中不能定义静态代码块</p>
+<h6 id="注解定义"><a href="#注解定义" class="headerlink" title="注解定义"></a>注解定义</h6><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">@<span class="keyword">interface</span> <span class="title">MyAnno</span> &#123;</span><br><span class="line">    <span class="function"><span class="keyword">int</span> <span class="title">attr</span>(<span class="params"></span>) <span class="keyword">default</span> 0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>注解是一种特殊的接口，注解在编译后其实其本质还是接口，注解是对定义类信息的增强，具体使用方式下面总结</p>
+<h4 id="类-抽象类"><a href="#类-抽象类" class="headerlink" title="类 / 抽象类"></a>类 / 抽象类</h4><h6 id="类的定义如下"><a href="#类的定义如下" class="headerlink" title="类的定义如下"></a>类的定义如下</h6><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyClass</span> </span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">int</span> id = <span class="number">0</span>;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">method</span><span class="params">(<span class="keyword">int</span> code)</span> </span>&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>类的主要组成部分有 <strong>属性</strong> 和 <strong>方法</strong>，他们共有的有 <code>类型</code> <code>修饰</code> 以及方法有的<code>参数列表</code>，其中修饰部分包括 <code>访问权限</code> <code>以及</code>性质`。</p>
+<p>对于其中的修饰 <code>static</code> 与 <code>final</code> ，<code>static</code> 代表静态，被<code>static</code> 修饰的 类、属性、方法 其性质会发生变化，他会脱离定义的类，不依赖类而存在的，可以参考c语言中的<code>static</code>，编译后运行的二进制文件中这些被静态修饰的数据会放在初始化区域的。对于<code>final</code> 就是<strong>最终</strong>的意思，也就是不能被改变了，对于属性就是其中的值是不能被改变的，包括饮用的对象，对于类和方法，其涉及到的改变可能是类的继承以及方法的覆盖，<code>final</code> 修饰后这些也是不能改变的了。</p>
+<p>抽象类相对简单，类中存在一个抽象方法（没有方法题）这个类就是抽象类 需要用 <code>abstract</code>来修饰</p>
+<h6 id="内部类"><a href="#内部类" class="headerlink" title="内部类"></a>内部类</h6><p>内部类就是在类的内部再次定义类，如果用<code>static</code>修饰的话就是<code>静态内部类</code> 。内部类需要依赖宿主类而存在，若要实例化内部类，需要先实例化宿主类，内部类可以访问宿主类中的所有属性和方法，宿主类却不行。访问类中的内容是需要实例化的，内部类访问宿主类却可以是因为内部类实例化需要依赖宿主类的实例化，也就是说当内部类实例化了宿主类一定实例化了。对于静态内部类可以按照静态的思路来看待，声明为静态后他就是一个独立的类定义，与宿主类并无关系。</p>
+<h4 id="枚举"><a href="#枚举" class="headerlink" title="枚举"></a>枚举</h4><figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> MyEnum &#123;</span><br><span class="line">    FOO(<span class="number">1</span>, <span class="string">"foo"</span>),</span><br><span class="line">    BAR(<span class="number">2</span>, <span class="string">"bar"</span>),</span><br><span class="line">    ;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">int</span> code;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> String <span class="keyword">desc</span>;</span><br><span class="line">    MyEnum(<span class="keyword">int</span> code, String <span class="keyword">desc</span>) &#123;</span><br><span class="line">        <span class="keyword">this</span>.code = code;</span><br><span class="line">        <span class="keyword">this</span>.<span class="keyword">desc</span> = <span class="keyword">desc</span>;</span><br><span class="line">        <span class="comment">// MyEnum.values() 遍历枚举</span></span><br><span class="line">        <span class="comment">// MyEnum.valueOf("") 通过枚举字符串查询枚举</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="面向对象特性"><a href="#面向对象特性" class="headerlink" title="面向对象特性"></a>面向对象特性</h2><h4 id="访问权限"><a href="#访问权限" class="headerlink" title="访问权限"></a>访问权限</h4><p>访问权限表格如下</p>
+<table>
+<thead>
+<tr>
+<th>–</th>
+<th>类内部</th>
+<th>继承子类</th>
+<th>同包名类</th>
+<th>其他</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>public</td>
+<td>Y</td>
+<td>Y</td>
+<td>Y</td>
+<td>Y</td>
+</tr>
+<tr>
+<td>default</td>
+<td>Y</td>
+<td>Y</td>
+<td>Y</td>
+<td>N</td>
+</tr>
+<tr>
+<td>protected</td>
+<td>Y</td>
+<td>Y</td>
+<td>N</td>
+<td>N</td>
+</tr>
+<tr>
+<td>private</td>
+<td>Y</td>
+<td>N</td>
+<td>N</td>
+<td>N</td>
+</tr>
+</tbody>
+</table>
+<h4 id="方法的重载与重写"><a href="#方法的重载与重写" class="headerlink" title="方法的重载与重写"></a>方法的重载与重写</h4><p>重写 <code>@Override</code> 是子类可以重写父类的方法，完全将父类的方法覆盖调</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Parent</span> </span>&#123;</span><br><span class="line">   void method() &#123;</span><br><span class="line">       <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Child</span> <span class="keyword">extends</span> <span class="title">Parent</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 子类重写父类的方法</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    void method() &#123;</span><br><span class="line">        <span class="keyword">super</span>.method(); <span class="comment">// 子类调用父类方法</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">2</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>重载 <code>@Overload</code> 是指可以定义同名不同参的方法，返回类型可相同可不同，不同参数列表可以是数量不同也可以是参数类型不同，距离如下：</p>
+<figure class="highlight oxygene"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> MyClass <span class="comment">&#123;</span></span><br><span class="line"><span class="comment">    void method(int id) &#123;&#125;</span></span><br><span class="line">    <span class="comment">// 参数类型不同</span></span><br><span class="line">    id <span class="function"><span class="keyword">method</span><span class="params">(String id)</span> <span class="comment">&#123;&#125;</span></span></span><br><span class="line"><span class="function">    // 参数数量不同</span></span><br><span class="line"><span class="function">    <span class="title">String</span> <span class="title">method</span><span class="params">(String id, int other)</span> <span class="comment">&#123;&#125;</span></span></span><br><span class="line"><span class="function">&#125;</span></span><br></pre></td></tr></table></figure>
+<h4 id="泛型"><a href="#泛型" class="headerlink" title="泛型"></a>泛型</h4><p>泛型是将类型定义后推，泛型可以用在 <code>接口</code> <code>类</code> 和 <code>方法</code>上面</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 接口定义</span></span><br><span class="line"><span class="class"><span class="keyword">interface</span> <span class="title">MyInterface</span>&lt;<span class="title">T</span>&gt; </span>&#123;</span><br><span class="line">    <span class="function">T <span class="title">method</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 类定义</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyClass</span>&lt;<span class="title">T</span>&gt; </span>&#123;</span><br><span class="line">    <span class="function">T <span class="title">method</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="comment">// 方法中定义</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span>&lt;D&gt; <span class="keyword">void</span> <span class="title">run</span><span class="params">(D arg)</span> </span>&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>泛型中的类型擦除是指代码被编译成字节的时候泛型中指定的类型会被擦除（删除），这带来的问题是在反射的时候无法得到这个类型，当然这样做是为了增加一定的自由，比如如下的泛型使用：</p>
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">List</span> <span class="built_in">list</span> = <span class="literal">new</span> ArrayList&lt;<span class="built_in">Integer</span>&gt;();</span><br></pre></td></tr></table></figure>
+<h2 id="注解与反射"><a href="#注解与反射" class="headerlink" title="注解与反射"></a>注解与反射</h2><h4 id="注解"><a href="#注解" class="headerlink" title="注解"></a>注解</h4><p>注解的使用分为三个部分 <code>定义</code> <code>使用</code> <code>读取</code></p>
+<h6 id="注解定义-1"><a href="#注解定义-1" class="headerlink" title="注解定义"></a>注解定义</h6><figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">@Target</span>(ElementType.METHOD)</span><br><span class="line"><span class="variable">@Retention</span>(RetentionPolicy.RUNTIME)</span><br><span class="line"><span class="variable">@interface</span> MyAnnotation &#123;</span><br><span class="line">    <span class="selector-tag">String</span><span class="selector-attr">[]</span> <span class="selector-tag">value</span>() <span class="selector-tag">default</span> &#123;&#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其中的 <code>@Target(ElementType.METHOD)</code> 指定了注解可以使用的范围 ，这里定义是指定了只能用在方法上</p>
+<p>其中的 <code>@Retention(RetentionPolicy.RUNTIME)</code> 指定了注解信息保留的阶段，可选值有 <code>SOURCE</code> <code>CLASS</code> <code>RUNTIME</code>。<code>SOURCE</code>指定注解信息只保留在源代码中，编译期就会丢弃注解信息。<code>CLASS</code>指定注解信息保留到编译生成的字节码，但是不会被加载到JVM中，这些注解信息在编译过程中是能够被读取到的。<code>RUNTIME</code>是将注解信息保留到在JVM中运行，这样代码里是能够通过反射读取到了。</p>
+<h6 id="注解的使用"><a href="#注解的使用" class="headerlink" title="注解的使用"></a>注解的使用</h6><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">MyClass</span> &#123;</span><br><span class="line">    @MyAnnotation(<span class="keyword">value</span> = &#123;<span class="string">"a"</span>, <span class="string">"b"</span>, <span class="string">"c"</span>&#125;)</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">method</span>(<span class="params"></span>)</span> &#123;&#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span>(<span class="params">String[] args</span>)</span> &#123;</span><br><span class="line">        <span class="comment">// 通过反射获取方法中的注解信息</span></span><br><span class="line">        MyAnnotation myAnnotation = MyClassclass.getMethod(<span class="string">"method"</span>).getAnnotation(MyAnnotation.class);</span><br><span class="line">        <span class="comment">// 读取注解中的信息</span></span><br><span class="line">        myAnnotation.<span class="keyword">value</span>();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="反射"><a href="#反射" class="headerlink" title="反射"></a>反射</h4><p>反射其实就是对字节码信息的封装，方便通过api读取信息，获取反射的方法可以通过类的全名字符串的形式<code>Class.forName(&quot;类的全名包括包名&quot;)</code>，也可以通过类名称的形式 <code>foo.bar.MyClass.class</code>，也可以从一个实例化对象中获取 <code>instance.getClass()</code></p>
+<h2 id="动态代理"><a href="#动态代理" class="headerlink" title="动态代理"></a>动态代理</h2><h4 id="JDK"><a href="#JDK" class="headerlink" title="JDK"></a>JDK</h4><h4 id="cglib"><a href="#cglib" class="headerlink" title="cglib"></a>cglib</h4><h2 id="JVM"><a href="#JVM" class="headerlink" title="JVM"></a>JVM</h2><h4 id="类加载"><a href="#类加载" class="headerlink" title="类加载"></a>类加载</h4><h4 id="内存分配"><a href="#内存分配" class="headerlink" title="内存分配"></a>内存分配</h4><h4 id="GC回收算法"><a href="#GC回收算法" class="headerlink" title="GC回收算法"></a>GC回收算法</h4><p><a href="https://mp.weixin.qq.com/mp/appmsgalbum?__biz=MzI4NDY5Mjc1Mg==&amp;action=getalbum&amp;album_id=1326602114365276164" target="_blank" rel="noopener">JVM系列</a></p>
+
+            
+                
+
+            
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/JAVA/">JAVA</a>
+
+            </div>
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--disabled">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2021/05/27/汇编基础入门/" data-tooltip="汇编基础入门">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2021/05/31/JAVA基础语法特性/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2021/05/31/JAVA基础语法特性/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2021/05/31/JAVA基础语法特性/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+            
+                <div id="ds-thread" class="ds-thread" data-thread-key="2021/05/31/JAVA基础语法特性/"
+     data-title="JAVA基础语法特性" data-url="/2021/05/31/JAVA基础语法特性/">
+</div>
+
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="3">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--disabled">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2021/05/27/汇编基础入门/" data-tooltip="汇编基础入门">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2021/05/31/JAVA基础语法特性/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2021/05/31/JAVA基础语法特性/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2021/05/31/JAVA基础语法特性/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="3">
+    <ul class="share-options">
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=/2021/05/31/JAVA基础语法特性/">
+                <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2021/05/31/JAVA基础语法特性/">
+                <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=/2021/05/31/JAVA基础语法特性/">
+                <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><p> good at develop framework </p>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+        <script type="text/javascript">
+            var duoshuoQuery = {short_name:'fantiq'};
+            (function() {
+                var ds = document.createElement('script');
+                ds.type = 'text/javascript';ds.async = true;
+                ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+                ds.charset = 'UTF-8';
+                (document.getElementsByTagName('head')[0]
+                || document.getElementsByTagName('body')[0]).appendChild(ds);
+            })();
+        </script>
+    
+
+
+
+</html>

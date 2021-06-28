@@ -11,18 +11,18 @@
     
     
     
-    <meta name="description" content="dbg 是一个调试工具，这里记录下他是如何实现对源代码的调试的。一般情况下，在IDE中配置好调试配置，然后在源代码中打断点就可以进行调试了。需要的配置是 1. 指定调试工具 2. 指定运行的可执行文件。那问题是，调试软件gdb 是如何将 可执行文件与源代码文件对应起来的呢？">
+    <meta name="description" content="dbg 是一个调试工具，这里记录下他是如何实现对源代码的调试的。一般情况下，在IDE中配置好调试配置，然后在源代码中打断点就可以进行调试了。需要的配置是 1. 指定调试工具 2. 指定运行的可执行文件。那问题是，调试软件gdb 是如何将 可执行文件与源代码文件对应起来的呢？ gdb 原理gcc编译器的过程是 源代码 -&amp;gt; 预处理代码 -&amp;gt; 汇编代码 -&amp;gt; 目标码 在这个过程中从目">
 <meta name="keywords" content="c,gdb,调试">
 <meta property="og:type" content="blog">
 <meta property="og:title" content="gdb如何实现对c代码的调试的">
 <meta property="og:url" content="/2019/03/11/gdb如何实现对c代码的调试的/index.html">
 <meta property="og:site_name" content="代码狗的狗窝">
-<meta property="og:description" content="dbg 是一个调试工具，这里记录下他是如何实现对源代码的调试的。一般情况下，在IDE中配置好调试配置，然后在源代码中打断点就可以进行调试了。需要的配置是 1. 指定调试工具 2. 指定运行的可执行文件。那问题是，调试软件gdb 是如何将 可执行文件与源代码文件对应起来的呢？">
+<meta property="og:description" content="dbg 是一个调试工具，这里记录下他是如何实现对源代码的调试的。一般情况下，在IDE中配置好调试配置，然后在源代码中打断点就可以进行调试了。需要的配置是 1. 指定调试工具 2. 指定运行的可执行文件。那问题是，调试软件gdb 是如何将 可执行文件与源代码文件对应起来的呢？ gdb 原理gcc编译器的过程是 源代码 -&amp;gt; 预处理代码 -&amp;gt; 汇编代码 -&amp;gt; 目标码 在这个过程中从目">
 <meta property="og:locale" content="zh-cn">
-<meta property="og:updated_time" content="2019-03-11T12:12:43.121Z">
+<meta property="og:updated_time" content="2020-04-20T02:10:13.956Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="gdb如何实现对c代码的调试的">
-<meta name="twitter:description" content="dbg 是一个调试工具，这里记录下他是如何实现对源代码的调试的。一般情况下，在IDE中配置好调试配置，然后在源代码中打断点就可以进行调试了。需要的配置是 1. 指定调试工具 2. 指定运行的可执行文件。那问题是，调试软件gdb 是如何将 可执行文件与源代码文件对应起来的呢？">
+<meta name="twitter:description" content="dbg 是一个调试工具，这里记录下他是如何实现对源代码的调试的。一般情况下，在IDE中配置好调试配置，然后在源代码中打断点就可以进行调试了。需要的配置是 1. 指定调试工具 2. 指定运行的可执行文件。那问题是，调试软件gdb 是如何将 可执行文件与源代码文件对应起来的呢？ gdb 原理gcc编译器的过程是 源代码 -&amp;gt; 预处理代码 -&amp;gt; 汇编代码 -&amp;gt; 目标码 在这个过程中从目">
     
     
         
@@ -211,7 +211,7 @@
     
     <div class="post-content markdown" itemprop="articleBody">
         <div class="main-content-wrap">
-            <p>dbg 是一个调试工具，这里记录下他是如何实现对源代码的调试的。一般情况下，在IDE中配置好调试配置，然后在源代码中打断点就可以进行调试了。需要的配置是 1. 指定调试工具 2. 指定运行的可执行文件。那问题是，调试软件<code>gdb</code> 是如何将 可执行文件与源代码文件对应起来的呢？<br><a id="more"></a></p>
+            <p>dbg 是一个调试工具，这里记录下他是如何实现对源代码的调试的。一般情况下，在IDE中配置好调试配置，然后在源代码中打断点就可以进行调试了。需要的配置是 1. 指定调试工具 2. 指定运行的可执行文件。那问题是，调试软件<code>gdb</code> 是如何将 可执行文件与源代码文件对应起来的呢？</p>
 <h2 id="gdb-原理"><a href="#gdb-原理" class="headerlink" title="gdb 原理"></a>gdb 原理</h2><p>gcc编译器的过程是 <code>源代码 -&gt; 预处理代码 -&gt; 汇编代码 -&gt; 目标码</code> 在这个过程中从目标码到源代码的对应关系是被记录下来的，通过<code>gcc -g</code> 参数会将这些对应关系记录下来。</p>
 <p>我们在运行程序的时候，可以通过在源代码中指定的断点信息 (哪个文件的哪一行) ，通过编译过程产生的对应关系，找到可执行文件的执行处。<br>使用 <code>gcc -g</code> 编译的可执行文件 中会包含源代码信息，可以通过gdb读取到这些信息 以php为例进行演示如下<br><figure class="highlight lsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&gt;gdb</span><br><span class="line">file ./php</span><br><span class="line">l <span class="number">1</span>,<span class="number">20</span> # 查看源代码<span class="number">1</span>到<span class="number">20</span>行</span><br><span class="line">b <span class="number">10</span> # 在第<span class="number">10</span>行进行断点</span><br><span class="line">run # 执行调试</span><br></pre></td></tr></table></figure></p>
 <p>下一步要做的就是干预可执行文件的执行过程了，这个就需要依赖<code>gdb</code> 来实现。<code>gdb</code> 的主要实现是通过系统函数 <code>ptrace</code> 对执行的进程进行侵入式的干预。</p>
@@ -354,7 +354,7 @@
 
                 <footer id="footer" class="main-content-wrap">
     <span class="copyrights">
-        Copyrights &copy; 2019 fantiq. All Rights Reserved.
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
     </span>
 </footer>
 

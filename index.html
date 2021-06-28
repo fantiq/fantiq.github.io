@@ -183,39 +183,40 @@
 <section class="postShorten-group main-content-wrap">
     
     
-    <article class="postShorten postShorten--thumbnailimg-bottom" itemscope itemType="http://schema.org/BlogPosting">
+    <article class="postShorten postShorten--thumbnailimg-right" itemscope itemType="http://schema.org/BlogPosting">
         <div class="postShorten-wrap">
             <div class="postShorten-header">
                 <h1 class="postShorten-title" itemprop="headline">
                     
-                        <a class="link-unstyled" href="/2019/08/13/java基础-反射/">
-                            java基础-反射
+                        <a class="link-unstyled" href="/2021/05/31/JAVA基础语法特性/">
+                            JAVA基础语法特性
                         </a>
                     
                 </h1>
                 <div class="postShorten-meta">
-    <time itemprop="datePublished" content="Tue Aug 13 2019 15:10:06 GMT+0800">
+    <time itemprop="datePublished" content="Mon May 31 2021 20:45:22 GMT+0800">
 	
-		    8月 13, 2019
+		    5月 31, 2021
     	
     </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/JAVA/">JAVA</a>
+
+
     
 </div>
             </div>
             
             
-                <div class="postShorten-content" itemprop="articleBody">
+                <div class="postShorten-excerpt" itemprop="articleBody">
+                    <p>总结下JAVA语法方面的特点，JAVA在强类型的前提下实现了较为丰富的语法表达能力，这两点给软件开发提供了强大的工程能力。</p>
                     
-                    
+                        <a href="/2021/05/31/JAVA基础语法特性/" class="postShorten-excerpt_link link">
+                            阅读全文
+                        </a>
                         
-
-                    
-                    
-                        <p>
-                            <a href="/2019/08/13/java基础-反射/#post-footer" class="postShorten-excerpt_link link">
-                                注释和共享
-                            </a>
-                        </p>
                     
                 </div>
             
@@ -224,39 +225,40 @@
     </article>
     
     
-    <article class="postShorten postShorten--thumbnailimg-bottom" itemscope itemType="http://schema.org/BlogPosting">
+    <article class="postShorten postShorten--thumbnailimg-right" itemscope itemType="http://schema.org/BlogPosting">
         <div class="postShorten-wrap">
             <div class="postShorten-header">
                 <h1 class="postShorten-title" itemprop="headline">
                     
-                        <a class="link-unstyled" href="/2019/08/13/java基础-注解/">
-                            java基础-注解
+                        <a class="link-unstyled" href="/2021/05/27/汇编基础入门/">
+                            汇编基础入门
                         </a>
                     
                 </h1>
                 <div class="postShorten-meta">
-    <time itemprop="datePublished" content="Tue Aug 13 2019 15:10:02 GMT+0800">
+    <time itemprop="datePublished" content="Thu May 27 2021 11:27:32 GMT+0800">
 	
-		    8月 13, 2019
+		    5月 27, 2021
     	
     </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/汇编/">汇编</a>
+
+
     
 </div>
             </div>
             
             
-                <div class="postShorten-content" itemprop="articleBody">
+                <div class="postShorten-excerpt" itemprop="articleBody">
+                    <p>熟悉汇编会对代码的运行过程有一个深入的认知，这里简单总结下汇编的一个整体结构，汇编代码是如何协调CPU与内存、CPU寄存器的作用、高级语言的功能其ASM的实现本质等。</p>
                     
-                    
+                        <a href="/2021/05/27/汇编基础入门/" class="postShorten-excerpt_link link">
+                            阅读全文
+                        </a>
                         
-
-                    
-                    
-                        <p>
-                            <a href="/2019/08/13/java基础-注解/#post-footer" class="postShorten-excerpt_link link">
-                                注释和共享
-                            </a>
-                        </p>
                     
                 </div>
             
@@ -265,20 +267,20 @@
     </article>
     
     
-    <article class="postShorten postShorten--thumbnailimg-bottom" itemscope itemType="http://schema.org/BlogPosting">
+    <article class="postShorten postShorten--thumbnailimg-right" itemscope itemType="http://schema.org/BlogPosting">
         <div class="postShorten-wrap">
             <div class="postShorten-header">
                 <h1 class="postShorten-title" itemprop="headline">
                     
-                        <a class="link-unstyled" href="/2019/08/13/java基础-泛型/">
-                            java基础-泛型
+                        <a class="link-unstyled" href="/2020/05/17/JAVA中HashMap死循环形成过程的分析/">
+                            JAVA中HashMap死循环形成过程的分析
                         </a>
                     
                 </h1>
                 <div class="postShorten-meta">
-    <time itemprop="datePublished" content="Tue Aug 13 2019 15:09:58 GMT+0800">
+    <time itemprop="datePublished" content="Sun May 17 2020 20:23:28 GMT+0800">
 	
-		    8月 13, 2019
+		    5月 17, 2020
     	
     </time>
     
@@ -286,18 +288,13 @@
             </div>
             
             
-                <div class="postShorten-content" itemprop="articleBody">
+                <div class="postShorten-excerpt" itemprop="articleBody">
+                    <p>在JAVA的之前版本，java的hashmap是<code>拉链法</code>的实现，为了防止拉链过长导致哈希查询退化成链表的遍历查询，哈希表会进行扩容，并对元素进行重排。<br>这个情况就是在哈希表重排的时候有并发请求，导致重排进行了两次，从而链表变成了循环链表，这样当读操作读取到这个循环链表则会进入死循环，导致CPU占用率飙升。为了避免这种情况，在创建hashmap的时候使用带锁的hashmap  <code>ConcurrentHashMap</code>。<br>
                     
-                    
+                        <a href="/2020/05/17/JAVA中HashMap死循环形成过程的分析/" class="postShorten-excerpt_link link">
+                            阅读全文
+                        </a>
                         
-
-                    
-                    
-                        <p>
-                            <a href="/2019/08/13/java基础-泛型/#post-footer" class="postShorten-excerpt_link link">
-                                注释和共享
-                            </a>
-                        </p>
                     
                 </div>
             
@@ -306,20 +303,20 @@
     </article>
     
     
-    <article class="postShorten postShorten--thumbnailimg-bottom" itemscope itemType="http://schema.org/BlogPosting">
+    <article class="postShorten postShorten--thumbnailimg-right" itemscope itemType="http://schema.org/BlogPosting">
         <div class="postShorten-wrap">
             <div class="postShorten-header">
                 <h1 class="postShorten-title" itemprop="headline">
                     
-                        <a class="link-unstyled" href="/2019/08/13/java基础-面向对象/">
-                            java基础-面向对象
+                        <a class="link-unstyled" href="/2020/04/20/go-grpc-中的通信证书认证过程/">
+                            go-grpc 中的通信证书认证过程
                         </a>
                     
                 </h1>
                 <div class="postShorten-meta">
-    <time itemprop="datePublished" content="Tue Aug 13 2019 15:08:57 GMT+0800">
+    <time itemprop="datePublished" content="Mon Apr 20 2020 10:03:29 GMT+0800">
 	
-		    8月 13, 2019
+		    4月 20, 2020
     	
     </time>
     
@@ -327,18 +324,14 @@
             </div>
             
             
-                <div class="postShorten-content" itemprop="articleBody">
+                <div class="postShorten-excerpt" itemprop="articleBody">
+                    <p>内容比较乱，需要整理。大致需要解释 证书生成过程/证书如何实现对数据的加密/如何通过跟证书验证加密证书的合法性</p>
+<p>grpc 通信使用的非对称加密</p>
                     
-                    
+                        <a href="/2020/04/20/go-grpc-中的通信证书认证过程/" class="postShorten-excerpt_link link">
+                            阅读全文
+                        </a>
                         
-
-                    
-                    
-                        <p>
-                            <a href="/2019/08/13/java基础-面向对象/#post-footer" class="postShorten-excerpt_link link">
-                                注释和共享
-                            </a>
-                        </p>
                     
                 </div>
             
@@ -616,7 +609,7 @@
 
                 <footer id="footer" class="main-content-wrap">
     <span class="copyrights">
-        Copyrights &copy; 2019 fantiq. All Rights Reserved.
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
     </span>
 </footer>
 

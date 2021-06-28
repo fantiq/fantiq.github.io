@@ -1,0 +1,725 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="代码狗的狗窝">
+    <title>JAVA中HashMap死循环形成过程的分析 - 代码狗的狗窝</title>
+    <meta name="author" content="fantiq">
+    
+    
+    
+    <meta name="description" content="在JAVA的之前版本，java的hashmap是拉链法的实现，为了防止拉链过长导致哈希查询退化成链表的遍历查询，哈希表会进行扩容，并对元素进行重排。这个情况就是在哈希表重排的时候有并发请求，导致重排进行了两次，从而链表变成了循环链表，这样当读操作读取到这个循环链表则会进入死循环，导致CPU占用率飙升。为了避免这种情况，在创建hashmap的时候使用带锁的hashmap  ConcurrentHas">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="JAVA中HashMap死循环形成过程的分析">
+<meta property="og:url" content="/2020/05/17/JAVA中HashMap死循环形成过程的分析/index.html">
+<meta property="og:site_name" content="代码狗的狗窝">
+<meta property="og:description" content="在JAVA的之前版本，java的hashmap是拉链法的实现，为了防止拉链过长导致哈希查询退化成链表的遍历查询，哈希表会进行扩容，并对元素进行重排。这个情况就是在哈希表重排的时候有并发请求，导致重排进行了两次，从而链表变成了循环链表，这样当读操作读取到这个循环链表则会进入死循环，导致CPU占用率飙升。为了避免这种情况，在创建hashmap的时候使用带锁的hashmap  ConcurrentHas">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:updated_time" content="2020-05-17T13:54:23.632Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="JAVA中HashMap死循环形成过程的分析">
+<meta name="twitter:description" content="在JAVA的之前版本，java的hashmap是拉链法的实现，为了防止拉链过长导致哈希查询退化成链表的遍历查询，哈希表会进行扩容，并对元素进行重排。这个情况就是在哈希表重排的时候有并发请求，导致重排进行了两次，从而链表变成了循环链表，这样当读操作读取到这个循环链表则会进入死循环，导致CPU占用率飙升。为了避免这种情况，在创建hashmap的时候使用带锁的hashmap  ConcurrentHas">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="/assets/images/avatar.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-ejlztp1tasruqfvoz6xmgqng0anzae8ox7cqjj5yibieqgcmhe9fwxfae6zj.min.css">
+    <!--STYLES END-->
+    
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="3">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <h1 class="header-title">
+        <a class="header-title-link" href="/ ">代码狗的狗窝</a>
+    </h1>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/avatar.jpg"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="3">
+    
+        <div class="sidebar-profile">
+            <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/avatar.jpg"/>
+            </a>
+            <span class="sidebar-profile-name">fantiq</span>
+        </div>
+    
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/ "
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+                    <span class="sidebar-button-desc">首页</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-categories"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+                    <span class="sidebar-button-desc">分类</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-tags"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+                    <span class="sidebar-button-desc">标签</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="/all-archives"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+                    <span class="sidebar-button-desc">归档</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link st-search-show-outputs"
+                         href="#search"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-search"></i>
+                    <span class="sidebar-button-desc">搜索</span>
+                </a>
+        </li>
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="#about"
+                        
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+                    <span class="sidebar-button-desc">关于</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+        <ul class="sidebar-buttons">
+        
+            <li class="sidebar-button">
+                
+                    <a  class="sidebar-button-link "
+                         href="https://github.com/fantiq"
+                    >
+                
+                    <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+                    <span class="sidebar-button-desc">GitHub</span>
+                </a>
+        </li>
+        
+    </ul>
+    
+</nav>
+
+            
+            <div id="main" data-behavior="3"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post" itemscope itemType="http://schema.org/BlogPosting">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title" itemprop="headline">
+            JAVA中HashMap死循环形成过程的分析
+        </h1>
+    
+    <div class="post-meta">
+    <time itemprop="datePublished" content="Sun May 17 2020 20:23:28 GMT+0800">
+	
+		    5月 17, 2020
+    	
+    </time>
+    
+</div>
+</div>
+    
+    <div class="post-content markdown" itemprop="articleBody">
+        <div class="main-content-wrap">
+            <p>在JAVA的之前版本，java的hashmap是<code>拉链法</code>的实现，为了防止拉链过长导致哈希查询退化成链表的遍历查询，哈希表会进行扩容，并对元素进行重排。<br>这个情况就是在哈希表重排的时候有并发请求，导致重排进行了两次，从而链表变成了循环链表，这样当读操作读取到这个循环链表则会进入死循环，导致CPU占用率飙升。为了避免这种情况，在创建hashmap的时候使用带锁的hashmap  <code>ConcurrentHashMap</code>。<br><a id="more"></a><br>在新的JDK中HashMap的实现略有不同，当链表长度超过一定的值时候，会将链表转成红黑树的结构以提高查找效率。</p>
+<h2 id="哈希表的拉链形式以及扩容"><a href="#哈希表的拉链形式以及扩容" class="headerlink" title="哈希表的拉链形式以及扩容"></a>哈希表的拉链形式以及扩容</h2><p>通过hash计算将key转换成一个范围内的数字，然后用一个数组存储这个kv的指针，这里为了简便将key假设为数字 使用mod计算作为hash计算。当hash冲突的时候通过链表的形式将新的kv增加到链表的头部(增加到头部是因为数组存储的是链表的开始，在头部插入可以避免对链表的遍历可以直接进行插入操作)。</p>
+<h4 id="拉链"><a href="#拉链" class="headerlink" title="拉链"></a>拉链</h4><p>比如将如下kv<code>(5, C) (7, B) (3, A)</code>写入到hashmap，map尺寸为宽度为2的数组 <code>[2]int hashtable</code></p>
+<p>对3进行mod计算 <code>5 % 2 = 1</code> 则 hashtab[1] = {kv: (5, C), next: null}<br>对7进行mod计算 <code>7 % 2 = 1</code> 则 hashtab[1] = {kv: (7, B), next: &amp;kv(5)} {kv: (5, C), next: null}<br>对5进行mod计算 <code>3 % 2 = 1</code> 则 hashtab[1] = {kv: (3, A), next: &amp;kv(7)} {kv: (7, B), next: &amp;kv(5)} {kv: (5, C), next: null}</p>
+<p>最终形成的结构如下: </p>
+<figure class="highlight basic"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="symbol">0 </span>null</span><br><span class="line"><span class="symbol">1 </span>(<span class="number">3</span>, A)-&gt; (<span class="number">7</span>, B)-&gt; (<span class="number">5</span>, C)-&gt; null</span><br></pre></td></tr></table></figure>
+<h4 id="扩容"><a href="#扩容" class="headerlink" title="扩容"></a>扩容</h4><p>将上面hashmap进行扩容，从容量2扩大到容量4，需要对hahsmap中的数据进行重新hash计算并拷贝数据到新的内存中，遍历老的哈希表数据:</p>
+<p>对3进行mod计算 <code>3 % 4 = 3</code> 则 hashtab[3] = {kv: (3, A), next: null}<br>对7进行mod计算 <code>7 % 4 = 3</code> 则 hashtab[3] = {kv: (7, B), next: &amp;kv(3)} {kv: (3, A), next: null}<br>对5进行mod计算 <code>5 % 4 = 1</code> 则 hashtab[1] = {kv: (5, B), next: null}</p>
+<p>最终形成的结构如下:</p>
+<figure class="highlight basic"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="symbol">0 </span>null</span><br><span class="line"><span class="symbol">1 </span>(<span class="number">5</span>, C)-&gt; null</span><br><span class="line"><span class="symbol">2 </span>null</span><br><span class="line"><span class="symbol">3 </span>(<span class="number">7</span>, B)-&gt; (<span class="number">3</span>, A)-&gt; null</span><br></pre></td></tr></table></figure>
+<h2 id="HashMap扩容死循环的形成"><a href="#HashMap扩容死循环的形成" class="headerlink" title="HashMap扩容死循环的形成"></a>HashMap扩容死循环的形成</h2><p>同样，在JDK中的HashMap实现的数据结构也是拉链形式，扩容时候的步骤如下:</p>
+<ol>
+<li>读取旧哈希表的数据</li>
+<li>计算kvpair中k的hash值</li>
+<li>查找对应hash值的链表</li>
+<li>将kvpair插入到链表表头</li>
+</ol>
+<h4 id="扩容算法"><a href="#扩容算法" class="headerlink" title="扩容算法"></a>扩容算法</h4><p>这里使用伪代码表示插入的形式</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> e = oldHashTable &#123;</span><br><span class="line">    <span class="comment">// 遍历老的hashtable数据</span></span><br><span class="line">    <span class="keyword">do</span> &#123;</span><br><span class="line">        <span class="keyword">next</span> = e.<span class="keyword">next</span></span><br><span class="line">        <span class="comment">// 重新计算hash值</span></span><br><span class="line">        h = hash(e.data.key)</span><br><span class="line">        <span class="comment">// 将 e 插入表头</span></span><br><span class="line">        hashtable[h] = e</span><br><span class="line">        e.<span class="keyword">next</span> = hashtable[h]</span><br><span class="line">        <span class="comment">// 遍历</span></span><br><span class="line">        e = <span class="keyword">next</span></span><br><span class="line">    &#125; <span class="keyword">while</span> (e != <span class="keyword">null</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>死循环形成的过程是在遍历老table且将数据插入到新table中的过程，将上面代码精简，只关注这个关键过程<br><figure class="highlight autoit"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">e : 遍历到的元素</span><br><span class="line">head : 链表头指针</span><br><span class="line"></span><br><span class="line"><span class="keyword">do</span> &#123;</span><br><span class="line">    // <span class="keyword">step</span><span class="number">-1</span> 记录链表下一个元素</span><br><span class="line">    <span class="keyword">next</span> = e.<span class="keyword">next</span></span><br><span class="line">    // <span class="keyword">step</span><span class="number">-2</span> 插入表头</span><br><span class="line">    e.<span class="keyword">next</span> = head</span><br><span class="line">    head = e</span><br><span class="line">    // <span class="keyword">step</span><span class="number">-3</span> 循环</span><br><span class="line">    e = <span class="keyword">next</span></span><br><span class="line">&#125; <span class="keyword">while</span> (e != <span class="literal">null</span>)</span><br></pre></td></tr></table></figure></p>
+<h4 id="并发形成死循环"><a href="#并发形成死循环" class="headerlink" title="并发形成死循环"></a>并发形成死循环</h4><p>通过上一步的扩容算法进行推导，为了简便，这里只关注其中的一个链表，因为这个死循环的本质就是单向链表在扩容调整后变成了环形。将上面例子的数据也进行简化，只保留key值和下一个元素的地址 则我们关系的元素只有两个了 <code>A(7, null)</code> <code>B(3, null)</code> ，数组存储的表头地址设为 <code>head</code></p>
+<p>旧哈希表的数据结构如下:<code>head = B</code> <code>A(7, null)</code> <code>B(3, A)</code></p>
+<p>假设有两个线程同时执行到上面代码中的步骤 <code>step-1</code> 此时两个线程中的值如下 <code>e = B</code> <code>next = A</code>。然后让<code>线程-1</code>先执行，直到整个表的扩容调整完成，此时的数据结构如下</p>
+<p><code>head = A</code> <code>A.next = B</code> <code>B.next = null</code></p>
+<p>然后<code>线程-2</code>继续执行，对其进行推导求值。</p>
+<h5 id="第-1-次循环"><a href="#第-1-次循环" class="headerlink" title="第 1 次循环"></a>第 1 次循环</h5><p>初始值:</p>
+<table>
+<thead>
+<tr>
+<th>var</th>
+<th>val</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>e</td>
+<td>B</td>
+</tr>
+<tr>
+<td>next</td>
+<td>A</td>
+</tr>
+<tr>
+<td>head</td>
+<td>null</td>
+</tr>
+<tr>
+<td>A.next</td>
+<td>B</td>
+</tr>
+<tr>
+<td>B.next</td>
+<td>null</td>
+</tr>
+</tbody>
+</table>
+<p>执行代码:</p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>代码</th>
+<th>已知变量</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>2</td>
+<td>e.next = head</td>
+<td>head = null , e = B</td>
+<td>B.next = null</td>
+</tr>
+<tr>
+<td>3</td>
+<td>head=e</td>
+<td>e = B</td>
+<td>head = B</td>
+</tr>
+<tr>
+<td>4</td>
+<td>e=next</td>
+<td>next = A</td>
+<td>e = A</td>
+</tr>
+<tr>
+<td>5</td>
+<td>e != null</td>
+<td>e = A</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<h5 id="第-2-次循环"><a href="#第-2-次循环" class="headerlink" title="第 2 次循环"></a>第 2 次循环</h5><p>上次循环得到的初始值:</p>
+<table>
+<thead>
+<tr>
+<th>var</th>
+<th>val</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>e</td>
+<td>A</td>
+</tr>
+<tr>
+<td>next</td>
+<td>A</td>
+</tr>
+<tr>
+<td>head</td>
+<td>B</td>
+</tr>
+<tr>
+<td>A.next</td>
+<td>B</td>
+</tr>
+<tr>
+<td>B.next</td>
+<td>null</td>
+</tr>
+</tbody>
+</table>
+<p>执行代码:</p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>代码</th>
+<th>已知变量</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>next = e.next</td>
+<td>e = A, A.next = B</td>
+<td>next = B</td>
+</tr>
+<tr>
+<td>2</td>
+<td>e.next = head</td>
+<td>head = B, e = A</td>
+<td>A.next = B</td>
+</tr>
+<tr>
+<td>3</td>
+<td>head=e</td>
+<td>e = A</td>
+<td>head = A</td>
+</tr>
+<tr>
+<td>4</td>
+<td>e=next</td>
+<td>next = B</td>
+<td>e = B</td>
+</tr>
+<tr>
+<td>5</td>
+<td>e != null</td>
+<td>e = B</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<h5 id="第-3-次循环"><a href="#第-3-次循环" class="headerlink" title="第 3 次循环"></a>第 3 次循环</h5><p>上次循环得到的初始值:</p>
+<table>
+<thead>
+<tr>
+<th>var</th>
+<th>val</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>e</td>
+<td>B</td>
+</tr>
+<tr>
+<td>next</td>
+<td>B</td>
+</tr>
+<tr>
+<td>head</td>
+<td>A</td>
+</tr>
+<tr>
+<td>A.next</td>
+<td>B</td>
+</tr>
+<tr>
+<td>B.next</td>
+<td>null</td>
+</tr>
+</tbody>
+</table>
+<p>执行代码:</p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>代码</th>
+<th>已知变量</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>next = e.next</td>
+<td>e = B, B.next = null</td>
+<td>next = null</td>
+</tr>
+<tr>
+<td>2</td>
+<td>e.next = head</td>
+<td>head = A, e = B</td>
+<td>B.next = A</td>
+</tr>
+<tr>
+<td>3</td>
+<td>head=e</td>
+<td>e = B</td>
+<td>head = B</td>
+</tr>
+<tr>
+<td>4</td>
+<td>e=next</td>
+<td>next = null</td>
+<td>e = null</td>
+</tr>
+<tr>
+<td>5</td>
+<td>e != null</td>
+<td>e = null</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<h5 id="循环停止"><a href="#循环停止" class="headerlink" title="循环停止"></a>循环停止</h5><p>此时停止了循环，然后看值的结果如下：</p>
+<table>
+<thead>
+<tr>
+<th>var</th>
+<th>val</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>e</td>
+<td>null</td>
+</tr>
+<tr>
+<td>next</td>
+<td>null</td>
+</tr>
+<tr>
+<td>head</td>
+<td>B</td>
+</tr>
+<tr>
+<td>A.next</td>
+<td>B</td>
+</tr>
+<tr>
+<td>B.next</td>
+<td>A</td>
+</tr>
+</tbody>
+</table>
+<p>查看此时数据 A B 的 next 指针会发现，已经形成了循环链表 <code>A.next = B</code> <code>B.next = A</code>。此时当数据读取到这个链表则会形成死循环的情况。</p>
+<p>参考链接</p>
+<blockquote>
+<p><a href="https://coolshell.cn/articles/9606.html" target="_blank" rel="noopener">疫苗：JAVA HASHMAP的死循环</a></p>
+</blockquote>
+
+            
+                
+
+            
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+        <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2021/05/27/汇编基础入门/"  data-tooltip="汇编基础入门">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2020/04/20/go-grpc-中的通信证书认证过程/" data-tooltip="go-grpc 中的通信证书认证过程">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2020/05/17/JAVA中HashMap死循环形成过程的分析/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2020/05/17/JAVA中HashMap死循环形成过程的分析/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2020/05/17/JAVA中HashMap死循环形成过程的分析/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+            
+                <div id="ds-thread" class="ds-thread" data-thread-key="2020/05/17/JAVA中HashMap死循环形成过程的分析/"
+     data-title="JAVA中HashMap死循环形成过程的分析" data-url="/2020/05/17/JAVA中HashMap死循环形成过程的分析/">
+</div>
+
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2021 fantiq. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="3">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2021/05/27/汇编基础入门/"  data-tooltip="汇编基础入门">
+                
+                    <i class="fa fa-angle-left"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2020/04/20/go-grpc-中的通信证书认证过程/" data-tooltip="go-grpc 中的通信证书认证过程">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions"  href="#btn-open-shareoptions">
+                <i class="fa fa-share-alt"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2020/05/17/JAVA中HashMap死循环形成过程的分析/">
+                <i class="fa fa-google-plus"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2020/05/17/JAVA中HashMap死循环形成过程的分析/">
+                <i class="fa fa-facebook-official"></i>
+            </a>
+        </li>
+        <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2020/05/17/JAVA中HashMap死循环形成过程的分析/">
+                <i class="fa fa-twitter"></i>
+            </a>
+        </li>
+        
+            <li class="post-action">
+                <a class="post-action-btn btn btn--default" href="#ds-thread">
+                    <i class="fa fa-comment-o"></i>
+                </a>
+            </li>
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#">
+            
+                <i class="fa fa-list"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="3">
+    <ul class="share-options">
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=/2020/05/17/JAVA中HashMap死循环形成过程的分析/">
+                <i class="fa fa-google-plus"></i><span class="">分享到 Google+</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2020/05/17/JAVA中HashMap死循环形成过程的分析/">
+                <i class="fa fa-facebook-official"></i><span>分享到 Facebook</span>
+            </a>
+        </li>
+        <li class="share-option">
+            <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=/2020/05/17/JAVA中HashMap死循环形成过程的分析/">
+                <i class="fa fa-twitter"></i><span>分享到 Twitter</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/avatar.jpg"/>
+        
+            <h4 id="about-card-name">fantiq</h4>
+        
+            <h5 id="about-card-bio"><p> good at develop framework </p>
+</h5>
+        
+        
+            <h5 id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>developer</p>
+
+            </h5>
+        
+        
+            <h5 id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                China
+            </h5>
+        
+    </div>
+</div>
+
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+    </body>
+    <!--SCRIPTS-->
+<script src="/assets/js/scrip-gfmrkxcl0qohe3cfdgxhzvc0yrceqta8i4iix0txvn8q4o2adlqd5n0jmkvt.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+        <script type="text/javascript">
+            var duoshuoQuery = {short_name:'fantiq'};
+            (function() {
+                var ds = document.createElement('script');
+                ds.type = 'text/javascript';ds.async = true;
+                ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+                ds.charset = 'UTF-8';
+                (document.getElementsByTagName('head')[0]
+                || document.getElementsByTagName('body')[0]).appendChild(ds);
+            })();
+        </script>
+    
+
+
+
+</html>
